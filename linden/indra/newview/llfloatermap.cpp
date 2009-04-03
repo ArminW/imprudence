@@ -41,6 +41,8 @@
 #include "llregionhandle.h"
 #include "llresizebar.h"
 #include "lluictrlfactory.h"
+#include "llurldispatcher.h"
+#include "llviewerregion.h"
 
 LLFloaterMap::LLFloaterMap(const LLSD& key)
 	:
@@ -50,6 +52,17 @@ LLFloaterMap::LLFloaterMap(const LLSD& key)
 	LLCallbackMap::map_t factory_map;
 	factory_map["mini_mapview"] = LLCallbackMap(createPanelMiniMap, this);
 	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_mini_map.xml", &factory_map, FALSE);
+
+
+	mSlurlEditor = getChild<LLLineEditor>("mini_map_slurl");
+	if (mSlurlEditor)
+	{
+		mSlurlEditor -> setCallbackUserData(this);
+		mSlurlEditor -> setCommitOnFocusLost( FALSE );
+	}
+
+	childSetAction("mini_map_go", onClickMiniMapGo, this);
+	
 }
 
 
@@ -70,6 +83,28 @@ BOOL LLFloaterMap::postBuild()
 	return TRUE;
 }
 
+
+// virtual
+BOOL LLFloaterMap::handleKeyHere( KEY key, MASK mask )
+{
+	BOOL handled = FALSE;
+
+	if( KEY_RETURN == key )
+	{
+		if (mask == MASK_NONE)
+		{
+			if (mSlurlEditor)
+			{
+				std::string location_raw = mSlurlEditor->getText() ;
+				miniMapGo(location_raw);
+				
+			}
+			handled = TRUE;
+		}
+	}
+
+	return handled;
+}
 
 LLFloaterMap::~LLFloaterMap()
 {
@@ -100,7 +135,47 @@ BOOL LLFloaterMap::canClose()
 {
 	return !LLApp::isExiting();
 }
+//static 
+void LLFloaterMap::onClickMiniMapGo( void* userdata )
+{
+	LLFloaterMap* self = (LLFloaterMap*) userdata;
+	std::string location_raw =  self->mSlurlEditor->getText();
+	miniMapGo(location_raw);
+}
+//static 
+void LLFloaterMap::miniMapGo(std::string location_raw)
+{	
+	LLStringUtil::trim(location_raw);
+	if( !location_raw.empty() )
+	{ 
+ 		LLViewerRegion* regionp = gAgent.getRegion();
+		std::string location = location_raw;
 
+		std::string::size_type idx = location_raw.find("://");
+		if ( idx==std::string::npos)
+		{
+			idx = location_raw.find_first_of("0123456789");
+			if (idx || idx==std::string::npos)
+			{
+				location = "sl://"+location_raw;
+			}
+			else
+			{
+				location = "sl://"+regionp->getName()+"/"+location_raw;
+			}
+
+		}
+
+		if(regionp != NULL && LLURLDispatcher::isSLURL(location))
+		{
+			gAgent.teleportViaSLURL(location);
+			gAgent.setControlFlags(AGENT_CONTROL_STAND_UP);//stand up
+		}
+		
+	}
+ 
+
+}
 
 // virtual
 void LLFloaterMap::draw()

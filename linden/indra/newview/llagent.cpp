@@ -106,6 +106,7 @@
 #include "lltoolview.h"
 #include "llui.h"			// for make_ui_sound
 #include "llurldispatcher.h"
+#include "llurlsimstring.h"
 #include "llviewercamera.h"
 #include "llviewerinventory.h"
 #include "llviewermenu.h"
@@ -5993,7 +5994,6 @@ void LLAgent::teleportViaLocation(const LLVector3d& pos_global)
 	}
 }
 
-
 void LLAgent::teleportHome()
 {
 	teleportViaLandmark(LLUUID::null);
@@ -6014,6 +6014,25 @@ void LLAgent::teleportHomeCallback(S32 option, void *userdata)
 	}
 }
 
+void LLAgent::teleportViaSLURL(const std::string& slurl)
+{
+	LLViewerRegion* regionp = getRegion();
+	if(regionp != NULL && LLURLDispatcher::isSLURL(slurl))
+	{
+		// The default URL dispatch is to bring up the about land floater.
+		// We want an actual teleport here.
+		std::string strippedText = LLURLDispatcher::stripProtocol(slurl);
+		std::string region_name;
+		S32 x = 128;
+		S32 y = 128;
+		S32 z = 28;
+		LLURLSimString::parse(strippedText, &region_name, &x, &y, &z);
+
+		std::string commandtext = LLURLDispatcher::buildSLURLCommand("teleport", region_name, x, y, z);
+		LLURLDispatcher::dispatch(commandtext, false);
+	}
+
+}
 
 void LLAgent::setTeleportState(ETeleportState state)
 {

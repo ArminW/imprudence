@@ -55,6 +55,12 @@ public:
 
 	static std::string buildSLURL(const std::string& regionname, S32 x, S32 y, S32 z);
 		//   builds: http://slurl.com/secondlife/RegionName/x/y/z/
+
+	static std::string buildSLURLCommand(const std::string& command, const std::string& regionname, S32 x, S32 y, S32 z);
+		//   builds: http://slurl.com/secondlife/app/command/RegionName/x/y/z
+
+	static std::string stripProtocol(const std::string& url);
+
 };
 
 #endif

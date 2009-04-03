@@ -46,7 +46,10 @@ public:
 
 	static void* createPanelMiniMap(void* data);
 
+
 	BOOL postBuild();
+
+	virtual BOOL handleKeyHere(KEY key, MASK mask);
 
 	/*virtual*/ void	draw();
 	/*virtual*/ void	onOpen();
@@ -54,8 +57,12 @@ public:
 	/*virtual*/ BOOL	canClose();
 
 private:
+	LLLineEditor*	mSlurlEditor;
 	LLFloaterMap(const LLSD& key = LLSD());
 	LLNetMap*		mPanelMap;
+
+	static void	 	onClickMiniMapGo( void* userdata );
+	static void		miniMapGo(std::string location_raw);
 };
 
 #endif  // LL_LLFLOATERMAP_H

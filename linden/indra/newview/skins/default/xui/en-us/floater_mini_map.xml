@@ -3,5 +3,19 @@
 	 can_tear_off="false" follows="top|right" height="220" min_height="64" min_width="64"
 	 name="minimap" rect_control="FloaterMiniMapRect" width="200">
     <panel bottom="2" follows="left|top|right|bottom" height="216" label="Mini Map"
-		 left="2" mouse_opaque="false" name="mini_mapview" width="196" />
+		 left="2" mouse_opaque="false" name="mini_mapview" 
+		 width="196" />
+    <panel bottom="2" follows="left|top|right|bottom" height="216" label="Mini Map"
+	   left="2" mouse_opaque="false" name="mini_mapview_tp" tool_tip="(Double-click to teleport)"
+		 width="196" />
+    <line_editor bevel_style="in" border_style="line" border_thickness="1" bottom="4"
+		 enabled="true" follows="left|right" font="SansSerifSmall"
+		 handle_edit_keys_directly="false" height="14" left="20"
+		 max_length="255" mouse_opaque="true" name="mini_map_slurl"
+		 select_all_on_focus_received="false" select_on_focus="false"
+		 tool_tip="type/paste slurl or region or region/x/y/z or x/y/z to teleport"
+		 width="148" />
+    <button name="mini_map_go"  label="" tool_tip="Go !"
+	    bottom="4" height="14" left="-30"   width="14" follows="right" 
+	    scale_image="true" toggle="false" />
 </floater>

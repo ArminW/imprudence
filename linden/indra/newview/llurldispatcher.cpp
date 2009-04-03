@@ -53,6 +53,7 @@ const std::string SLURL_SL_HELP_PREFIX		= "secondlife://app.";
 const std::string SLURL_SL_PREFIX			= "sl://";
 const std::string SLURL_SECONDLIFE_PREFIX	= "secondlife://";
 const std::string SLURL_SLURL_PREFIX		= "http://slurl.com/secondlife/";
+const std::string SLURL_SECONDLIFE_COM_PREFIX = "http://secondlife.com/";
 
 const std::string SLURL_APP_TOKEN = "app/";
 
@@ -67,6 +68,8 @@ public:
 		// returns true if handled or explicitly blocked.
 
 	static bool dispatchRightClick(const std::string& url);
+
+	static std::string stripProtocol(const std::string& url);
 
 private:
 	static bool dispatchCore(const std::string& url, 
@@ -98,8 +101,6 @@ private:
 
 	static bool matchPrefix(const std::string& url, const std::string& prefix);
 	
-	static std::string stripProtocol(const std::string& url);
-
 	friend class LLTeleportHandler;
 };
 
@@ -110,6 +111,7 @@ bool LLURLDispatcherImpl::isSLURL(const std::string& url)
 	if (matchPrefix(url, SLURL_SL_PREFIX)) return true;
 	if (matchPrefix(url, SLURL_SECONDLIFE_PREFIX)) return true;
 	if (matchPrefix(url, SLURL_SLURL_PREFIX)) return true;
+	if (matchPrefix(url, SLURL_SECONDLIFE_COM_PREFIX)) return true;
 	return false;
 }
 
@@ -118,7 +120,8 @@ bool LLURLDispatcherImpl::isSLURLCommand(const std::string& url)
 { 
 	if (matchPrefix(url, SLURL_SL_PREFIX + SLURL_APP_TOKEN)
 		|| matchPrefix(url, SLURL_SECONDLIFE_PREFIX + "/" + SLURL_APP_TOKEN)
-		|| matchPrefix(url, SLURL_SLURL_PREFIX + SLURL_APP_TOKEN) )
+		|| matchPrefix(url, SLURL_SLURL_PREFIX + SLURL_APP_TOKEN) 
+		|| matchPrefix(url, SLURL_SECONDLIFE_COM_PREFIX + SLURL_APP_TOKEN) )
 	{
 		return true;
 	}
@@ -146,7 +149,6 @@ bool LLURLDispatcherImpl::dispatchCore(const std::string& url, bool from_externa
 // static
 bool LLURLDispatcherImpl::dispatch(const std::string& url, bool from_external_browser)
 {
-	llinfos << "url: " << url << llendl;
 	const bool right_click = false;
 	return dispatchCore(url, from_external_browser, right_click);
 }
@@ -154,7 +156,6 @@ bool LLURLDispatcherImpl::dispatch(const std::string& url, bool from_external_br
 // static
 bool LLURLDispatcherImpl::dispatchRightClick(const std::string& url)
 {
-	llinfos << "url: " << url << llendl;
 	const bool from_external_browser = false;
 	const bool right_click = true;
 	return dispatchCore(url, from_external_browser, right_click);
@@ -349,6 +350,10 @@ std::string LLURLDispatcherImpl::stripProtocol(const std::string& url)
 	{
 		stripped.erase(0, SLURL_SLURL_PREFIX.length());
 	}
+	else if (matchPrefix(stripped, SLURL_SECONDLIFE_COM_PREFIX))
+	{
+		stripped.erase(0, SLURL_SECONDLIFE_COM_PREFIX.length());
+	}
 	return stripped;
 }
 
@@ -424,4 +429,18 @@ std::string LLURLDispatcher::buildSLURL(const std::string& regionname, S32 x, S3
 	std::string slurl = SLURL_SLURL_PREFIX + regionname + llformat("/%d/%d/%d",x,y,z); 
 	slurl = LLWeb::escapeURL( slurl );
 	return slurl;
+}
+
+// static 
+std::string LLURLDispatcher::buildSLURLCommand(const std::string& command, const std::string& regionname, S32 x, S32 y, S32 z)
+{
+	std::string slurl = SLURL_SECONDLIFE_COM_PREFIX + SLURL_APP_TOKEN + command + "/" + regionname + llformat("/%d/%d/%d",x,y,z); 
+	slurl = LLWeb::escapeURL( slurl );
+	return slurl;
+}
+
+// static
+std::string LLURLDispatcher::stripProtocol(const std::string& url)
+{
+	return LLURLDispatcherImpl::stripProtocol(url);
 }
