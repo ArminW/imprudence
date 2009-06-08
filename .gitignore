@@ -5,7 +5,33 @@
 # Since we only care about the actual source code files,
 # all the artwork and libraries are ignored, as are the
 # files that are created when you compile.
-# 
+#
+
+# STUFF
+
+*~
+*.*~
+*.orig
+*.diff
+*.patch
+*.rej
+carpet/
+mypatches/
+
+.gitignore
+
+# STUFF
+
+*~
+*.*~
+*.diff
+*.rej
+*.old
+*.new
+*.patch
+rug/
+mypatches/
+
 
 # ARTWORK
 
@@ -41,3 +67,4 @@ linden/installed.xml
 linden/indra/CMakeFiles
 linden/indra/temp
 linden/indra/test_apps
+*.pyc
