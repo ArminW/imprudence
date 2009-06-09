@@ -1,0 +1,169 @@
+From 7cad9c234826c513db6826a477de51a9f52880b8 Mon Sep 17 00:00:00 2001
+From: Armin Weatherwax <Armin.Weatherwax@gmail.com>
+Date: Fri, 19 Jun 2009 14:09:27 +0200
+Subject: quick hack: preview animation locally on own avatar when uploading.
+
+	modified:   linden/indra/newview/app_settings/settings.xml
+	modified:   linden/indra/newview/llfloateranimpreview.cpp
+	modified:   linden/indra/newview/llfloateranimpreview.h
+	modified:   linden/indra/newview/skins/default/xui/en-us/floater_animation_preview.xml
+---
+ linden/indra/newview/app_settings/settings.xml     |   14 +++++++-------
+ linden/indra/newview/llfloateranimpreview.cpp      |   16 ++++++++++++----
+ linden/indra/newview/llfloateranimpreview.h        |   11 +++++++----
+ .../xui/en-us/floater_animation_preview.xml        |    4 ++--
+ 4 files changed, 28 insertions(+), 17 deletions(-)
+
+diff --git a/linden/indra/newview/app_settings/settings.xml b/linden/indra/newview/app_settings/settings.xml
+index 9537e81376464f54545022511434360b876bc71f..d2ebb8de03d34f6a7c761b61cb05999055e0af02 100644
+--- a/linden/indra/newview/app_settings/settings.xml
++++ b/linden/indra/newview/app_settings/settings.xml
+@@ -5486,10 +5486,10 @@
+       <string>Rect</string>
+       <key>Value</key>
+       <array>
+-        <integer>0</integer>
+-        <integer>85</integer>
+-        <integer>300</integer>
+-        <integer>0</integer>
++       <integer>11</integer>
++       <integer>459</integer>
++       <integer>311</integer>
++       <integer>173</integer>
+       </array>
+     </map>
+     <key>PreviewClassifiedRect</key>
+@@ -5550,9 +5550,9 @@
+       <string>Rect</string>
+       <key>Value</key>
+       <array>
+-        <integer>0</integer>
+-        <integer>85</integer>
+-        <integer>300</integer>
++	<integer>0</integer>
++	<integer>530</integer>
++	<integer>420</integer>
+         <integer>0</integer>
+       </array>
+     </map>
+diff --git a/linden/indra/newview/llfloateranimpreview.cpp b/linden/indra/newview/llfloateranimpreview.cpp
+index c75f9e3c590934dfb0b95460766f534e9d966e97..1c5fe886a7c12c53e21506f01c3805aafb2910d9 100644
+--- a/linden/indra/newview/llfloateranimpreview.cpp
++++ b/linden/indra/newview/llfloateranimpreview.cpp
+@@ -320,6 +320,7 @@ BOOL LLFloaterAnimPreview::postBuild()
+ 			seconds_string = llformat(" - %.2f seconds", motionp->getDuration());
+ 
+ 			setTitle(mFilename + std::string(seconds_string));
++
+ 		}
+ 		else
+ 		{
+@@ -365,6 +366,13 @@ BOOL LLFloaterAnimPreview::postBuild()
+ //-----------------------------------------------------------------------------
+ LLFloaterAnimPreview::~LLFloaterAnimPreview()
+ {
++	if (mMotionID.notNull() && mAnimPreview)
++	{
++		mAnimPreview->getDummyAvatar()->deactivateAllMotions();
++		mAnimPreview->getDummyAvatar()->removeMotion(mMotionID);
++		LLKeyframeDataCache::removeKeyframeData(mMotionID);
++	}
++
+ 	delete mAnimPreview;
+ 	mAnimPreview = NULL;
+ 
+@@ -383,7 +391,7 @@ void LLFloaterAnimPreview::draw()
+ 
+ 	if (mMotionID.notNull() && mAnimPreview)
+ 	{
+-		gGL.color3f(1.f, 1.f, 1.f);
++/*		gGL.color3f(1.f, 1.f, 1.f);
+ 
+ 		gGL.getTexUnit(0)->bind(mAnimPreview->getTexture());
+ 
+@@ -401,7 +409,7 @@ void LLFloaterAnimPreview::draw()
+ 		gGL.end();
+ 
+ 		gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+-
++*/
+ 		LLVOAvatar* avatarp = mAnimPreview->getDummyAvatar();
+ 		if (!avatarp->areAnimationsPaused())
+ 		{
+@@ -445,7 +453,7 @@ void LLFloaterAnimPreview::resetMotion()
+ 		mPauseRequest = NULL;	
+ 	}
+ }
+-
++/*
+ //-----------------------------------------------------------------------------
+ // handleMouseDown()
+ //-----------------------------------------------------------------------------
+@@ -547,7 +555,7 @@ void LLFloaterAnimPreview::onMouseCaptureLost()
+ {
+ 	gViewerWindow->showCursor();
+ }
+-
++*/
+ //-----------------------------------------------------------------------------
+ // onBtnPlay()
+ //-----------------------------------------------------------------------------
+diff --git a/linden/indra/newview/llfloateranimpreview.h b/linden/indra/newview/llfloateranimpreview.h
+index cc4cca38c96f6e2539a5486c5d938dcedd178de0..b6a2ebc76902a7d221117a0409bbecf98d7655f5 100644
+--- a/linden/indra/newview/llfloateranimpreview.h
++++ b/linden/indra/newview/llfloateranimpreview.h
+@@ -31,7 +31,7 @@
+ 
+ #ifndef LL_LLFLOATERANIMPREVIEW_H
+ #define LL_LLFLOATERANIMPREVIEW_H
+-
++#include "llagent.h"
+ #include "llfloaternamedesc.h"
+ #include "lldynamictexture.h"
+ #include "llcharacter.h"
+@@ -54,7 +54,10 @@ public:
+ 	void	pan(F32 right, F32 up);
+ 	virtual BOOL needsUpdate() { return mNeedsUpdate; }
+ 
+-	LLVOAvatar* getDummyAvatar() { return mDummyAvatar; }
++//	LLVOAvatar* getDummyAvatar() { return mDummyAvatar; }
++//	HACK:don't get a dummy...
++	LLVOAvatar* getDummyAvatar() { return gAgent.getAvatarObject();} 
++
+ 
+ protected:
+ 	BOOL				mNeedsUpdate;
+@@ -74,13 +77,13 @@ public:
+ 	virtual ~LLFloaterAnimPreview();
+ 	
+ 	BOOL postBuild();
+-
++/*
+ 	BOOL handleMouseDown(S32 x, S32 y, MASK mask);
+ 	BOOL handleMouseUp(S32 x, S32 y, MASK mask);
+ 	BOOL handleHover(S32 x, S32 y, MASK mask);
+ 	BOOL handleScrollWheel(S32 x, S32 y, S32 clicks); 
+ 	void onMouseCaptureLost();
+-
++*/
+ 	void refresh();
+ 
+ 	static void	onBtnPlay(void*);
+diff --git a/linden/indra/newview/skins/default/xui/en-us/floater_animation_preview.xml b/linden/indra/newview/skins/default/xui/en-us/floater_animation_preview.xml
+index 4038f4f0ec7d1cd7da2ebb53aeb795e1988b8087..9dc8af9cf979aeaa919056af9ae5379287cdf55b 100644
+--- a/linden/indra/newview/skins/default/xui/en-us/floater_animation_preview.xml
++++ b/linden/indra/newview/skins/default/xui/en-us/floater_animation_preview.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+ <floater can_close="true" can_drag_on_left="false" can_minimize="false"
+-     can_resize="false" height="556" min_height="556" min_width="300"
+-     name="Animation Preview" title="" width="300">
++     can_resize="false" height="286" min_height="286" min_width="300"
++     name="Animation Preview"  rect_control="PreviewAnimRect" title="" width="300">
+ 	<pad height="12" />
+ 	<text follows="top|left" height="15" left="10" name="name_label">
+ 		Name:
+-- 
+1.5.6.5
+
+

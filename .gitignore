@@ -11,20 +11,6 @@
 
 *~
 *.*~
-*.orig
-*.diff
-*.patch
-*.rej
-
-rug/
-mypatches/
-
-.gitignore
-
-# STUFF
-
-*~
-*.*~
 *.rej
 *.old
 *.new

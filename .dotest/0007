@@ -1,0 +1,65 @@
+From ee6b1ea3b5a86631a60c23c3349d00a84ddcc666 Mon Sep 17 00:00:00 2001
+From: McCabe Maxsted <hakushakukun@gmail.com>
+Date: Thu, 11 Jun 2009 05:51:06 -0700
+Subject: Added patch and .pyc files to .gitignore
+
+---
+ .gitignore    |    9 ++++++---
+ ChangeLog.txt |    5 +++++
+ 2 files changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/.gitignore b/.gitignore
+index 14dc8e8f3de46b8f134f5817cc3113939e187717..232b35e65953723e7f1c0bfc6bf2770fe3e98e95 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -11,11 +11,9 @@
+ 
+ *~
+ *.*~
+-*.diff
+ *.rej
+ *.old
+ *.new
+-*.patch
+ rug/
+ mypatches/
+ 
+@@ -45,6 +43,7 @@ linden/indra/newview/vivox-runtime/
+ linden/libraries/
+ linden/indra/lib_releasefordownload_client/
+ linden/indra/llwindow/glh/
++*.pyc
+ 
+ 
+ # COMPILED STUFF
+@@ -54,4 +53,8 @@ linden/installed.xml
+ linden/indra/CMakeFiles
+ linden/indra/temp
+ linden/indra/test_apps
+-*.pyc
+\ No newline at end of file
++
++# PATCHES 
++
++*.diff
++*.patch
+diff --git a/ChangeLog.txt b/ChangeLog.txt
+index 3de88148cc3d70be06c143d0d3e3aebe6178d7bc..3994bb660bd7902e41d8e2ab94da391863fbad4d 100644
+--- a/ChangeLog.txt
++++ b/ChangeLog.txt
+@@ -13,6 +13,11 @@
+ 		new file:   linden/indra/newview/skins/default/xui/en-us/menu_mini_map.xml
+ 		new file:   linden/indra/newview/skins/default/xui/en-us/panel_mini_map.xml
+ 		
++		
++	* Added patch and .pyc files to .gitignore.
++		 
++		modified:   .gitignore
++		
+ 
+ 	* Added Link/Unlink buttons to the Tools floater.
+ 	
+-- 
+1.5.6.5
+
+

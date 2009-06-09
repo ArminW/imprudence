@@ -1,0 +1,54 @@
+From b66977365a4bf0079510cc2098eab3790d79ff65 Mon Sep 17 00:00:00 2001
+From: McCabe Maxsted <hakushakukun@gmail.com>
+Date: Thu, 11 Jun 2009 04:51:48 -0700
+Subject: Fixed 'Unlink' not toggling in Tools menu
+
+---
+ ChangeLog.txt                         |    5 +++++
+ linden/indra/newview/llviewermenu.cpp |   12 ++++++++++--
+ 2 files changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/ChangeLog.txt b/ChangeLog.txt
+index 8d7ea8a60b0cb859cb8fd252830201e38b34b990..2e1dcc2cbab4db131a048d2a4cb93c85b3a5cbf9 100644
+--- a/ChangeLog.txt
++++ b/ChangeLog.txt
+@@ -19,6 +19,11 @@
+ 		modified:   linden/indra/newview/llfloatertools.cpp
+ 		modified:   linden/indra/newview/llfloatertools.h
+ 		modified:   linden/indra/newview/skins/default/xui/en-us/floater_tools.xml
++		
++		
++	* Fixed 'Unlink' not toggling in Tools menu.
++		
++		modified:   linden/indra/newview/llviewermenu.cpp
+ 
+ 
+ 2009-06-10  McCabe Maxsted  <hakushakukun@gmail.com>
+diff --git a/linden/indra/newview/llviewermenu.cpp b/linden/indra/newview/llviewermenu.cpp
+index 77239ac9e1f30108fb23c68ad133c20667f57b40..94a14a74d3f32ca11a32892e12b7b582e2f73b41 100644
+--- a/linden/indra/newview/llviewermenu.cpp
++++ b/linden/indra/newview/llviewermenu.cpp
+@@ -4197,9 +4197,17 @@ class LLToolsEnableUnlink : public view_listener_t
+ {
+ 	bool handleEvent(LLPointer<LLEvent> event, const LLSD& userdata)
+ 	{
+-		bool new_value = LLSelectMgr::getInstance()->selectGetAllRootsValid() &&
++		bool new_value = false;
++		if (LLSelectMgr::getInstance()->selectGetAllRootsValid() &&
+ 			LLSelectMgr::getInstance()->getSelection()->getFirstEditableObject() &&
+-			!LLSelectMgr::getInstance()->getSelection()->getFirstEditableObject()->isAttachment();
++			!LLSelectMgr::getInstance()->getSelection()->getFirstEditableObject()->isAttachment())
++		{
++			if (LLSelectMgr::getInstance()->getSelection()->getRootObjectCount() != 
++				LLSelectMgr::getInstance()->getSelection()->getObjectCount())
++			{
++				new_value = true;
++			}
++		}
+ 		gMenuHolder->findControl(userdata["control"].asString())->setValue(new_value);
+ 		return true;
+ 	}
+-- 
+1.5.6.5
+
+

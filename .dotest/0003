@@ -1,0 +1,120 @@
+From 0f41ddca6ed983588a454e7ee7db6a83c2e337e7 Mon Sep 17 00:00:00 2001
+From: Armin Weatherwax <Armin.Weatherwax@gmail.com>
+Date: Tue, 19 May 2009 14:19:37 +0200
+Subject: Teleport by double clicking into the viewer window. Port and bugfix of cv port of emerald greenlife viewer feature. TODO: find a nice place in prefs to switch off (defaults to on).
+
+	modified:   linden/indra/newview/app_settings/settings.xml
+	modified:   linden/indra/newview/lltoolpie.cpp
+	modified:   linden/indra/newview/llviewermenu.cpp
+---
+ linden/indra/newview/app_settings/settings.xml |   11 +++++
+ linden/indra/newview/lltoolpie.cpp             |    2 +-
+ linden/indra/newview/llviewermenu.cpp          |   51 ++++++++++++++----------
+ 3 files changed, 42 insertions(+), 22 deletions(-)
+
+diff --git a/linden/indra/newview/app_settings/settings.xml b/linden/indra/newview/app_settings/settings.xml
+index 4947c457d0498f8495f0c36046b4965d46401e59..9537e81376464f54545022511434360b876bc71f 100644
+--- a/linden/indra/newview/app_settings/settings.xml
++++ b/linden/indra/newview/app_settings/settings.xml
+@@ -2245,6 +2245,17 @@
+       <key>Value</key>
+       <integer>0</integer>
+     </map>
++    <key>DoubleClickTeleport</key>
++    <map>
++      <key>Comment</key>
++      <string>Enable double-click teleport</string>
++      <key>Persist</key>
++      <integer>1</integer>
++      <key>Type</key>
++      <string>Boolean</string>
++      <key>Value</key>
++      <integer>1</integer>
++    </map>
+     <key>DragAndDropToolTipDelay</key>
+     <map>
+       <key>Comment</key>
+diff --git a/linden/indra/newview/lltoolpie.cpp b/linden/indra/newview/lltoolpie.cpp
+index 27d1c4cc3d20f5e8f942f6f1a42b30beccc38ab6..7f3bd82b69d916950926376b0ed7141e2114f924 100644
+--- a/linden/indra/newview/lltoolpie.cpp
++++ b/linden/indra/newview/lltoolpie.cpp
+@@ -635,7 +635,7 @@ BOOL LLToolPie::handleDoubleClick(S32 x, S32 y, MASK mask)
+ 		llinfos << "LLToolPie handleDoubleClick (becoming mouseDown)" << llendl;
+ 	}
+ 
+-	if (gSavedSettings.getBOOL("DoubleClickAutoPilot"))
++	if (gSavedSettings.getBOOL("DoubleClickAutoPilot") || gSavedSettings.getBOOL("DoubleClickTeleport"))
+ 	{
+ 		if (mPick.mPickType == LLPickInfo::PICK_LAND
+ 			&& !mPick.mPosGlobal.isExactlyZero())
+diff --git a/linden/indra/newview/llviewermenu.cpp b/linden/indra/newview/llviewermenu.cpp
+index 4dedf49c5df78a88bda3fbb4e28803473dbaa23d..77239ac9e1f30108fb23c68ad133c20667f57b40 100644
+--- a/linden/indra/newview/llviewermenu.cpp
++++ b/linden/indra/newview/llviewermenu.cpp
+@@ -2106,32 +2106,41 @@ class LLObjectMute : public view_listener_t
+ 
+ bool handle_go_to()
+ {
+-	// JAMESDEBUG try simulator autopilot
+-	std::vector<std::string> strings;
+-	std::string val;
+ 	LLVector3d pos = LLToolPie::getInstance()->getPick().mPosGlobal;
+-	val = llformat("%g", pos.mdV[VX]);
+-	strings.push_back(val);
+-	val = llformat("%g", pos.mdV[VY]);
+-	strings.push_back(val);
+-	val = llformat("%g", pos.mdV[VZ]);
+-	strings.push_back(val);
+-	send_generic_message("autopilot", strings);
+-
+-	LLViewerParcelMgr::getInstance()->deselectLand();
+-
+-	if (gAgent.getAvatarObject() && !gSavedSettings.getBOOL("AutoPilotLocksCamera"))
++	if (gSavedSettings.getBOOL("DoubleClickTeleport"))
+ 	{
+-		gAgent.setFocusGlobal(gAgent.getFocusTargetGlobal(), gAgent.getAvatarObject()->getID());
++		LLVector3d hips_offset(0.0f, 0.0f, 1.2f);
++		gAgent.setControlFlags(AGENT_CONTROL_STAND_UP);
++		gAgent.teleportViaLocation(pos + hips_offset);
+ 	}
+-	else 
++	else
+ 	{
+-		// Snap camera back to behind avatar
+-		gAgent.setFocusOnAvatar(TRUE, ANIMATE);
+-	}
++		// JAMESDEBUG try simulator autopilot
++		std::vector<std::string> strings;
++		std::string val;
++		val = llformat("%g", pos.mdV[VX]);
++		strings.push_back(val);
++		val = llformat("%g", pos.mdV[VY]);
++		strings.push_back(val);
++		val = llformat("%g", pos.mdV[VZ]);
++		strings.push_back(val);
++		send_generic_message("autopilot", strings);
++
++		LLViewerParcelMgr::getInstance()->deselectLand();
+ 
+-	// Could be first use
+-	LLFirstUse::useGoTo();
++		if (gAgent.getAvatarObject() && !gSavedSettings.getBOOL("AutoPilotLocksCamera"))
++		{
++			gAgent.setFocusGlobal(gAgent.getFocusTargetGlobal(), gAgent.getAvatarObject()->getID());
++		}
++		else 
++		{
++			// Snap camera back to behind avatar
++			gAgent.setFocusOnAvatar(TRUE, ANIMATE);
++		}
++
++		// Could be first use
++		LLFirstUse::useGoTo();
++	}
+ 	return true;
+ }
+ 
+-- 
+1.5.6.5
+
+
