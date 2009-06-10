@@ -15,6 +15,7 @@
 *.diff
 *.patch
 *.rej
+
 rug/
 mypatches/
 
