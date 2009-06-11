@@ -54,7 +54,6 @@ linden/indra/CMakeFiles
 linden/indra/temp
 linden/indra/test_apps
 
-
 # PATCHES 
 
 *.diff

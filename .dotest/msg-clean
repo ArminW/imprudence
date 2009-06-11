@@ -1,9 +1,1 @@
-Mini map teleport reloaded: type slurl or region or region/x/y/z or x/y/z into the new lineeditor in the mini map for teleporting.
-
-	modified:   linden/indra/newview/llagent.cpp
-	modified:   linden/indra/newview/llagent.h
-	modified:   linden/indra/newview/llfloatermap.cpp
-	modified:   linden/indra/newview/llfloatermap.h
-	modified:   linden/indra/newview/llurldispatcher.cpp
-	modified:   linden/indra/newview/llurldispatcher.h
-	modified:   linden/indra/newview/skins/default/xui/en-us/floater_mini_map.xml
+Added patch and .pyc files to .gitignore

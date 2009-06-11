@@ -129,7 +129,6 @@
 		 
 		modified:   .gitignore
 		
-
 	* Added Link/Unlink buttons to the Tools floater.
 	
 		modified:   linden/indra/newview/llfloatertools.cpp
