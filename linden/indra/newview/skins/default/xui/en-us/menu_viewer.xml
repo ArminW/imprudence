@@ -126,12 +126,6 @@
       <on_enable function="Edit.EnableDeselect" />
     </menu_item_call>
     <menu_item_separator />
-    <menu_item_call name="Duplicate" enabled="false"
-                    label="Duplicate" shortcut="control|D">
-      <on_click function="Edit.Duplicate" userdata="" />
-      <on_enable function="Edit.EnableDuplicate" />
-    </menu_item_call>
-    <menu_item_separator />
 
     <menu name="Attach Object" create_jump_keys="true"
           label="Attach Object" opaque="true" tear_off="true" />
@@ -397,11 +391,17 @@
         <on_click function="View.ZoomOut" userdata="" />
       </menu_item_call>
     </menu>
-    <menu_item_separator />
     <menu_item_call name="Toggle Fullscreen" label="Toggle Fullscreen"
                     shortcut="alt|Enter">
       <on_click function="View.Fullscreen" userdata="" />
     </menu_item_call>
+    <menu_item_separator />
+    <menu_item_check name="Toggle Advanced Menu" 
+                    label="Advanced Menu"
+                    shortcut="control|alt|D">
+      <on_click function="View.ToggleAdvanced" userdata="" />
+      <on_check function="View.CheckAdvanced" />
+    </menu_item_check>
   </menu>
 
 
@@ -445,8 +445,8 @@
     <menu_item_call name="Set Busy" label="Set Busy">
       <on_click function="World.SetBusy" userdata="" />
     </menu_item_call>
-    <menu_item_call name="Stop All Animations" enabled="false"
-                    label="Stop All Animations">
+    <menu_item_call name="Stop Animating My Avatar" enabled="false"
+                    label="Stop Animating My Avatar">
       <on_click function="Tools.StopAllAnimations" userdata="" />
     </menu_item_call>
     <menu_item_call name="Release Keys" enabled="false" label="Release Keys">
@@ -516,7 +516,7 @@
 
   <menu name="Tools" create_jump_keys="true" label="Tools"
         opaque="true" tear_off="true" visible="false">
-    <menu name="Select Tool" create_jump_keys="true" label="Select Tool"
+    <menu name="Select Tool" create_jump_keys="true" label="Choose Tool"
           opaque="true" tear_off="true">
       <menu_item_call name="Focus" label="Focus" shortcut="control|1">
         <on_click function="Tools.SelectTool" userdata="focus" />
@@ -535,48 +535,67 @@
       </menu_item_call>
     </menu>
     <menu_item_separator />
-    <menu_item_check name="Select Only My Objects"
-                     label="Select Only My Objects">
-      <on_click function="Tools.SelectOnlyMyObjects"
-                userdata="agents" />
-      <on_check control="SelectOwnedOnly" />
-    </menu_item_check>
-    <menu_item_check name="Select Only Movable Objects"
-                     label="Select Only Movable Objects">
-      <on_click function="Tools.SelectOnlyMovableObjects"
-                userdata="movable" />
-      <on_check control="SelectMovableOnly" />
-    </menu_item_check>
-    <menu_item_check name="Select Only Copyable Objects"
-                     label="Select Only Copyable Objects">
-      <on_click function="Tools.SelectOnlyCopyableObjects"
-                userdata="copyable" />
-      <on_check control="SelectCopyableOnly" />
-    </menu_item_check>
-    <menu_item_check name="Select By Surrounding"
-                     label="Select By Surrounding">
-      <on_click function="Tools.SelectBySurrounding"
-                userdata="" />
-      <on_check control="RectangleSelectInclusive" />
-    </menu_item_check>
-    <menu_item_check name="Show Hidden Selection"
-                     label="Show Hidden Selection">
-      <on_click function="Tools.ShowHiddenSelection"
-                userdata="" />
-      <on_check control="RenderHiddenSelections" />
-    </menu_item_check>
-    <menu_item_check name="Show Light Radius for Selection"
-                     label="Show Light Radius for Selection">
-      <on_click function="Tools.ShowSelectionLightRadius"
-                userdata="" />
-      <on_check control="RenderLightRadius" />
-    </menu_item_check>
-    <menu_item_check name="Show Selection Beam"
-                     label="Show Selection Beam">
-      <on_click function="ToggleControl"
-                userdata="ShowSelectionBeam" />
-      <on_check control="ShowSelectionBeam" />
-    </menu_item_check>
+    <menu_item_call name="Focus on Selection" enabled="false"
+                    label="Focus on Selection" shortcut="H">
+      <on_click function="Tools.LookAtSelection" userdata="focus" />
+      <on_enable function="Tools.SomethingSelectedNoHUD" />
+    </menu_item_call>
+    <menu_item_call name="Zoom to Selection" enabled="false"
+                    label="Zoom to Selection" shortcut="shift|H">
+      <on_click function="Tools.LookAtSelection" userdata="zoom" />
+      <on_enable function="Tools.SomethingSelectedNoHUD" />
+    </menu_item_call>
+    <menu name="Selection Options" label="Selection Options"
+          create_jump_keys="true" opaque="true" tear_off="true">
+      <menu_item_check name="Select Only My Objects"
+                       label="Select Only My Objects">
+        <on_click function="Tools.SelectOnlyMyObjects"
+                  userdata="agents" />
+        <on_check control="SelectOwnedOnly" />
+      </menu_item_check>
+      <menu_item_check name="Select Only Movable Objects"
+                       label="Select Only Movable Objects">
+        <on_click function="Tools.SelectOnlyMovableObjects"
+                  userdata="movable" />
+        <on_check control="SelectMovableOnly" />
+      </menu_item_check>
+      <menu_item_check name="Select Only Copyable Objects"
+                       label="Select Only Copyable Objects">
+        <on_click function="Tools.SelectOnlyCopyableObjects"
+                  userdata="copyable" />
+        <on_check control="SelectCopyableOnly" />
+      </menu_item_check>
+      <menu_item_check name="Select By Surrounding"
+                       label="Select By Surrounding">
+        <on_click function="Tools.SelectBySurrounding"
+                  userdata="" />
+        <on_check control="RectangleSelectInclusive" />
+      </menu_item_check>
+      <menu_item_separator />
+      <menu_item_check name="Show Hidden Selection"
+                       label="Show Hidden Selection">
+        <on_click function="Tools.ShowHiddenSelection"
+                  userdata="" />
+        <on_check control="RenderHiddenSelections" />
+      </menu_item_check>
+      <menu_item_check name="Show Light Radius for Selection"
+                       label="Show Light Radius for Selection">
+        <on_click function="Tools.ShowSelectionLightRadius"
+                  userdata="" />
+        <on_check control="RenderLightRadius" />
+      </menu_item_check>
+      <menu_item_check label="Show Selection Outlines"
+                       name="Show Selection Outlines">
+        <on_click function="Tools.ShowSelectionHighlights" userdata="" />
+        <on_check control="RenderHighlightSelections" />
+      </menu_item_check>
+      <menu_item_check name="Show Selection Beam"
+                       label="Show Selection Beam">
+        <on_click function="ToggleControl"
+                  userdata="ShowSelectionBeam" />
+        <on_check control="ShowSelectionBeam" />
+      </menu_item_check>
+    </menu>
     <menu_item_separator />
     <menu_item_check name="Snap to Grid" enabled="false"
                      label="Snap to Grid" shortcut="G">
@@ -619,15 +638,10 @@
       <on_enable function="Tools.EnableUnlink" />
     </menu_item_call>
     <menu_item_separator />
-    <menu_item_call name="Focus on Selection" enabled="false"
-                    label="Focus on Selection" shortcut="H">
-      <on_click function="Tools.LookAtSelection" userdata="focus" />
-      <on_enable function="Tools.SomethingSelectedNoHUD" />
-    </menu_item_call>
-    <menu_item_call name="Zoom to Selection" enabled="false"
-                    label="Zoom to Selection" shortcut="shift|H">
-      <on_click function="Tools.LookAtSelection" userdata="zoom" />
-      <on_enable function="Tools.SomethingSelectedNoHUD" />
+    <menu_item_call name="Duplicate" enabled="false"
+                    label="Duplicate" shortcut="control|D">
+      <on_click function="Edit.Duplicate" userdata="" />
+      <on_enable function="Edit.EnableDuplicate" />
     </menu_item_call>
     <menu_item_call name="Menu Object Take" enabled="false"
                     label="Take" visible="false">
@@ -639,6 +653,7 @@
       <on_click function="Tools.TakeCopy" userdata="" />
       <on_enable function="Tools.EnableTakeCopy" />
     </menu_item_call>
+    <menu_item_separator />
     <menu_item_call name="Return..." enabled="false"
                     label="Return Object">
       <on_click function="Object.Return" />
@@ -695,9 +710,10 @@
                 userdata="stop" />
       <on_enable function="EditableSelected" />
     </menu_item_call>
+    <menu_item_separator />
     <menu_item_call name="Set permissions on selected task inventory"
                     enabled="false"
-                    label="Set permissions on selected task inventory">
+                    label="Bulk Set Permissions">
       <on_click function="Tools.SetBulkPerms" userdata="" />
       <on_enable function="EditableSelected" />
     </menu_item_call>

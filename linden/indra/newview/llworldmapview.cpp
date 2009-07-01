@@ -49,6 +49,7 @@
 #include "llfloatermap.h"
 #include "llfloaterworldmap.h"
 #include "llfocusmgr.h"
+//#include "llmutelist.h" info not being sent
 #include "lltextbox.h"
 #include "lltextureview.h"
 #include "lltracker.h"
@@ -208,8 +209,6 @@ LLWorldMapView::LLWorldMapView(const std::string& name, const LLRect& rect )
 	mTextBoxNorthWest = new LLTextBox( std::string("NW"), minor_dir_rect );
 	mTextBoxNorthWest->setColor( minor_color );
 	addChild( mTextBoxNorthWest );
-
-	glyph_color_avatar = gColors.getColor("NetMapGlyphColorAvatar");
 }
 
 
@@ -866,6 +865,11 @@ void LLWorldMapView::drawImageStack(const LLVector3d& global_pos, LLUIImagePtr i
 void LLWorldMapView::drawAgents()
 {
 	F32 agents_scale = (gMapScale * 0.9f) / 256.f;
+	
+	LLColor4 avatar_color = gColors.getColor( "MapAvatar" );
+	/*LLColor4 friend_color = gColors.getColor( "MapFriend" );
+	LLColor4 muted_color = gColors.getColor( "MapMuted" );
+	LLColor4 glyph_color;*/
 
 	for (handle_list_t::iterator iter = mVisibleRegions.begin(); iter != mVisibleRegions.end(); ++iter)
 	{
@@ -888,8 +892,19 @@ void LLWorldMapView::drawAgents()
 				S32 agent_count = info.mExtra;
 				sim_agent_count += info.mExtra;
 				// Here's how we'd choose the color if info.mID were available but it's not being sent:
-				//LLColor4 color = (agent_count == 1 && is_agent_friend(info.mID)) ? glyph_color_friend : glyph_color_avatar;
-				drawImageStack(info.mPosGlobal, sAvatarSmallImage, agent_count, 3.f, glyph_color_avatar);
+				/*if (agent_count == 1 && LLMuteList::getInstance()->isMuted(info.mID))
+				{
+					glyph_color = muted_color;
+				}
+				else if (agent_count == 1 && is_agent_friend(info.mID))
+				{
+					glyph_color = friend_color;
+				}
+				else
+				{
+					glyph_color = avatar_color;
+				}*/
+				drawImageStack(info.mPosGlobal, sAvatarSmallImage, agent_count, 3.f, avatar_color);
 			}
 			LLWorldMap::getInstance()->mNumAgents[handle] = sim_agent_count; // override mNumAgents for this sim
 		}
@@ -904,7 +919,7 @@ void LLWorldMapView::drawAgents()
 				region_center[VY] += REGION_WIDTH_METERS / 2;
 				// Reduce the stack size as you zoom out - always display at lease one agent where there is one or more
 				S32 agent_count = (S32)(((num_agents-1) * agents_scale + (num_agents-1) * 0.1f)+.1f) + 1;
-				drawImageStack(region_center, sAvatarSmallImage, agent_count, 3.f, glyph_color_avatar);
+				drawImageStack(region_center, sAvatarSmallImage, agent_count, 3.f, avatar_color);
 			}
 		}
 	}
@@ -1180,6 +1195,9 @@ static void drawDot(F32 x_pixels, F32 y_pixels,
 	}
 	else
 	{
+		// Draw V indicator for above or below
+		// *TODO: Replace this vector drawing with icons
+		
 		F32 left =		x_pixels - dot_radius;
 		F32 right =		x_pixels + dot_radius;
 		F32 center = (left + right) * 0.5f;
@@ -1188,13 +1206,14 @@ static void drawDot(F32 x_pixels, F32 y_pixels,
 
 		gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 		gGL.color4fv( color.mV );
-		LLUI::setLineWidth(1.5f);
-		F32 h_bar = relative_z > HEIGHT_THRESHOLD ? top : bottom; // horizontal bar Y
+		LLUI::setLineWidth(3.0f);
+		F32 point = relative_z > HEIGHT_THRESHOLD ? top : bottom; // Y pos of the point of the V
+		F32 back = relative_z > HEIGHT_THRESHOLD ? bottom : top; // Y pos of the ends of the V
 		gGL.begin( LLRender::LINES );
-			gGL.vertex2f(center, top);
-			gGL.vertex2f(left, h_bar);
-			gGL.vertex2f(right, h_bar);
-			gGL.vertex2f(right, bottom);
+			gGL.vertex2f(left, back);
+			gGL.vertex2f(center, point);
+			gGL.vertex2f(center, point);
+			gGL.vertex2f(right, back);
 		gGL.end();
 		LLUI::setLineWidth(1.0f);
 	}

@@ -604,9 +604,9 @@
           <key>windows</key>
           <map>
             <key>md5sum</key>
-            <string>1a55b7f4b5b14bc65609ac703277dba0</string>
+            <string>9693550810903d5bca10e018fccd7994</string>
             <key>url</key>
-            <uri>http://imprudenceviewer.org/download/libs/gstreamer-plugins-windows-05172009.tar.bz2</uri>
+            <uri>http://imprudenceviewer.org/download/libs/gstreamer-plugins-windows-20090608.tar.bz2</uri>
           </map>
         </map>
       </map>
@@ -633,13 +633,6 @@
             <string>21c16a74f8fc9a62e3ab944a6eb7403d</string>
             <key>url</key>
             <uri>http://s3.amazonaws.com/viewer-source-downloads/install_pkgs/gtk-atk-pango-glib-linux-20080616.tar.bz</uri>
-          </map>
-          <key>windows</key>
-          <map>
-            <key>md5sum</key>
-            <string>d963750bcd333a108b3697d220c87d09</string>
-            <key>url</key>
-            <uri>http://s3.amazonaws.com/viewer-source-downloads/install_pkgs/gtk-atk-pango-glib-windows-20080613.tar.bz2</uri>
           </map>
         </map>
       </map>
@@ -699,9 +692,9 @@
           <key>windows</key>
           <map>
             <key>md5sum</key>
-            <string>055ff15814c5f5cc09b0a9891ca7c90a</string>
+            <string>dfd86beda3a27a8bfe9f9c0a3ed0bd80</string>
             <key>url</key>
-            <uri>http://imprudence.s3.amazonaws.com/extras/iconv-1.9.2-windows-01262009.tar.bz2</uri>
+            <uri>http://imprudenceviewer.org/download/libs/iconv-1.9.2-windows-20090608.tar.bz2</uri>
           </map>
         </map>
       </map>
@@ -1135,7 +1128,7 @@ anguage Infrstructure (CLI) international standard</string>
             <key>md5sum</key>
             <string>f30b851e089108978c8218295a405159</string>
             <key>url</key>
-            <uri>http://thomas.shikami.mooo.com/install_pkgs/openal-darwin-20090418.tar.bz2</uri>
+            <uri>http://imprudenceviewer.org/download/libs/openal-darwin-20090418.tar.bz2</uri>
           </map>
           <key>linux</key>
           <map>
@@ -1376,13 +1369,6 @@ anguage Infrstructure (CLI) international standard</string>
             <key>url</key>
             <uri>http://s3.amazonaws.com/viewer-source-downloads/install_pkgs/vivox-2.1.3010.6151-linux-20090218.tar.bz2</uri>
           </map>
-          <key>windows</key>
-          <map>
-            <key>md5sum</key>
-            <string>311bedab0abbd3a0ddf07216711af0ea</string>
-            <key>url</key>
-            <uri>http://s3.amazonaws.com/viewer-source-downloads/install_pkgs/vivox-2.1.3010.6151-windows-20090218.tar.bz2</uri>
-          </map>
         </map>
       </map>
       <key>xmlrpc-epi</key>
@@ -1473,9 +1459,9 @@ anguage Infrstructure (CLI) international standard</string>
           <key>windows</key>
           <map>
             <key>md5sum</key>
-            <string>bebeba689d2a8d19cfde150582a4f85a</string>
+            <string>9cb8990204da692fd2a9b6530091d9a8</string>
             <key>url</key>
-            <uri>http://s3.amazonaws.com/viewer-source-downloads/install_pkgs/zlib-1.1.4-windows-20080618.tar.bz2</uri>
+            <uri>http://imprudenceviewer.org/download/libs/zlib-1.1.4-windows-20090608.tar.bz2</uri>
           </map>
         </map>
       </map>

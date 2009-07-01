@@ -46,6 +46,7 @@
 #include "llfloateropenobject.h"
 #include "llfocusmgr.h"
 #include "llmenugl.h"
+#include "llnotify.h"
 #include "llpanelcontents.h"
 #include "llpanelface.h"
 #include "llpanelland.h"
@@ -77,6 +78,8 @@
 #include "llviewerwindow.h"
 #include "llviewercontrol.h"
 #include "llviewerjoystick.h"
+#include "llvograss.h"
+#include "llvotree.h"
 #include "lluictrlfactory.h"
 
 // Globals
@@ -233,6 +236,11 @@ BOOL	LLFloaterTools::postBuild()
 	mTextGridMode = getChild<LLTextBox>("text ruler mode");
 	mComboGridMode = getChild<LLComboBox>("combobox grid mode");
 	childSetCommitCallback("combobox grid mode",commit_grid_mode, this);
+	mBtnLink = getChild<LLButton>("link_btn");
+	childSetAction("link_btn",onClickLink, this);
+	mBtnUnlink = getChild<LLButton>("unlink_btn");
+	childSetAction("unlink_btn",onClickUnlink, this);
+
 	//
 	// Create Buttons
 	//
@@ -276,10 +284,14 @@ BOOL	LLFloaterTools::postBuild()
 		{
 			found->setClickedCallback(setObjectType,toolData[t]);
 			mButtons.push_back( found );
-		}else{
+		}
+		else
+		{
 			llwarns << "Tool button not found! DOA Pending." << llendl;
 		}
 	}
+	mComboTreesGrass = getChild<LLComboBox>("trees_grass");
+	childSetCommitCallback("trees_grass", onSelectTreesGrass, (void*)0);
 	mCheckCopySelection = getChild<LLCheckBoxCtrl>("checkbox copy selection");
 	childSetValue("checkbox copy selection",(BOOL)gSavedSettings.getBOOL("CreateToolCopySelection"));
 	mCheckSticky = getChild<LLCheckBoxCtrl>("checkbox sticky");
@@ -381,6 +393,10 @@ LLFloaterTools::LLFloaterTools()
 	mBtnDuplicate(NULL),
 	mBtnDuplicateInPlace(NULL),
 
+	mBtnLink(NULL),
+	mBtnUnlink(NULL),
+
+	mComboTreesGrass(NULL),
 	mCheckSticky(NULL),
 	mCheckCopySelection(NULL),
 	mCheckCopyCenters(NULL),
@@ -654,10 +670,50 @@ void LLFloaterTools::updatePopup(LLCoordGL center, MASK mask)
 	if (mCheckStretchUniform) mCheckStretchUniform->setVisible( edit_visible );
 	if (mCheckStretchTexture) mCheckStretchTexture->setVisible( edit_visible );
 
+	if (mBtnLink) mBtnLink->setVisible( edit_visible );
+	if (mBtnUnlink) mBtnUnlink->setVisible( edit_visible );
+
+	// Check to see if we can link things
+	bool can_link = false;
+	if (!gSavedSettings.getBOOL("EditLinkedParts"))
+	{
+		if(LLSelectMgr::getInstance()->selectGetAllRootsValid() && LLSelectMgr::getInstance()->getSelection()->getRootObjectCount() >= 2)
+		{
+			struct f : public LLSelectedObjectFunctor
+			{
+				virtual bool apply(LLViewerObject* object)
+				{
+					return object->permModify();
+				}
+			}
+			func;
+			const bool firstonly = true;
+			can_link = LLSelectMgr::getInstance()->getSelection()->applyToRootObjects(&func, firstonly);
+		}
+	}
+	mBtnLink->setEnabled(can_link);
+
+	// Check to see if we can unlink things
+	bool can_unlink = false;
+	if (LLSelectMgr::getInstance()->selectGetAllRootsValid() &&
+		LLSelectMgr::getInstance()->getSelection()->getFirstEditableObject() &&
+		!LLSelectMgr::getInstance()->getSelection()->getFirstEditableObject()->isAttachment())
+	{
+		if (LLSelectMgr::getInstance()->getSelection()->getRootObjectCount() != 
+			LLSelectMgr::getInstance()->getSelection()->getObjectCount())
+		{
+			can_unlink = true;
+		}
+	}
+	mBtnUnlink->setEnabled(can_unlink);
+
+
 	// Create buttons
 	BOOL create_visible = (tool == LLToolCompCreate::getInstance());
 
 	mBtnCreate	->setToggleState(	tool == LLToolCompCreate::getInstance() );
+
+	updateTreeGrassCombo(create_visible);
 
 	if (mCheckCopySelection
 		&& mCheckCopySelection->get())
@@ -1004,6 +1060,7 @@ void LLFloaterTools::setObjectType( void* data )
 	LLPCode pcode = *(LLPCode*) data;
 	LLToolPlacer::setObjectType( pcode );
 	gSavedSettings.setBOOL("CreateToolCopySelection", FALSE);
+	gFloaterTools->updateTreeGrassCombo(true);
 	gFocusMgr.setMouseCapture(NULL);
 }
 
@@ -1025,4 +1082,127 @@ void LLFloaterTools::onFocusReceived()
 {
 	LLToolMgr::getInstance()->setCurrentToolset(gBasicToolset);
 	LLFloater::onFocusReceived();
+}
+
+void LLFloaterTools::updateTreeGrassCombo(bool visible)
+{
+	if (visible) 
+	{
+		LLPCode pcode = LLToolPlacer::getObjectType();
+		std::map<std::string, S32>::iterator it, end;
+		std::string selected;
+		LLTextBox* tree_grass_label = getChild<LLTextBox>("tree_grass_label");
+		if (pcode == LLToolPlacerPanel::sTree) 
+		{
+			tree_grass_label->setVisible(true);
+			LLButton* button = getChild<LLButton>("ToolTree");
+			tree_grass_label->setText(button->getToolTip());
+
+			selected = gSavedSettings.getString("LastTree");
+			it = LLVOTree::sSpeciesNames.begin();
+			end = LLVOTree::sSpeciesNames.end();
+		} 
+		else if (pcode == LLToolPlacerPanel::sGrass) 
+		{
+			tree_grass_label->setVisible(true);
+			LLButton* button = getChild<LLButton>("ToolGrass");
+			tree_grass_label->setText(button->getToolTip());
+
+			selected = gSavedSettings.getString("LastGrass");
+			it = LLVOGrass::sSpeciesNames.begin();
+			end = LLVOGrass::sSpeciesNames.end();
+		} 
+		else 
+		{
+			mComboTreesGrass->removeall();
+			mComboTreesGrass->setLabel(LLStringExplicit(""));  // LLComboBox::removeall() does not clear the label
+			mComboTreesGrass->setEnabled(false);
+			mComboTreesGrass->setVisible(false);
+			tree_grass_label->setVisible(false);
+			return;
+		}
+
+		mComboTreesGrass->removeall();
+		mComboTreesGrass->add("Random");
+
+		int select = 0, i = 0;
+
+		while (it != end) 
+		{
+			const std::string &species = it->first;
+			mComboTreesGrass->add(species);  ++i;
+			if (species == selected) select = i;
+			++it;
+		}
+		// if saved species not found, default to "Random"
+		mComboTreesGrass->selectNthItem(select);
+		mComboTreesGrass->setEnabled(true);
+	}
+	
+	mComboTreesGrass->setVisible(visible);
+}
+
+// static
+void LLFloaterTools::onSelectTreesGrass(LLUICtrl*, void*)
+{
+	const std::string &selected = gFloaterTools->mComboTreesGrass->getValue();
+	LLPCode pcode = LLToolPlacer::getObjectType();
+	if (pcode == LLToolPlacerPanel::sTree) 
+	{
+		gSavedSettings.setString("LastTree", selected);
+	} 
+	else if (pcode == LLToolPlacerPanel::sGrass) 
+	{
+		gSavedSettings.setString("LastGrass", selected);
+	}  
+}
+
+// static
+void LLFloaterTools::onClickLink(void* data)
+{
+	if(!LLSelectMgr::getInstance()->selectGetAllRootsValid())
+	{
+		LLNotifyBox::showXml("UnableToLinkWhileDownloading");
+		return;
+	}
+ 
+	S32 object_count = LLSelectMgr::getInstance()->getSelection()->getObjectCount();
+	if (object_count > MAX_CHILDREN_PER_TASK + 1)
+	{
+		LLStringUtil::format_map_t args;
+		args["[COUNT]"] = llformat("%d", object_count);
+		int max = MAX_CHILDREN_PER_TASK+1;
+		args["[MAX]"] = llformat("%d", max);
+		gViewerWindow->alertXml("UnableToLinkObjects", args);
+		return;
+	}
+ 
+	if(LLSelectMgr::getInstance()->getSelection()->getRootObjectCount() < 2)
+	{
+		gViewerWindow->alertXml("CannotLinkIncompleteSet");
+		return;
+	}
+	if(!LLSelectMgr::getInstance()->selectGetRootsModify())
+	{
+		gViewerWindow->alertXml("CannotLinkModify");
+		return;
+	}
+	LLUUID owner_id;
+	std::string owner_name;
+	if(!LLSelectMgr::getInstance()->selectGetOwner(owner_id, owner_name))
+	{
+	  // we don't actually care if you're the owner, but novices are
+	  // the most likely to be stumped by this one, so offer the
+	  // easiest and most likely solution.
+	  gViewerWindow->alertXml("CannotLinkDifferentOwners");
+	  return;
+	}
+	LLSelectMgr::getInstance()->sendLink();
+	return;
+}
+
+// static
+void LLFloaterTools::onClickUnlink(void* data)
+{
+	LLSelectMgr::getInstance()->sendDelink();
 }

@@ -100,7 +100,6 @@
 #include "llfloatereditui.h" // HACK JAMESDEBUG for ui editor
 #include "llfloaterland.h"
 #include "llfloaterinspect.h"
-#include "llfloatermap.h"
 #include "llfloaternamedesc.h"
 #include "llfloaterpreference.h"
 #include "llfloatersnapshot.h"
@@ -1585,16 +1584,6 @@ void LLViewerWindow::initWorldUI()
 		gHoverView = new LLHoverView(std::string("gHoverView"), full_window);
 		gHoverView->setVisible(TRUE);
 		mRootView->addChild(gHoverView);
-
-		//
-		// Map
-		//
-		// TODO: Move instance management into class
-		gFloaterMap = new LLFloaterMap(std::string("Map"));
-		gFloaterMap->setFollows(FOLLOWS_TOP|FOLLOWS_RIGHT);
-
-		// keep onscreen
-		gFloaterView->adjustToFitScreen(gFloaterMap, FALSE);
 		
 		gIMMgr = LLIMMgr::getInstance();
 
@@ -1677,7 +1666,6 @@ void LLViewerWindow::shutdownViews()
 	gFloaterView		= NULL;
 	gMorphView			= NULL;
 
-	gFloaterMap	= NULL;
 	gHUDView = NULL;
 
 	gNotifyBoxView = NULL;
@@ -2114,14 +2102,6 @@ BOOL LLViewerWindow::handleKey(KEY key, MASK mask)
 	}
 
 	// Explicit hack for debug menu.
-	if ((MASK_ALT & mask) &&
-		(MASK_CONTROL & mask) &&
-		('D' == key || 'd' == key))
-	{
-		toggle_debug_menus(NULL);
-	}
-
-		// Explicit hack for debug menu.
 	if ((mask == (MASK_SHIFT | MASK_CONTROL)) &&
 		('G' == key || 'g' == key))
 	{

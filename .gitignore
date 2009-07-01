@@ -25,11 +25,9 @@ mypatches/
 
 *~
 *.*~
-*.diff
 *.rej
 *.old
 *.new
-*.patch
 rug/
 mypatches/
 
@@ -59,6 +57,7 @@ linden/indra/newview/vivox-runtime/
 linden/libraries/
 linden/indra/lib_releasefordownload_client/
 linden/indra/llwindow/glh/
+*.pyc
 
 
 # COMPILED STUFF
@@ -68,4 +67,9 @@ linden/installed.xml
 linden/indra/CMakeFiles
 linden/indra/temp
 linden/indra/test_apps
-*.pyc
+
+
+# PATCHES 
+
+*.diff
+*.patch

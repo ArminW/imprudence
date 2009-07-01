@@ -416,7 +416,6 @@ void handle_force_delete(void*);
 void print_object_info(void*);
 void print_agent_nvpairs(void*);
 void toggle_debug_menus(void*);
-void toggle_map( void* user_data );
 void export_info_callback(LLAssetInfo *info, void **user_data, S32 result);
 void export_data_callback(LLVFS *vfs, const LLUUID& uuid, LLAssetType::EType type, void **user_data, S32 result);
 void upload_done_callback(const LLUUID& uuid, void* user_data, S32 result, LLExtStat ext_status);
@@ -4189,9 +4188,17 @@ class LLToolsEnableUnlink : public view_listener_t
 {
 	bool handleEvent(LLPointer<LLEvent> event, const LLSD& userdata)
 	{
-		bool new_value = LLSelectMgr::getInstance()->selectGetAllRootsValid() &&
+		bool new_value = false;
+		if (LLSelectMgr::getInstance()->selectGetAllRootsValid() &&
 			LLSelectMgr::getInstance()->getSelection()->getFirstEditableObject() &&
-			!LLSelectMgr::getInstance()->getSelection()->getFirstEditableObject()->isAttachment();
+			!LLSelectMgr::getInstance()->getSelection()->getFirstEditableObject()->isAttachment())
+		{
+			if (LLSelectMgr::getInstance()->getSelection()->getRootObjectCount() != 
+				LLSelectMgr::getInstance()->getSelection()->getObjectCount())
+			{
+				new_value = true;
+			}
+		}
 		gMenuHolder->findControl(userdata["control"].asString())->setValue(new_value);
 		return true;
 	}
@@ -4211,12 +4218,7 @@ class LLToolsStopAllAnimations : public view_listener_t
 {
 	bool handleEvent(LLPointer<LLEvent> event, const LLSD& userdata)
 	{
-		LLVOAvatar* avatarp = gAgent.getAvatarObject();		
-		if (avatarp)
-		{
-			avatarp->deactivateAllMotions();	
-			avatarp->startDefaultMotions();
-		}
+		gAgent.stopCurrentAnimations();
 		return true;
 	}
 };
@@ -4548,6 +4550,25 @@ void print_agent_nvpairs(void*)
 	llinfos << "Camera at " << gAgent.getCameraPositionGlobal() << llendl;
 }
 
+class LLViewToggleAdvanced : public view_listener_t
+{
+	bool handleEvent(LLPointer<LLEvent> event, const LLSD& userdata)
+	{
+		toggle_debug_menus(NULL);
+		return true;
+	}
+};
+
+class LLViewCheckAdvanced : public view_listener_t
+{
+	bool handleEvent(LLPointer<LLEvent> event, const LLSD& userdata)
+	{
+		BOOL new_value = gSavedSettings.getBOOL("UseDebugMenus");
+		gMenuHolder->findControl(userdata["control"].asString())->setValue(new_value);
+		return true;
+	}
+};
+
 void show_debug_menus()
 {
 	// this can get called at login screen where there is no menu so only toggle it if one exists
@@ -4580,22 +4601,6 @@ void toggle_debug_menus(void*)
 	BOOL visible = ! gSavedSettings.getBOOL("UseDebugMenus");
 	gSavedSettings.setBOOL("UseDebugMenus", visible);
 	show_debug_menus();
-}
-
-
-void toggle_map( void* user_data )
-{
-	// Toggle the item
-	BOOL checked = gSavedSettings.getBOOL( static_cast<char*>(user_data) );
-	gSavedSettings.setBOOL( static_cast<char*>(user_data), !checked );
-	if (checked)
-	{
-		gFloaterMap->close();
-	}
-	else
-	{
-		gFloaterMap->open();		/* Flawfinder: ignore */	
-	}
 }
 
 
@@ -5121,7 +5126,7 @@ class LLShowFloater : public view_listener_t
 		}
 		else if (floater_name == "mini map")
 		{
-			LLFloaterMap::toggle(NULL);
+			LLFloaterMap::toggleInstance();
 		}
 		else if (floater_name == "stat bar")
 		{
@@ -6616,6 +6621,17 @@ class LLToolsSelectBySurrounding : public view_listener_t
 		LLSelectMgr::sRectSelectInclusive = !LLSelectMgr::sRectSelectInclusive;
 
 		gSavedSettings.setBOOL("RectangleSelectInclusive", LLSelectMgr::sRectSelectInclusive);
+		return true;
+	}
+};
+
+class LLToolsShowSelectionHighlights : public view_listener_t
+{
+	bool handleEvent(LLPointer<LLEvent> event, const LLSD& userdata)
+	{
+		LLSelectMgr::sRenderSelectionHighlights = !LLSelectMgr::sRenderSelectionHighlights;
+		
+		gSavedSettings.setBOOL("RenderHighlightSelections", LLSelectMgr::sRenderSelectionHighlights);
 		return true;
 	}
 };
@@ -9512,6 +9528,7 @@ void initialize_menus()
 	addMenu(new LLViewMouselook(), "View.Mouselook");
 	addMenu(new LLViewBuildMode(), "View.BuildMode");
 	addMenu(new LLViewJoystickFlycam(), "View.JoystickFlycam");
+	addMenu(new LLViewCommunicate(), "View.Communicate");
 	addMenu(new LLViewResetView(), "View.ResetView");
 	addMenu(new LLViewLookAtLastChatter(), "View.LookAtLastChatter");
 	addMenu(new LLViewShowHoverTips(), "View.ShowHoverTips");
@@ -9522,6 +9539,8 @@ void initialize_menus()
 	addMenu(new LLViewZoomIn(), "View.ZoomIn");
 	addMenu(new LLViewZoomDefault(), "View.ZoomDefault");
 	addMenu(new LLViewFullscreen(), "View.Fullscreen");
+	addMenu(new LLViewToggleAdvanced(), "View.ToggleAdvanced");
+
 
 	addMenu(new LLViewEnableMouselook(), "View.EnableMouselook");
 	addMenu(new LLViewEnableLastChatter(), "View.EnableLastChatter");
@@ -9532,6 +9551,7 @@ void initialize_menus()
 	addMenu(new LLViewCheckHighlightTransparent(), "View.CheckHighlightTransparent");
 	addMenu(new LLViewCheckRenderType(), "View.CheckRenderType");
 	addMenu(new LLViewCheckHUDAttachments(), "View.CheckHUDAttachments");
+	addMenu(new LLViewCheckAdvanced(), "View.CheckAdvanced");
 
 	// World menu
 	addMenu(new LLWorldChat(), "World.Chat");
@@ -9562,6 +9582,7 @@ void initialize_menus()
 	addMenu(new LLToolsSelectOnlyMovableObjects(), "Tools.SelectOnlyMovableObjects");
 	addMenu(new LLToolsSelectOnlyCopyableObjects(), "Tools.SelectOnlyCopyableObjects");
 	addMenu(new LLToolsSelectBySurrounding(), "Tools.SelectBySurrounding");
+	addMenu(new LLToolsShowSelectionHighlights(), "Tools.ShowSelectionHighlights");
 	addMenu(new LLToolsShowHiddenSelection(), "Tools.ShowHiddenSelection");
 	addMenu(new LLToolsShowSelectionLightRadius(), "Tools.ShowSelectionLightRadius");
 	addMenu(new LLToolsEditLinkedParts(), "Tools.EditLinkedParts");
