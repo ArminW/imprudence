@@ -740,7 +740,14 @@ bool LLAppViewer::init()
 	// Initialize the window
 	//
 	initWindow();
+	{
+		BOOL download = gSavedSettings.getBOOL("DownloadClientTags");
 
+		if(download)
+		{
+			LLVOAvatar::updateClientTags();
+		}
+	}
 #if LL_LCD_COMPILE
 		// start up an LCD window on a logitech keyboard, if there is one
 		HINSTANCE hInstance = GetModuleHandle(NULL);
@@ -3176,7 +3183,8 @@ void LLAppViewer::idle()
 		}
 		gFrameStats.addFrameData();
 	}
-	
+
+
 	if (!gDisconnected)
 	{
 		LLFastTimer t(LLFastTimer::FTM_NETWORK);

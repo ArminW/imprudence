@@ -152,6 +152,7 @@ public:
 public:
 	typedef std::list<LLViewerRegion*> region_list_t;
 	const region_list_t& getRegionList() const { return mActiveRegionList; }
+	region_list_t	mActiveRegionList;
 
 	// Returns lists of avatar IDs and their world-space positions within a given distance of a point.
 	// All arguments are optional. Given containers will be emptied and then filled.
@@ -162,7 +163,6 @@ public:
 		const LLVector3d& relative_to = LLVector3d(), F32 radius = FLT_MAX) const;
 
 private:
-	region_list_t	mActiveRegionList;
 	region_list_t	mRegionList;
 	region_list_t	mVisibleRegionList;
 	region_list_t	mCulledRegionList;

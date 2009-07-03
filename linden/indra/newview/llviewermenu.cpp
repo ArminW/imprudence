@@ -57,6 +57,7 @@
 #include "message.h"
 #include "raytrace.h"
 #include "llsdserialize.h"
+#include "llsdutil.h"
 #include "lltimer.h"
 #include "llvfile.h"
 #include "llvolumemgr.h"
@@ -80,6 +81,7 @@
 #include "llfirstuse.h"
 #include "llfloater.h"
 #include "llfloaterabout.h"
+#include "llfloateravatarlist.h"
 #include "llfloaterbuycurrency.h"
 #include "llfloateractivespeakers.h"
 #include "llfloateranimpreview.h"
@@ -9502,6 +9504,37 @@ static void addMenu(view_listener_t *menu, const char *name)
 	menu->registerListener(gMenuHolder, name);
 }
 
+class LLViewAvatarList : public view_listener_t
+{
+	bool handleEvent(LLPointer<LLEvent> event, const LLSD& userdata)
+	{
+		//open the radar panel
+		LLFloaterAvatarList::toggle(0);
+		bool vis = false;
+		if(LLFloaterAvatarList::getInstance())
+		{
+			vis = (bool)LLFloaterAvatarList::getInstance()->getVisible();
+		}
+		//gMenuHolder->findControl(userdata["control"].asString())->setValue(vis);
+		return true;
+	}
+};
+
+class LLViewCheckAvatarList: public view_listener_t
+{
+	bool handleEvent(LLPointer<LLEvent> event, const LLSD& userdata)
+	{
+		bool vis = false;
+		if(LLFloaterAvatarList::getInstance())
+		{
+			vis = (bool)LLFloaterAvatarList::getInstance()->getVisible();
+		}
+		gMenuHolder->findControl(userdata["control"].asString())->setValue(vis);
+		return true;
+	}
+};
+
+
 void initialize_menus()
 {
 	// File menu
@@ -9549,7 +9582,7 @@ void initialize_menus()
 	addMenu(new LLViewZoomDefault(), "View.ZoomDefault");
 	addMenu(new LLViewFullscreen(), "View.Fullscreen");
 	addMenu(new LLViewToggleAdvanced(), "View.ToggleAdvanced");
-
+	addMenu(new LLViewAvatarList(), "View.AvatarList");
 
 	addMenu(new LLViewEnableMouselook(), "View.EnableMouselook");
 	addMenu(new LLViewEnableLastChatter(), "View.EnableLastChatter");
@@ -9561,6 +9594,7 @@ void initialize_menus()
 	addMenu(new LLViewCheckRenderType(), "View.CheckRenderType");
 	addMenu(new LLViewCheckHUDAttachments(), "View.CheckHUDAttachments");
 	addMenu(new LLViewCheckAdvanced(), "View.CheckAdvanced");
+	addMenu(new LLViewCheckAvatarList(), "View.CheckAvatarList");
 
 	// World menu
 	addMenu(new LLWorldChat(), "World.Chat");

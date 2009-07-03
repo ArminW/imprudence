@@ -918,6 +918,20 @@ You can find example sculpted textures in the inventory library.
 			You have begun playing media.  Media can set to play automatically in the preferences window under Audio / Video. Note that this can be a security risk for media sites you do not trust.
 		</message>
 	</notify>
+	<notify      name="QueryClientTags" tip="false">
+		<message name="message">
+			Would you like to have the client tag database automatically updated from modularsystems.sl?
+			This ensures that you have the latest information available regarding other clients.
+		</message>
+		<option name="Yes">
+			Yes
+		</option>
+		<option name="No">
+			No
+		</option>
+
+	</notify>
+	
 	<notify name="MaxListSelectMessage" tip="true">
 		<message name="message">
 			You may only select up to [MAX_SELECT] items

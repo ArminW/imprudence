@@ -67,6 +67,7 @@
 #include "llfloater.h"
 #include "llfloateractivespeakers.h"
 #include "llfloateravatarinfo.h"
+#include "llfloateravatarlist.h"
 #include "llfloaterbuildoptions.h"
 #include "llfloatercamera.h"
 #include "llfloaterchat.h"
@@ -2748,7 +2749,9 @@ void LLAgent::startTyping()
 	{
 		sendAnimationRequest(ANIM_AGENT_TYPE, ANIM_REQUEST_START);
 	}
-	gChatBar->sendChatFromViewer("", CHAT_TYPE_START, FALSE);
+	//gChatBar->sendChatFromViewer("", CHAT_TYPE_START, FALSE);
+	sendChat("", 0, CHAT_TYPE_START, false);
+
 }
 
 //-----------------------------------------------------------------------------
@@ -2760,7 +2763,8 @@ void LLAgent::stopTyping()
 	{
 		clearRenderState(AGENT_STATE_TYPING);
 		sendAnimationRequest(ANIM_AGENT_TYPE, ANIM_REQUEST_STOP);
-		gChatBar->sendChatFromViewer("", CHAT_TYPE_STOP, FALSE);
+		//gChatBar->sendChatFromViewer("", CHAT_TYPE_STOP, FALSE);
+		sendChat("", 0, CHAT_TYPE_STOP, false);
 	}
 }
 
@@ -4586,10 +4590,15 @@ void LLAgent::heardChat(const LLUUID& id)
 	mChatTimer.reset();
 }
 
+void LLAgent::lookAtLastChat()
+{
+	lookAtObject(mLastChatterID, CAMERA_POSITION_SELF);
+}
+
 //-----------------------------------------------------------------------------
 // lookAtLastChat()
 //-----------------------------------------------------------------------------
-void LLAgent::lookAtLastChat()
+void LLAgent::lookAtObject(LLUUID object_id, ECameraPosition camera_pos)
 {
 	// Block if camera is animating or not in normal third person camera mode
 	if (mCameraAnimating || !cameraThirdPerson())
@@ -4597,7 +4606,8 @@ void LLAgent::lookAtLastChat()
 		return;
 	}
 
-	LLViewerObject *chatter = gObjectList.findObject(mLastChatterID);
+	//LLViewerObject *chatter = gObjectList.findObject(mLastChatterID);
+	LLViewerObject *chatter = gObjectList.findObject(object_id);
 	if (chatter)
 	{
 		LLVector3 delta_pos;
@@ -4626,15 +4636,41 @@ void LLAgent::lookAtLastChat()
 			new_camera_pos -= delta_pos * 0.4f;
 			new_camera_pos += left * 0.3f;
 			new_camera_pos += up * 0.2f;
+
+			F32 radius = chatter_av->getVObjRadius();
+			LLVector3d view_dist(radius, radius, 0.0f);
+
 			if (chatter_av->mHeadp)
 			{
-				setFocusGlobal(getPosGlobalFromAgent(chatter_av->mHeadp->getWorldPosition()), mLastChatterID);
+				//setFocusGlobal(getPosGlobalFromAgent(chatter_av->mHeadp->getWorldPosition()), mLastChatterID);
+				setFocusGlobal(getPosGlobalFromAgent(chatter_av->mHeadp->getWorldPosition()), object_id);
 				mCameraFocusOffsetTarget = getPosGlobalFromAgent(new_camera_pos) - gAgent.getPosGlobalFromAgent(chatter_av->mHeadp->getWorldPosition());
+				
+				switch(camera_pos)
+				{
+					case CAMERA_POSITION_SELF:
+						mCameraFocusOffsetTarget = getPosGlobalFromAgent(new_camera_pos) - gAgent.getPosGlobalFromAgent(chatter_av->mHeadp->getWorldPosition());
+						break;
+					case CAMERA_POSITION_OBJECT:
+						mCameraFocusOffsetTarget =  view_dist;
+						break;
+				}
 			}
 			else
 			{
-				setFocusGlobal(chatter->getPositionGlobal(), mLastChatterID);
+				//setFocusGlobal(chatter->getPositionGlobal(), mLastChatterID);
+				setFocusGlobal(chatter->getPositionGlobal(), object_id);
 				mCameraFocusOffsetTarget = getPosGlobalFromAgent(new_camera_pos) - chatter->getPositionGlobal();
+
+				switch(camera_pos)
+				{
+					case CAMERA_POSITION_SELF:
+						mCameraFocusOffsetTarget = getPosGlobalFromAgent(new_camera_pos) - chatter->getPositionGlobal();
+						break;
+					case CAMERA_POSITION_OBJECT:
+						mCameraFocusOffsetTarget = view_dist;
+						break;
+				}
 			}
 			setFocusOnAvatar(FALSE, TRUE);
 		}
@@ -4656,8 +4692,22 @@ void LLAgent::lookAtLastChat()
 			new_camera_pos += left * 0.3f;
 			new_camera_pos += up * 0.2f;
 
-			setFocusGlobal(chatter->getPositionGlobal(), mLastChatterID);
-			mCameraFocusOffsetTarget = getPosGlobalFromAgent(new_camera_pos) - chatter->getPositionGlobal();
+			//setFocusGlobal(chatter->getPositionGlobal(), mLastChatterID);
+			//mCameraFocusOffsetTarget = getPosGlobalFromAgent(new_camera_pos) - chatter->getPositionGlobal();
+			setFocusGlobal(chatter->getPositionGlobal(), object_id);
+
+			switch(camera_pos)
+			{
+				case CAMERA_POSITION_SELF:
+					mCameraFocusOffsetTarget = getPosGlobalFromAgent(new_camera_pos) - chatter->getPositionGlobal();
+					break;
+				case CAMERA_POSITION_OBJECT:
+					F32 radius = chatter->getVObjRadius();
+					LLVector3d view_dist(radius, radius, 0.0f);
+					mCameraFocusOffsetTarget = view_dist;
+					break;
+			}
+
 			setFocusOnAvatar(FALSE, TRUE);
 		}
 	}
@@ -6084,6 +6134,57 @@ void LLAgent::stopCurrentAnimations()
 	}
 }
 
+void LLAgent::sendChat(const std::string &text, S32 channel, EChatType type, bool animate)
+{
+
+	// Don't animate for chats people can't hear (chat to scripts)
+	if (animate && (channel == 0))
+	{
+		if (type == CHAT_TYPE_WHISPER)
+		{
+			lldebugs << "You whisper " << text << llendl;
+			sendAnimationRequest(ANIM_AGENT_WHISPER, ANIM_REQUEST_START);
+		}
+		else if (type == CHAT_TYPE_NORMAL)
+		{
+			lldebugs << "You say " << text << llendl;
+			sendAnimationRequest(ANIM_AGENT_TALK, ANIM_REQUEST_START);
+		}
+		else if (type == CHAT_TYPE_SHOUT)
+		{
+			lldebugs << "You shout " << text << llendl;
+			sendAnimationRequest(ANIM_AGENT_SHOUT, ANIM_REQUEST_START);
+		}
+		else
+		{
+			llinfos << "send_chat_from_viewer() - invalid volume" << llendl;
+			return;
+		}
+	}
+	else
+	{
+		if (type != CHAT_TYPE_START && type != CHAT_TYPE_STOP)
+		{
+			lldebugs << "Channel chat: " << text << llendl;
+		}
+	}
+
+	LLMessageSystem* msg = gMessageSystem;
+
+	msg->newMessageFast(_PREHASH_ChatFromViewer);
+	msg->nextBlockFast(_PREHASH_AgentData);
+	msg->addUUIDFast(_PREHASH_AgentID, getID());
+	msg->addUUIDFast(_PREHASH_SessionID, getSessionID());
+	msg->nextBlockFast(_PREHASH_ChatData);
+	msg->addStringFast(_PREHASH_Message, text);
+	msg->addU8Fast(_PREHASH_Type, type);
+	msg->addS32("Channel", channel);
+
+	gAgent.sendReliableMessage();
+
+	LLViewerStats::getInstance()->incStat(LLViewerStats::ST_CHAT_COUNT);
+}
+
 void LLAgent::fidget()
 {
 	if (!getAFK())
@@ -7137,7 +7238,7 @@ void LLAgent::sendAgentSetAppearance()
 	}
 
 	msg->nextBlockFast(_PREHASH_ObjectData);
-	mAvatarObject->packTEMessage( gMessageSystem );
+	mAvatarObject->packTEMessage( gMessageSystem, TRUE );
 
 	S32 transmitted_params = 0;
 	for (LLViewerVisualParam* param = (LLViewerVisualParam*)mAvatarObject->getFirstVisualParam();

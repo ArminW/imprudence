@@ -322,6 +322,10 @@
       <on_check control="ShowMiniMap" />
     </menu_item_check>
     <menu_item_separator />
+    <menu_item_check bottom="-65" enabled="true" height="19" hidden="false" label="Avatar List" left="0" mouse_opaque="true" name="Avatar List" width="211">
+      <on_click function="View.AvatarList" userdata="avatar list" />
+      <on_check function="View.CheckAvatarList" userdata="avatar list" />
+    </menu_item_check>
     <menu_item_check name="Statistics Bar" label="Statistics Bar"
                      shortcut="control|shift|1">
       <on_click function="ShowFloater" userdata="stat bar" />

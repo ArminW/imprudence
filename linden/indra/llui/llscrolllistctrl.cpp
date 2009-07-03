@@ -88,7 +88,8 @@ struct SortScrollListItem
 			}
 		}
 
-		return sort_result < 0;
+		// make sure to keep order when sort_result == 0 
+		return sort_result <= 0;
 	}
 
 	typedef std::vector<std::pair<S32, BOOL> > sort_order_t;
@@ -701,6 +702,18 @@ std::vector<LLScrollListItem*> LLScrollListCtrl::getAllSelected() const
 		}
 	}
 	return ret;
+}
+
+LLDynamicArray<LLUUID> LLScrollListCtrl::getSelectedIDs()
+{
+	LLUUID selected_id;
+	LLDynamicArray<LLUUID> ids;
+	std::vector<LLScrollListItem*> selected = this->getAllSelected();
+	for(std::vector<LLScrollListItem*>::iterator itr = selected.begin(); itr != selected.end(); ++itr)
+	{
+		ids.push_back((*itr)->getUUID());
+	}
+	return ids;
 }
 
 S32 LLScrollListCtrl::getFirstSelectedIndex() const
@@ -2533,6 +2546,21 @@ void LLScrollListCtrl::onScrollChange( S32 new_pos, LLScrollbar* scrollbar, void
 	self->mScrollLines = new_pos;
 }
 
+/**
+ * Re-sorts the list
+ *
+ * This function allows to avoid multiple unnecessary sorts in the case where
+ * multiple elements will be added or removed at once.
+ * @author Dale Glass
+ */
+void LLScrollListCtrl::sort()
+{
+	// sort by column 0, in ascending order
+	std::stable_sort(
+		mItemList.begin(), 
+		mItemList.end(), 
+		SortScrollListItem(mSortColumns));
+}
 
 void LLScrollListCtrl::sortByColumn(const std::string& name, BOOL ascending)
 {

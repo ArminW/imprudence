@@ -180,6 +180,7 @@
 #include "llwlparammanager.h"
 #include "llwaterparammanager.h"
 #include "llagentlanguage.h"
+#include "llfloateravatarlist.h"
 
 #if LL_LIBXUL_ENABLED
 #include "llmozlib.h"
@@ -1697,6 +1698,17 @@ bool idle_startup()
 			LLFloaterBeacons::showInstance();
 		}
 
+		if (gSavedSettings.getBOOL("ShowAvatarList"))
+		{
+			LLFloaterAvatarList::showInstance();
+		}
+		else if (gSavedSettings.getBOOL("AvatarListKeepOpen"))
+		{
+			LLFloaterAvatarList::showInstance();
+			LLFloaterAvatarList::toggle(NULL);
+		}
+
+
 		if (!gNoRender)
 		{
 			// Move the progress view in front of the UI
@@ -2442,6 +2454,8 @@ bool idle_startup()
 	{
 		set_startup_status(1.0, "", "");
 
+		LLFirstUse::ClientTags();
+
 		// Let the map know about the inventory.
 		if(gFloaterWorldMap)
 		{
@@ -2961,6 +2975,13 @@ void use_circuit_callback(void**, S32 result)
 	}
 }
 
+void pass_processAvatarPropertiesReply(LLMessageSystem *msg, void**)
+{
+	// send it to 'observers'
+	LLPanelAvatar::processAvatarPropertiesReply(msg,0);
+	LLFloaterAvatarList::processAvatarPropertiesReply(msg,0);
+}
+
 void register_viewer_callbacks(LLMessageSystem* msg)
 {
 	msg->setHandlerFuncFast(_PREHASH_LayerData,				process_layer_data );
@@ -3039,7 +3060,7 @@ void register_viewer_callbacks(LLMessageSystem* msg)
 		LLViewerParcelMgr::processParcelDwellReply);
 
 	msg->setHandlerFunc("AvatarPropertiesReply",
-						LLPanelAvatar::processAvatarPropertiesReply);
+						pass_processAvatarPropertiesReply);
 	msg->setHandlerFunc("AvatarInterestsReply",
 						LLPanelAvatar::processAvatarInterestsReply);
 	msg->setHandlerFunc("AvatarGroupsReply",

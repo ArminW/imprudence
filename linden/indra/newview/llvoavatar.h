@@ -864,6 +864,9 @@ public:
 	//--------------------------------------------------------------------
 	// static members
 	//--------------------------------------------------------------------
+	static bool updateClientTags();
+	static bool loadClientTags();
+
 	static S32		sMaxVisible;
 	static F32		sRenderDistance; //distance at which avatars will render (affected by control "RenderAvatarMaxVisible")
 	static S32		sCurJoint;
@@ -927,6 +930,10 @@ public:
 	LLTexLayerSet*		mEyesLayerSet;
 	LLTexLayerSet*		mSkirtLayerSet;
 
+	static LLSD sClientResolutionList;
+
+	static void resolveClient(LLColor4& avatar_name_color, std::string& client, LLVOAvatar* avatar);
+	friend class LLFloaterAvatarList;
 
 protected:
 	LLPointer<LLHUDEffectSpiral> mBeam;

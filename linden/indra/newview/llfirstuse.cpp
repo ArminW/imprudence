@@ -43,7 +43,7 @@
 #include "llui.h"
 #include "llappviewer.h"
 #include "lltracker.h"
-
+#include "llvoavatar.h"
 // static
 std::set<std::string> LLFirstUse::sConfigVariables;
 
@@ -274,5 +274,34 @@ void LLFirstUse::useMedia()
 		gSavedSettings.setWarning("FirstMedia", FALSE);
 
 		LLNotifyBox::showXml("FirstMedia");
+	}
+}
+
+
+void LLFirstUse::callbackClientTags(S32 option, void *userdata)
+{
+	gSavedSettings.setWarning("ClientTags", FALSE);
+
+	if ( option == 0 )
+	{
+		gSavedSettings.setBOOL("DownloadClientTags",TRUE);
+
+		LLVOAvatar::updateClientTags();
+		LLVOAvatar::loadClientTags();
+
+	}
+	else if ( option == 1 )
+	{
+		gSavedSettings.setBOOL("DownloadClientTags",FALSE);
+	}
+}
+// static
+void LLFirstUse::ClientTags()
+{
+	if (gSavedSettings.getWarning("ClientTags"))
+	{
+		gSavedSettings.setWarning("ClientTags", FALSE);
+		LLNotifyBox::showXml("QueryClientTags",  &callbackClientTags, NULL);
+
 	}
 }

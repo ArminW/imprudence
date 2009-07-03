@@ -133,6 +133,8 @@
 #include "llkeythrottle.h"
 #include "llviewerdisplay.h"
 #include "llkeythrottle.h"
+#include "llpanelavatar.h"
+#include "llfloateravatarlist.h"
 
 #include <boost/tokenizer.hpp>
 
@@ -2258,6 +2260,17 @@ void process_chat_from_simulator(LLMessageSystem *msg, void **user_data)
 			if (chatter && chatter->isAvatar())
 			{
 				((LLVOAvatar*)chatter)->startTyping();
+
+				// Addition for avatar list support.
+				// Makes the fact that this avatar is typing appear in the list
+				if (LLFloaterAvatarList::getInstance())
+				{
+					LLAvatarListEntry *ent = LLFloaterAvatarList::getInstance()->getAvatarEntry(from_id);
+					if ( NULL != ent )
+					{
+						ent->setActivity(ACTIVITY_TYPING);
+					}
+				}
 			}
 			return;
 		}
