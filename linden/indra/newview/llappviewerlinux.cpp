@@ -256,7 +256,7 @@ static inline BOOL do_elfio_glibc_backtrace()
 	size_t btpos;
 	for (btpos = 0; btpos < btsize; ++btpos)
 	{
-		fprintf(StraceFile, "%d:\t", btpos);
+		fprintf(StraceFile, "%ld:\t", (long)btpos);
 		int symidx;
 		for (symidx = 0; symidx < nSymNo; ++symidx)
 		{
