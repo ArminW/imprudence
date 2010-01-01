@@ -917,8 +917,9 @@ void LLFilePicker::add_to_selectedfiles(gpointer data, gpointer user_data)
 
  	LLFilePicker* picker = (LLFilePicker*) user_data;
 	GError *error = NULL;
-	gchar* filename_utf8 = g_filename_to_utf8((gchar*)data,
-						  -1, NULL, NULL, &error);
+//	gchar* filename_utf8 = g_filename_to_utf8((gchar*)data,
+//						  -1, NULL, NULL, &error);
+	gchar* filename_utf8 = g_filename_display_name ((gchar*) data);
 	if (error)
 	{
 		// This condition should really be notified to the user, e.g.,
@@ -929,6 +930,8 @@ void LLFilePicker::add_to_selectedfiles(gpointer data, gpointer user_data)
 		// is too new for SL! (Note that the latest glib as of this
 		// writing is 2.22. *sigh*) LL supplied *makeASCII family are
 		// also unsuitable since they allow control characters...
+
+		// muhahaha ... Imprudence can !
 
 		std::string display_name;
 		for (const gchar *str = (const gchar *)data; *str; str++)
