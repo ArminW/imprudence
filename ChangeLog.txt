@@ -1,7 +1,24 @@
-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-=-                         1.2.1                          -=
-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+2010-01-01 Armin Weatherwax <Armin.Weatherwax@gmail.com>
 
+	* Update Changelog
+
+2009-12-16 Armin Weatherwax <Armin.Weatherwax@gmail.com>
+
+	* add 64bit libs and do according adjustments
+
+        modified:   linden/indra/cmake/LLWindow.cmake
+        modified:   linden/indra/develop.py
+        modified:   linden/indra/newview/linux_tools/wrapper.sh
+        modified:   linden/indra/newview/llappviewerlinux.cpp
+        modified:   linden/indra/newview/viewer_manifest.py
+        modified:   linden/install.xml
+
+	* Fix just another hardcoded path to Linux-i686
+
+        modified:   linden/indra/cmake/00-Common.cmake
+        modified:   linden/indra/newview/llviewermedia.cpp
+
+	* Test builds 1+2
 
 2009-11-25 McCabe Maxsted  <hakushakukun@gmail.com>
 
