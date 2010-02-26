@@ -25,7 +25,7 @@ include_directories(
     ${LLRENDER_INCLUDE_DIRS}
     ${LLWINDOW_INCLUDE_DIRS}
     ${GSTREAMER010_INCLUDE_DIRS}
- #   ${GSTREAMER010_PLUGINS_BASE_INCLUDE_DIRS}
+    ${GSTREAMER010_PLUGINS_BASE_INCLUDE_DIRS}
 )
 
 ### media_plugin_gstreamer010
@@ -42,12 +42,12 @@ set(media_plugin_gstreamer010_HEADER_FILES
     llmediaimplgstreamertriviallogging.h
     )
 
-#awfixme if (${CXX_VERSION_NUMBER} MATCHES "4[23].")
+if (${CXX_VERSION_NUMBER} MATCHES "4[23].")
     # Work around a bad interaction between broken gstreamer headers and
     # g++ 4.3's increased strictness.
     set_source_files_properties(llmediaimplgstreamervidplug.cpp PROPERTIES
                                 COMPILE_FLAGS -Wno-write-strings)
-#awfixme endif (${CXX_VERSION_NUMBER} MATCHES "4[23].")
+endif (${CXX_VERSION_NUMBER} MATCHES "4[23].")
 
 add_library(media_plugin_gstreamer010
     SHARED
