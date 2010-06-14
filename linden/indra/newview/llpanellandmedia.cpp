@@ -170,7 +170,8 @@ void LLPanelLandMedia::refresh()
 
 		// Display options
 		BOOL can_change_media = LLViewerParcelMgr::isParcelModifiableByAgent(parcel, GP_LAND_CHANGE_MEDIA);
-
+//awfixme
+/*
 		mCheckSoundLocal->set( parcel->getSoundLocal() );
 		mCheckSoundLocal->setEnabled( can_change_media );
 
@@ -221,7 +222,7 @@ void LLPanelLandMedia::refresh()
 
 		mMusicURLEdit->setText(parcel->getMusicURL());
 		mMusicURLEdit->setEnabled( can_change_media );
-
+*/
 
 
 		childSetText("current_url", parcel->getMediaCurrentURL());

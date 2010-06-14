@@ -256,10 +256,14 @@ std::string LLViewerMedia::getCurrentUserAgent()
 	// This was also helpful:
 	// http://www.mozilla.org/build/revised-user-agent-strings.html
 	std::ostringstream codec;
+	codec << "SecondLife/1.23.5.136262";// this isn't anybodys business anyway
+
+/*
 	codec << "SecondLife/";
 	codec << LL_VERSION_MAJOR << "." << LL_VERSION_MINOR << "." << LL_VERSION_PATCH << "." << LL_VERSION_BUILD;
 	codec << " (" << channel << "; " << skin_name << " skin)";
 	llinfos << codec.str() << llendl;
+*/
 	
 	return codec.str();
 }

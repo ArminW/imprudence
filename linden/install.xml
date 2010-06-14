@@ -179,48 +179,6 @@
           <key>darwin</key>
           <map>
             <key>md5sum</key>
-            <string>ad3f838d58338e5fce8e4770f67a04c5</string>
-            <key>url</key>
-            <uri>http://imprudenceviewer.org/download/extras/imprudence-artwork-20091130.tar.bz2</uri>
-          </map>
-          <key>linux</key>
-          <map>
-            <key>md5sum</key>
-            <string>ad3f838d58338e5fce8e4770f67a04c5</string>
-            <key>url</key>
-            <uri>http://imprudenceviewer.org/download/extras/imprudence-artwork-20091130.tar.bz2</uri>
-          </map>
-          <key>windows</key>
-          <map>
-            <key>md5sum</key>
-            <string>ad3f838d58338e5fce8e4770f67a04c5</string>
-            <key>url</key>
-            <uri>http://imprudenceviewer.org/download/extras/imprudence-artwork-20091130.tar.bz2</uri>
-          </map>
-        </map>
-      </map>
-      <key>berkeley</key>
-      <map>
-        <key>copyright</key>
-        <string>Copyright (c) 1990-1999 Sleepycat Software. All rights reserved.</string>
-        <key>description</key>
-        <string>a high-performance, embedded database library</string>
-        <key>license</key>
-        <string>sleepycat</string>
-      </map>
-      <key>artwork-common</key>
-      <map>
-        <key>copyright</key>
-        <string>(C) 2008 Linden Research, Inc.</string>
-        <key>description</key>
-        <string>Second Life(TM) Viewer Artwork</string>
-        <key>license</key>
-        <string>artwork</string>
-        <key>packages</key>
-        <map>
-          <key>darwin</key>
-          <map>
-            <key>md5sum</key>
             <string>7cd15de415dc58b9fb14140f5a2322c4</string>
             <key>url</key>
             <uri>http://imprudenceviewer.org/download/extras/imprudence-artwork-20100620.tar.bz2</uri>
@@ -247,6 +205,15 @@
             <uri>http://imprudenceviewer.org/download/extras/imprudence-artwork-20100620.tar.bz2</uri>
           </map>
         </map>
+      </map>
+      <key>berkeley</key>
+      <map>
+        <key>copyright</key>
+        <string>Copyright (c) 1990-1999 Sleepycat Software. All rights reserved.</string>
+        <key>description</key>
+        <string>a high-performance, embedded database library</string>
+        <key>license</key>
+        <string>sleepycat</string>
       </map>
       <key>boost</key>
       <map>
