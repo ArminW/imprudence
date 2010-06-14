@@ -46,7 +46,6 @@
 #include "lltimer.h"
 #include "llmath.h"
 
-#include "audioengine.h"
 #include "llclipboard.h"
 #include "llscrollbar.h"
 #include "llstl.h"
@@ -1995,7 +1994,7 @@ void LLTextEditor::copyPrimary()
 		return;
 	}
 	S32 left_pos = llmin( mSelectionStart, mSelectionEnd );
-	S32 length = abs( mSelectionStart - mSelectionEnd );
+	S32 length = llabs( mSelectionStart - mSelectionEnd );
 	gClipboard.copyFromPrimarySubstring(mWText, left_pos, length, mSourceID);
 }
 

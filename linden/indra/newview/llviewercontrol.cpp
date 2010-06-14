@@ -38,7 +38,7 @@
 #include "indra_constants.h"
 
 // For Listeners
-#include "audioengine.h"
+#include "llaudioengine.h"
 #include "llagent.h"
 #include "llconsole.h"
 #include "lldrawpoolterrain.h"
@@ -69,7 +69,6 @@
 #include "llvosurfacepatch.h"
 #include "llvowlsky.h"
 #include "llrender.h"
-#include "llmediamanager.h"
 #include "llslider.h"
 
 
@@ -499,21 +498,6 @@ bool rlvHandleShowNameTagsChanged(const LLSD& newvalue)
 }
 // [/RLVa:KB]
 
-bool handleMediaDebugLevelChanged(const LLSD& newvalue)
-{
-	LLMediaManager *mgr = LLMediaManager::getInstance();
-	if (mgr)
-	{
-		LLMediaBase *impl = 
-		  mgr->createSourceFromMimeType("http", "audio/mpeg");
-
-		if (impl)
-		{
-			impl->setDebugLevel( (LLMediaBase::EDebugLevel)newvalue.asInteger() );
-		}
-	}
-	return true;
-}
 
 bool handleSliderScrollWheelMultiplierChanged(const LLSD& newvalue)
 {
@@ -582,7 +566,6 @@ void settings_setup_listeners()
 	gSavedSettings.getControl("AudioLevelMusic")->getSignal()->connect(boost::bind(&handleAudioVolumeChanged, _1));
 	gSavedSettings.getControl("AudioLevelMedia")->getSignal()->connect(boost::bind(&handleAudioVolumeChanged, _1));
 	gSavedSettings.getControl("AudioLevelVoice")->getSignal()->connect(boost::bind(&handleAudioVolumeChanged, _1));
-	gSavedSettings.getControl("AudioLevelDistance")->getSignal()->connect(boost::bind(&handleAudioVolumeChanged, _1));
 	gSavedSettings.getControl("AudioLevelDoppler")->getSignal()->connect(boost::bind(&handleAudioVolumeChanged, _1));
 	gSavedSettings.getControl("AudioLevelRolloff")->getSignal()->connect(boost::bind(&handleAudioVolumeChanged, _1));
 	gSavedSettings.getControl("AudioStreamingMusic")->getSignal()->connect(boost::bind(&handleAudioStreamMusicChanged, _1));
@@ -659,7 +642,6 @@ void settings_setup_listeners()
 	gSavedSettings.getControl("VoiceOutputAudioDevice")->getSignal()->connect(boost::bind(&handleVoiceClientPrefsChanged, _1));
 	gSavedSettings.getControl("AudioLevelMic")->getSignal()->connect(boost::bind(&handleVoiceClientPrefsChanged, _1));
 	gSavedSettings.getControl("LipSyncEnabled")->getSignal()->connect(boost::bind(&handleVoiceClientPrefsChanged, _1));	
-	gSavedSettings.getControl("MediaDebugLevel")->getSignal()->connect(boost::bind(&handleMediaDebugLevelChanged, _1));	
 	gSavedSettings.getControl("SliderScrollWheelMultiplier")->getSignal()->connect(boost::bind(&handleSliderScrollWheelMultiplierChanged, _1));	
 
 // [RLVa:KB] - Checked: 2009-08-11 (RLVa-1.0.1h) | Added: RLVa-1.0.1h

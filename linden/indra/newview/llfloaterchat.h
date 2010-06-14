@@ -75,6 +75,8 @@ public:
 	// Add chat to history alone.
 	static void addChatHistory(const LLChat& chat, bool log_to_file = true);
 	
+	static void triggerAlerts(const std::string& text);
+
 	static void onClickMute(void *data);
 	static void onClickToggleShowMute(LLUICtrl* caller, void *data);
 	static void onClickToggleActiveSpeakers(void* userdata);

@@ -40,7 +40,7 @@
 #include <sstream>
 
 // linden library includes
-#include "audioengine.h"
+#include "llaudioengine.h"
 #include "indra_constants.h"
 #include "llassetstorage.h"
 #include "llchat.h"
@@ -109,9 +109,8 @@
 #include "llfloatergroupinfo.h"
 #include "llfloatergroupinvite.h"
 #include "llfloatergroups.h"
-#include "llfloaterhtml.h"
 #include "llfloaterhtmlcurrency.h"
-#include "llfloaterhtmlhelp.h"			// gViewerHtmlHelp
+#include "llfloatermediabrowser.h"			// gViewerHtmlHelp
 #include "llfloaterhtmlsimple.h"
 #include "llfloaterhud.h"
 #include "llfloaterinspect.h"
@@ -156,6 +155,7 @@
 #include "lllineeditor.h"
 #include "llmenucommands.h"
 #include "llmenugl.h"
+#include "llmimetypes.h"
 #include "llmorphview.h"
 #include "llmoveview.h"
 #include "llmutelist.h"
@@ -921,6 +921,14 @@ void init_client_menu(LLMenuGL* menu)
 		menu->appendMenu( sub );
 		sub->createJumpKeys();
 	}
+	{
+		LLMenuGL* sub = NULL;
+		sub = new LLMenuGL("Media");
+		sub->append(new LLMenuItemCallGL("Reload MIME types", &LLMIMETypes::reload));
+		sub->append(new LLMenuItemCallGL("Web Browser Test", &handle_web_browser_test));
+		menu->appendMenu( sub );
+		sub->createJumpKeys();
+	}
 
 	menu->appendSeparator();
 
@@ -1050,6 +1058,7 @@ void init_debug_ui_menu(LLMenuGL* menu)
 	menu->appendSeparator();
 
 	menu->append(new LLMenuItemCallGL("Web Browser Test", &handle_web_browser_test));
+
 	// commented out until work is complete: DEV-32268
 	// menu->append(new LLMenuItemCallGL("Buy Currency Test", &handle_buy_currency_test));
 	menu->append(new LLMenuItemCallGL("Editable UI", &edit_ui));
@@ -5410,6 +5419,7 @@ class LLWorldSetAway : public view_listener_t
 		if (gAgent.getAFK())
 		{
 			gAgent.clearAFK();
+			llinfos << "Spawning HTML help window" << llendl;
 		}
 		else
 		{
@@ -5935,10 +5945,10 @@ class LLShowFloater : public view_listener_t
 		{
 			JCFloaterAnimList::toggleInstance(LLSD());
 		}
-		else if (floater_name == "inworld browser")
-		{
-			LLFloaterMediaBrowser::toggle();
-		}
+//awfixme		else if (floater_name == "inworld browser")
+//		{
+//			LLFloaterMediaBrowser::toggle();
+//		}
 		else if (floater_name == "beacons")
 		{
 			LLFloaterBeacons::toggleInstance(LLSD());
@@ -7728,7 +7738,7 @@ void handle_grab_texture(void* data)
 			// user know that the image is now in inventory.
 			if(view)
 			{
-				LLUICtrl* focus_ctrl = gFocusMgr.getKeyboardFocus();
+				LLFocusableElement* focus_ctrl = gFocusMgr.getKeyboardFocus();
 
 				view->getPanel()->setSelection(item_id, TAKE_FOCUS_NO);
 				view->getPanel()->openSelected();
@@ -7932,13 +7942,7 @@ void handle_load_from_xml(void*)
 
 void handle_web_browser_test(void*)
 {
-	const bool open_links_externally = false;
-	const bool open_app_slurls = true;
-	LLFloaterHtml::getInstance()->show(
-		"http://secondlife.com/app/search/slurls.html",
-		"Web Browser Test", 
-		open_links_externally, 
-		open_app_slurls);
+	LLWeb::loadURL("http://secondlife.com/app/search/slurls.html");
 }
 
 void handle_buy_currency_test(void*)

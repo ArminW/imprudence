@@ -94,7 +94,7 @@ public:
 	// requires trusted browser
 	LLPreferencesHandler() : LLCommandHandler("preferences", true) { }
 	bool handle(const LLSD& tokens, const LLSD& query_map,
-				LLWebBrowserCtrl* web)
+				LLMediaCtrl* web)
 	{
 		LLFloaterPreference::show(NULL);
 		return true;
@@ -444,7 +444,7 @@ void LLFloaterPreference::onBtnOK( void* userdata )
 	// commit any outstanding text entry
 	if (fp->hasFocus())
 	{
-		LLUICtrl* cur_focus = gFocusMgr.getKeyboardFocus();
+		LLUICtrl* cur_focus = dynamic_cast<LLUICtrl*>(gFocusMgr.getKeyboardFocus());
 		if (cur_focus->acceptsTextInput())
 		{
 			cur_focus->onCommit();
@@ -478,7 +478,7 @@ void LLFloaterPreference::onBtnApply( void* userdata )
 	LLFloaterPreference *fp =(LLFloaterPreference *)userdata;
 	if (fp->hasFocus())
 	{
-		LLUICtrl* cur_focus = gFocusMgr.getKeyboardFocus();
+		LLUICtrl* cur_focus = dynamic_cast<LLUICtrl*>(gFocusMgr.getKeyboardFocus());
 		if (cur_focus->acceptsTextInput())
 		{
 			cur_focus->onCommit();
@@ -504,7 +504,7 @@ void LLFloaterPreference::onBtnCancel( void* userdata )
 	LLFloaterPreference *fp =(LLFloaterPreference *)userdata;
 	if (fp->hasFocus())
 	{
-		LLUICtrl* cur_focus = gFocusMgr.getKeyboardFocus();
+		LLUICtrl* cur_focus = dynamic_cast<LLUICtrl*>(gFocusMgr.getKeyboardFocus());
 		if (cur_focus->acceptsTextInput())
 		{
 			cur_focus->onCommit();

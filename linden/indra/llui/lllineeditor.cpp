@@ -37,7 +37,6 @@
 #include "lllineeditor.h"
 
 #include "lltexteditor.h"
-#include "audioengine.h"
 #include "llmath.h"
 #include "llfontgl.h"
 #include "llgl.h"
@@ -912,7 +911,7 @@ void LLLineEditor::deleteSelection()
 	if( !mReadOnly && hasSelection() )
 	{
 		S32 left_pos = llmin( mSelectionStart, mSelectionEnd );
-		S32 selection_length = abs( mSelectionStart - mSelectionEnd );
+		S32 selection_length = llabs( mSelectionStart - mSelectionEnd );
 
 		mText.erase(left_pos, selection_length);
 		deselect();
@@ -935,7 +934,7 @@ void LLLineEditor::cut()
 
 
 		S32 left_pos = llmin( mSelectionStart, mSelectionEnd );
-		S32 length = abs( mSelectionStart - mSelectionEnd );
+		S32 length = llabs( mSelectionStart - mSelectionEnd );
 		gClipboard.copyFromSubstring( mText.getWString(), left_pos, length );
 		deleteSelection();
 
@@ -966,7 +965,7 @@ void LLLineEditor::copy()
 	if( canCopy() )
 	{
 		S32 left_pos = llmin( mSelectionStart, mSelectionEnd );
-		S32 length = abs( mSelectionStart - mSelectionEnd );
+		S32 length = llabs( mSelectionStart - mSelectionEnd );
 		gClipboard.copyFromSubstring( mText.getWString(), left_pos, length );
 	}
 }
@@ -1074,7 +1073,7 @@ void LLLineEditor::copyPrimary()
 	if( canCopy() )
 	{
 		S32 left_pos = llmin( mSelectionStart, mSelectionEnd );
-		S32 length = abs( mSelectionStart - mSelectionEnd );
+		S32 length = llabs( mSelectionStart - mSelectionEnd );
 		gClipboard.copyFromPrimarySubstring( mText.getWString(), left_pos, length );
 	}
 }
