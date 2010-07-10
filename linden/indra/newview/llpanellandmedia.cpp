@@ -170,7 +170,7 @@ void LLPanelLandMedia::refresh()
 
 		// Display options
 		BOOL can_change_media = LLViewerParcelMgr::isParcelModifiableByAgent(parcel, GP_LAND_CHANGE_MEDIA);
-//awfixme
+//imprudence FIXME
 /*
 		mCheckSoundLocal->set( parcel->getSoundLocal() );
 		mCheckSoundLocal->setEnabled( can_change_media );
