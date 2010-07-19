@@ -89,7 +89,7 @@ LLMediaCtrl::LLMediaCtrl( const std::string& name, const LLRect& rect ) :
 	S32 screen_height = mIgnoreUIScale ? 
 		llround((F32)getRect().getHeight() * LLUI::sGLScaleFactor.mV[VY]) : getRect().getHeight();
 
-	mMediaSource = LLViewerMedia::newMediaImpl(mHomePageUrl, LLUUID::null, screen_width, screen_height, false, false, "text/html");
+	mMediaSource = LLViewerMedia::newMediaImpl( LLUUID::null, screen_width, screen_height, (U8)false, (U8)false);
 	if ( !mMediaSource )
 	{
 		llwarns << "media source create failed " << llendl;
@@ -172,7 +172,7 @@ BOOL LLMediaCtrl::handleHover( S32 x, S32 y, MASK mask )
 	convertInputCoords(x, y);
 
 	if (mMediaSource)
-		mMediaSource->mouseMove(x, y);
+		mMediaSource->mouseMove(x,y,mask);
 
 	gViewerWindow->setCursor(mLastSetCursor);
 
@@ -197,7 +197,7 @@ BOOL LLMediaCtrl::handleMouseUp( S32 x, S32 y, MASK mask )
 
 	if (mMediaSource)
 	{
-		mMediaSource->mouseUp(x, y);
+		mMediaSource->mouseUp(x, y, mask);
 
 		// *HACK: LLMediaImplLLMozLib automatically takes focus on mouseup,
 		// in addition to the onFocusReceived() call below.  Undo this. JC
@@ -220,7 +220,7 @@ BOOL LLMediaCtrl::handleMouseDown( S32 x, S32 y, MASK mask )
 	convertInputCoords(x, y);
 
 	if (mMediaSource)
-		mMediaSource->mouseDown(x, y);
+		mMediaSource->mouseDown(x, y, mask);
 	
 	gFocusMgr.setMouseCapture( this );
 
@@ -239,7 +239,7 @@ BOOL LLMediaCtrl::handleDoubleClick( S32 x, S32 y, MASK mask )
 	convertInputCoords(x, y);
 
 	if (mMediaSource)
-		mMediaSource->mouseLeftDoubleClick( x, y );
+		mMediaSource->mouseDoubleClick( x, y, mask );
 
 	gFocusMgr.setMouseCapture( this );
 
@@ -589,7 +589,7 @@ void LLMediaCtrl::draw()
 		}
 
 		// scale texture to fit the space using texture coords
-		gGL.getTexUnit(0)->bind(mWebBrowserImage->getTexture());
+//impfixme:compile		gGL.getTexUnit(0)->bind(mWebBrowserImage->getTexture());
 		gGL.color4fv( LLColor4::white.mV );
 		F32 max_u = ( F32 )mWebBrowserImage->getMediaWidth() / ( F32 )mWebBrowserImage->getWidth();
 		F32 max_v = ( F32 )mWebBrowserImage->getMediaHeight() / ( F32 )mWebBrowserImage->getHeight();
@@ -1004,7 +1004,9 @@ BOOL LLWebBrowserTexture::render()
 				// Offset the pixels pointer to match x_pos and y_pos
 				data += ( x_pos * media_plugin->getTextureDepth() * media_plugin->getBitsWidth() );
 				data += ( y_pos * media_plugin->getTextureDepth() );
-				
+
+//impfixme:compile
+/*
 				mTexture->setSubImage(
 						data, 
 						media_plugin->getBitsWidth(), 
@@ -1012,7 +1014,8 @@ BOOL LLWebBrowserTexture::render()
 						x_pos, 
 						y_pos, 
 						width, 
-						height);
+						height); */
+					//SG1.4: ,TRUE);	// force a fast update (i.e. don't call analyzeAlpha, etc.)
 			}
 		
 			media_plugin->resetDirty();
@@ -1117,15 +1120,16 @@ bool LLWebBrowserTexture::updateBrowserTexture()
 	
 	if(!media->textureValid())
 		return false;
-	
+//impfixme:compile
+/*	
 	if(mMediaSource->mNeedsNewTexture
-		|| media->getTextureWidth() != mWidth
-		|| media->getTextureHeight() != mHeight )
+		|| media->getTextureWidth() != mMediaWidth()
+		|| media->getTextureHeight() != mMediaHeight() )
 	{
 		releaseGLTexture();
 		
-		mWidth = media->getTextureWidth();
-		mHeight = media->getTextureHeight();
+		mMediaWidth = media->getTextureWidth();
+		mMediaHeight = media->getTextureHeight();
 		mTextureCoordsOpenGL = media->getTextureCoordsOpenGL();
 
 		// will create mWidth * mHeight sized texture, using the texture params specified by the media.
@@ -1136,9 +1140,9 @@ bool LLWebBrowserTexture::updateBrowserTexture()
 				media->getTextureFormatSwapBytes());
 
 
-		mMediaSource->mNeedsNewTexture = false;
+ 		mMediaSource->mNeedsNewTexture = false;
 	}
-	
+*/	
 	return true;
 }
 // virtual

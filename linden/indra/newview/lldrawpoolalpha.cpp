@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -42,11 +43,10 @@
 
 #include "llcubemap.h"
 #include "llsky.h"
-#include "llagent.h"
 #include "lldrawable.h"
 #include "llface.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"	// For debugging
+#include "llviewertexturelist.h"	// For debugging
 #include "llviewerobjectlist.h" // For debugging
 #include "llviewerwindow.h"
 #include "pipeline.h"
@@ -100,6 +100,7 @@ void LLDrawPoolAlpha::renderDeferred(S32 pass)
 		LLGLEnable test(GL_ALPHA_TEST);
 		//render alpha masked objects
 		LLRenderPass::renderTexture(LLRenderPass::PASS_ALPHA_MASK, getVertexDataMask());
+		gDeferredTreeProgram.unbind();
 	}			
 	gGL.setAlphaRejectSettings(LLRender::CF_DEFAULT);
 }
@@ -180,6 +181,7 @@ void LLDrawPoolAlpha::render(S32 pass)
 
 	if (LLPipeline::sFastAlpha && !deferred_render)
 	{
+		LLGLDisable blend_disable(GL_BLEND);
 		gGL.setAlphaRejectSettings(LLRender::CF_GREATER, 0.33f);
 		if (mVertexShaderLevel > 0)
 		{
@@ -218,8 +220,8 @@ void LLDrawPoolAlpha::render(S32 pass)
 		}
 		gPipeline.enableLightsFullbright(LLColor4(1,1,1,1));
 		glColor4f(1,0,0,1);
-		LLViewerImage::sSmokeImagep->addTextureStats(1024.f*1024.f);
-		gGL.getTexUnit(0)->bind(LLViewerImage::sSmokeImagep.get(), TRUE);
+		LLViewerFetchedTexture::sSmokeImagep->addTextureStats(1024.f*1024.f);
+		gGL.getTexUnit(0)->bind(LLViewerFetchedTexture::sSmokeImagep, TRUE) ;
 		renderAlphaHighlight(LLVertexBuffer::MAP_VERTEX |
 							LLVertexBuffer::MAP_TEXCOORD0);
 	}
@@ -250,8 +252,8 @@ void LLDrawPoolAlpha::renderAlphaHighlight(U32 mask)
 					params.mGroup->rebuildMesh();
 				}
 				params.mVertexBuffer->setBuffer(mask);
-				params.mVertexBuffer->drawRange(LLRender::TRIANGLES, params.mStart, params.mEnd, params.mCount, params.mOffset);
-				gPipeline.addTrianglesDrawn(params.mCount/3);
+				params.mVertexBuffer->drawRange(params.mDrawMode, params.mStart, params.mEnd, params.mCount, params.mOffset);
+				gPipeline.addTrianglesDrawn(params.mCount, params.mDrawMode);
 			}
 		}
 	}
@@ -365,10 +367,10 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask)
 				
 				if (params.mTexture.notNull())
 				{
-					gGL.getTexUnit(diffuse_channel)->bind(params.mTexture.get(), TRUE, TRUE);
-					if(params.mViewerTexture.notNull())
+					gGL.getTexUnit(diffuse_channel)->bind(params.mTexture.get());
+					if(params.mTexture.notNull())
 					{
-						params.mViewerTexture->addTextureStats(params.mVSize);
+						params.mTexture->addTextureStats(params.mVSize);
 					}
 					if (params.mTextureMatrix)
 					{
@@ -380,8 +382,8 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask)
 				}
 
 				params.mVertexBuffer->setBuffer(mask);
-				params.mVertexBuffer->drawRange(LLRender::TRIANGLES, params.mStart, params.mEnd, params.mCount, params.mOffset);
-				gPipeline.addTrianglesDrawn(params.mCount/3);
+				params.mVertexBuffer->drawRange(params.mDrawMode, params.mStart, params.mEnd, params.mCount, params.mOffset);
+				gPipeline.addTrianglesDrawn(params.mCount, params.mDrawMode);
 
 				if (params.mTextureMatrix && params.mTexture.notNull())
 				{

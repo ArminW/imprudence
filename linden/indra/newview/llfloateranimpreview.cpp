@@ -391,7 +391,7 @@ void LLFloaterAnimPreview::draw()
 	{
 		gGL.color3f(1.f, 1.f, 1.f);
 
-		gGL.getTexUnit(0)->bind(mAnimPreview->getTexture());
+		gGL.getTexUnit(0)->bind(mAnimPreview);
 
 		gGL.begin( LLRender::QUADS );
 		{
@@ -1072,7 +1072,7 @@ BOOL	LLPreviewAnimation::render()
 	glMatrixMode(GL_PROJECTION);
 	gGL.pushMatrix();
 	glLoadIdentity();
-	glOrtho(0.0f, mWidth, 0.0f, mHeight, -1.0f, 1.0f);
+	glOrtho(0.0f, mFullWidth, 0.0f, mFullHeight, -1.0f, 1.0f);
 
 	glMatrixMode(GL_MODELVIEW);
 	gGL.pushMatrix();
@@ -1082,7 +1082,7 @@ BOOL	LLPreviewAnimation::render()
 	gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 	gGL.color4f(0.15f, 0.2f, 0.3f, 1.f);
 
-	gl_rect_2d_simple( mWidth, mHeight );
+	gl_rect_2d_simple( mFullWidth, mFullHeight );
 
 	glMatrixMode(GL_PROJECTION);
 	gGL.popMatrix();
@@ -1104,7 +1104,7 @@ BOOL	LLPreviewAnimation::render()
 		target_pos + (mCameraOffset  * av_rot) );											// point of interest
 
 	LLViewerCamera::getInstance()->setView(LLViewerCamera::getInstance()->getDefaultFOV() / mCameraZoom);
-	LLViewerCamera::getInstance()->setPerspective(FALSE, mOrigin.mX, mOrigin.mY, mWidth, mHeight, FALSE);
+	LLViewerCamera::getInstance()->setPerspective(FALSE, mOrigin.mX, mOrigin.mY, mFullWidth, mFullHeight, FALSE);
 
 	mCameraRelPos = LLViewerCamera::getInstance()->getOrigin() - avatarp->mHeadp->getWorldPosition();
 

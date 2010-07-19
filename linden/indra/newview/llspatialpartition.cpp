@@ -409,7 +409,7 @@ void LLSpatialGroup::setCurUpdatingSlot(LLTextureAtlasSlot* slotp)
 	//}
 }
 
-LLTextureAtlasSlot* LLSpatialGroup::getCurUpdatingSlot(LLViewerImage* imagep, S8 recursive_level) 
+LLTextureAtlasSlot* LLSpatialGroup::getCurUpdatingSlot(LLViewerTexture* imagep, S8 recursive_level) 
 { 
 	if(gFrameCount && mCurUpdatingTime == gFrameCount && mCurUpdatingTexture == imagep)
 	{
@@ -2134,6 +2134,11 @@ S32 LLSpatialPartition::cull(LLCamera &camera, std::vector<LLDrawable *>* result
 
 BOOL earlyFail(LLCamera* camera, LLSpatialGroup* group)
 {
+	if (camera->getOrigin().isExactlyZero())
+	{
+		return FALSE;
+	}
+
 	const F32 vel = SG_OCCLUSION_FUDGE*2.f;
 	LLVector3 c = group->mBounds[0];
 	LLVector3 r = group->mBounds[1] + LLVector3(vel,vel,vel);
@@ -2361,7 +2366,7 @@ void renderOctree(LLSpatialGroup* group)
 	gGL.color4fv(col.mV);
 	drawBox(group->mObjectBounds[0], group->mObjectBounds[1]*1.01f+LLVector3(0.001f, 0.001f, 0.001f));
 	
-	glDepthMask(GL_TRUE);
+//impfixme not in sg2	glDepthMask(GL_TRUE);
 	gGL.setSceneBlendType(LLRender::BT_ALPHA);
 
 	if (group->mBuilt <= 0.f)
@@ -2509,6 +2514,7 @@ void renderBoundingBox(LLDrawable* drawable, BOOL set_color = TRUE)
 						break;
 				case LL_PCODE_LEGACY_TREE:
 						gGL.color4f(0,0.5f,0,1);
+						break;
 				default:
 						gGL.color4f(1,0,1,1);
 						break;
@@ -2577,7 +2583,7 @@ void renderTexturePriority(LLDrawable* drawable)
 		
 		LLGLDisable blend(GL_BLEND);
 		
-		//LLViewerImage* imagep = facep->getTexture();
+		//LLViewerTexture* imagep = facep->getTexture();
 		//if (imagep)
 		{
 	
@@ -2607,7 +2613,7 @@ void renderTexturePriority(LLDrawable* drawable)
 		/*S32 boost = imagep->getBoostLevel();
 		if (boost)
 		{
-			F32 t = (F32) boost / (F32) (LLViewerImage::BOOST_MAX_LEVEL-1);
+			F32 t = (F32) boost / (F32) (LLViewerTexture::BOOST_MAX_LEVEL-1);
 			LLVector4 col = lerp(boost_cold, boost_hot, t);
 			LLGLEnable blend_on(GL_BLEND);
 			gGL.blendFunc(GL_SRC_ALPHA, GL_ONE);
@@ -3189,7 +3195,7 @@ LLDrawable* LLSpatialPartition::lineSegmentIntersect(const LLVector3& start, con
 }
 
 LLDrawInfo::LLDrawInfo(U16 start, U16 end, U32 count, U32 offset, 
-					   LLImageGL* gl_texture, LLViewerImage* texture, LLVertexBuffer* buffer,
+					   LLViewerTexture* gl_texture, LLViewerTexture* texture, LLVertexBuffer* buffer,
 					   BOOL fullbright, U8 bump, BOOL particle, F32 part_size)
 :
 	mVertexBuffer(buffer),
@@ -3208,7 +3214,8 @@ LLDrawInfo::LLDrawInfo(U16 start, U16 end, U32 count, U32 offset,
 	mVSize(0.f),
 	mGroup(NULL),
 	mFace(NULL),
-	mDistance(0.f)
+	mDistance(0.f),
+	mDrawMode(LLRender::TRIANGLES)
 {
 	mDebugColor = (rand() << 16) + rand();
 	if (mStart >= mVertexBuffer->getRequestedVerts() ||

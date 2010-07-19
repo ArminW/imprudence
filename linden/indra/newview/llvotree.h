@@ -39,7 +39,7 @@
 
 class LLFace;
 class LLDrawPool;
-
+class LLViewerFetchedTexture;
 
 class LLVOTree : public LLViewerObject
 {
@@ -69,7 +69,7 @@ public:
 	// Graphical stuff for objects - maybe broken out into render class later?
 	/*virtual*/ void render(LLAgent &agent);
 	/*virtual*/ void setPixelAreaAndAngle(LLAgent &agent);
-	/*virtual*/ void updateTextures(LLAgent &agent);
+	/*virtual*/ void updateTextures();
 
 	/*virtual*/ LLDrawable* createDrawable(LLPipeline *pipeline);
 	/*virtual*/ BOOL		updateGeometry(LLDrawable *drawable);
@@ -163,7 +163,7 @@ protected:
 	LLVector3		mWind;
 
 	LLPointer<LLVertexBuffer> mReferenceBuffer; //reference geometry for generating tree mesh
-	LLPointer<LLViewerImage> mTreeImagep;	// Pointer to proper tree image
+	LLPointer<LLViewerFetchedTexture> mTreeImagep;	// Pointer to proper tree image
 
 	U8				mSpecies;		// Species of tree
 	F32				mBranchLength;	// Scale (length) of tree branches

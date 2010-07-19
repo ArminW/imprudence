@@ -54,7 +54,6 @@
 #include "llmemory.h"
 #include "llimage.h"
 #include "llmousehandler.h"
-#include "llimagegl.h"
 #include "llglheaders.h"
 #include "llcheckboxctrl.h"
 #include "llworld.h"
@@ -165,7 +164,7 @@ createUI ()
 			* ( bits + x + y * linesize + 2 ) = ( U8 )( bVal * 255.0f );
 		}
 	}
-	mRGBImage = new LLImageGL ( (LLImageRaw*)raw, FALSE );
+	mRGBImage = LLViewerTextureManager::getLocalTexture( (LLImageRaw*)raw, FALSE );
 	gGL.getTexUnit(0)->bind(mRGBImage);
 	mRGBImage->setAddressMode(LLTexUnit::TAM_CLAMP);
 	

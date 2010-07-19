@@ -191,7 +191,7 @@ void LLTextureAtlasManager::releaseAtlas(LLTextureAtlas* atlasp)
 //3, this function tries to group sub-textures from same spatial group into ONE atlas to improve render batching.
 //
 LLPointer<LLTextureAtlasSlot> LLTextureAtlasManager::reserveAtlasSlot(S32 sub_texture_size, S8 ncomponents, 
-																		  LLSpatialGroup* groupp, LLViewerImage* imagep)
+																		  LLSpatialGroup* groupp, LLViewerTexture* imagep)
 {
 	if(!groupp)
 	{

@@ -36,14 +36,13 @@
 #include "llfloaterpreference.h"
 #include "llviewerwindow.h"
 #include "llviewercontrol.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llfeaturemanager.h"
 #include "llstartup.h"
 
 #include "llradiogroup.h"
 #include "lluictrlfactory.h"
 
-#include "llimagegl.h"
 #include "pipeline.h"
 
 LLFloaterHardwareSettings* LLFloaterHardwareSettings::sHardwareSettings = NULL;
@@ -92,8 +91,8 @@ void LLFloaterHardwareSettings::refresh()
 
 void LLFloaterHardwareSettings::refreshEnabledState()
 {
-	S32 min_tex_mem = LLViewerImageList::getMinVideoRamSetting();
-	S32 max_tex_mem = LLViewerImageList::getMaxVideoRamSetting();
+	S32 min_tex_mem = LLViewerTextureList::getMinVideoRamSetting();
+	S32 max_tex_mem = LLViewerTextureList::getMaxVideoRamSetting();
 	childSetMinValue("GrapicsCardTextureMemory", min_tex_mem);
 	childSetMaxValue("GrapicsCardTextureMemory", max_tex_mem);
 

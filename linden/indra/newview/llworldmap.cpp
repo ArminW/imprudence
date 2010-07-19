@@ -43,7 +43,7 @@
 #include "llviewercontrol.h"
 #include "llfloaterworldmap.h"
 #include "lltracker.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerregion.h"
 #include "llregionflags.h"
 
@@ -520,7 +520,7 @@ void LLWorldMap::processMapLayerReply(LLMessageSystem* msg, void**)
 		LLWorldMapLayer new_layer;
 		new_layer.LayerDefined = TRUE;
 		msg->getUUIDFast(_PREHASH_LayerData, _PREHASH_ImageID, new_layer.LayerImageID, block);
-		new_layer.LayerImage = gImageList.getImage(new_layer.LayerImageID, MIPMAP_TRUE, FALSE);
+ 		new_layer.LayerImage = LLViewerTextureManager::getLocalTexture(new_layer.LayerImageID, MIPMAP_TRUE, FALSE);
 
 		gGL.getTexUnit(0)->bind(new_layer.LayerImage.get());
 		new_layer.LayerImage->setAddressMode(LLTexUnit::TAM_CLAMP);
@@ -635,7 +635,7 @@ void LLWorldMap::processMapBlockReply(LLMessageSystem* msg, void**)
 			siminfo->mMapImageID[agent_flags] = image_id;
 
 #ifdef IMMEDIATE_IMAGE_LOAD
-			siminfo->mCurrentImage = gImageList.getImage(siminfo->mMapImageID[LLWorldMap::getInstance()->mCurrentMap], MIPMAP_TRUE, FALSE);
+			siminfo->mCurrentImage = gTextureList.getImage(siminfo->mMapImageID[LLWorldMap::getInstance()->mCurrentMap], MIPMAP_TRUE, FALSE);
 			gGL.getTexUnit(0)->bind(siminfo->mCurrentImage.get());
 			siminfo->mCurrentImage->setAddressMode(LLTexUnit::TAM_CLAMP);
 #endif
@@ -643,7 +643,7 @@ void LLWorldMap::processMapBlockReply(LLMessageSystem* msg, void**)
 			if (siminfo->mMapImageID[2].notNull())
 			{
 #ifdef IMMEDIATE_IMAGE_LOAD
-				siminfo->mOverlayImage = gImageList.getImage(siminfo->mMapImageID[2], MIPMAP_TRUE, FALSE);
+				siminfo->mOverlayImage = gTextureList.getImage(siminfo->mMapImageID[2], MIPMAP_TRUE, FALSE);
 #endif
 			}
 			else
@@ -872,7 +872,7 @@ void LLWorldMap::dump()
 			llinfos << "image discard " << (S32)info->mCurrentImage->getDiscardLevel()
 					<< " fullwidth " << info->mCurrentImage->getWidth(0)
 					<< " fullheight " << info->mCurrentImage->getHeight(0)
-					<< " maxvirt " << info->mCurrentImage->mMaxVirtualSize
+					<< " maxvirt " << info->mCurrentImage->getMaxVirtualSize()
 					<< " maxdisc " << (S32)info->mCurrentImage->getMaxDiscardLevel()
 					<< llendl;
 		}

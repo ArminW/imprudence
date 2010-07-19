@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "linden_common.h"
@@ -38,16 +39,21 @@
 #include "llcubemap.h"
 #include "llimagegl.h"
 #include "llrendertarget.h"
+#include "lltexture.h"
 
 LLRender gGL;
 
 // Handy copies of last good GL matrices
 F64	gGLModelView[16];
 F64	gGLLastModelView[16];
+F64 gGLLastProjection[16];
 F64 gGLProjection[16];
 S32	gGLViewport[4];
 
-static const U32 LL_NUM_TEXTURE_LAYERS = 16;  // KL was 8 ( keep a track on this ) 16 in render-pipeline
+U32 LLRender::sUICalls = 0;
+U32 LLRender::sUIVerts = 0;
+
+static const U32 LL_NUM_TEXTURE_LAYERS = 16; 
 
 static GLenum sGLTextureType[] =
 {
@@ -88,7 +94,9 @@ static GLenum sGLBlendFactor[] =
 	GL_DST_ALPHA,
 	GL_SRC_ALPHA,
 	GL_ONE_MINUS_DST_ALPHA,
-	GL_ONE_MINUS_SRC_ALPHA
+	GL_ONE_MINUS_SRC_ALPHA,
+
+	GL_ZERO // 'BF_UNDEF'
 };
 
 LLTexUnit::LLTexUnit(S32 index)
@@ -99,7 +107,7 @@ mCurrAlphaSrc1(TBS_TEX_ALPHA), mCurrAlphaSrc2(TBS_PREV_ALPHA),
 mCurrColorScale(1), mCurrAlphaScale(1), mCurrTexture(0),
 mHasMipMaps(false)
 {
-	llassert_always(index < LL_NUM_TEXTURE_LAYERS);
+	llassert_always(index < (S32)LL_NUM_TEXTURE_LAYERS);
 	mIndex = index;
 }
 
@@ -114,6 +122,8 @@ void LLTexUnit::refreshState(void)
 	// We set dirty to true so that the tex unit knows to ignore caching
 	// and we reset the cached tex unit state
 
+	gGL.flush();
+	
 	glActiveTextureARB(GL_TEXTURE0_ARB + mIndex);
 	if (mCurrTexType != TT_NONE)
 	{
@@ -141,8 +151,9 @@ void LLTexUnit::activate(void)
 {
 	if (mIndex < 0) return;
 
-	if (gGL.mCurrTextureUnitIndex != mIndex || gGL.mDirty)
+	if ((S32)gGL.mCurrTextureUnitIndex != mIndex || gGL.mDirty)
 	{
+		gGL.flush();
 		glActiveTextureARB(GL_TEXTURE0_ARB + mIndex);
 		gGL.mCurrTextureUnitIndex = mIndex;
 	}
@@ -160,6 +171,8 @@ void LLTexUnit::enable(eTextureType type)
 			disable(); // Force a disable of a previous texture type if it's enabled.
 		}
 		mCurrTexType = type;
+
+		gGL.flush();
 		glEnable(sGLTextureType[type]);
 	}
 }
@@ -172,9 +185,64 @@ void LLTexUnit::disable(void)
 	{
 		activate();
 		unbind(mCurrTexType);
+		gGL.flush();
 		glDisable(sGLTextureType[mCurrTexType]);
 		mCurrTexType = TT_NONE;
 	}
+}
+
+bool LLTexUnit::bind(LLTexture* texture, bool for_rendering, bool forceBind)
+{
+	stop_glerror();
+	if (mIndex < 0) return false;
+
+	gGL.flush();
+
+	LLImageGL* gl_tex = NULL ;
+	if (texture == NULL || !(gl_tex = texture->getGLTexture()))
+	{
+		llwarns << "NULL LLTexUnit::bind texture" << llendl;
+		return false;
+	}
+
+	if (!gl_tex->getTexName()) //if texture does not exist
+	{
+		//if deleted, will re-generate it immediately
+		texture->forceImmediateUpdate() ;
+
+		gl_tex->forceUpdateBindStats() ;
+		return texture->bindDefaultImage(mIndex);
+	}
+
+	//in audit, replace the selected texture by the default one.
+	if(gAuditTexture && for_rendering && LLImageGL::sCurTexPickSize > 0)
+	{
+		if(texture->getWidth() * texture->getHeight() == LLImageGL::sCurTexPickSize)
+		{
+			gl_tex->updateBindStats(gl_tex->mTextureMemory);
+			return bind(LLImageGL::sHighlightTexturep.get());
+		}
+	}
+	if ((mCurrTexture != gl_tex->getTexName()) || forceBind)
+	{
+		activate();
+		enable(gl_tex->getTarget());
+		mCurrTexture = gl_tex->getTexName();
+		glBindTexture(sGLTextureType[gl_tex->getTarget()], mCurrTexture);
+		if(gl_tex->updateBindStats(gl_tex->mTextureMemory))
+		{
+			texture->setActive() ;
+			texture->updateBindStatsForTester() ;
+		}
+		mHasMipMaps = gl_tex->mHasMipMaps;
+		if (gl_tex->mTexOptionsDirty)
+		{
+			gl_tex->mTexOptionsDirty = false;
+			setTextureAddressMode(gl_tex->mAddressMode);
+			setTextureFilteringOption(gl_tex->mFilterOption);
+		}
+	}
+	return true;
 }
 
 bool LLTexUnit::bind(LLImageGL* texture, bool for_rendering, bool forceBind)
@@ -182,44 +250,29 @@ bool LLTexUnit::bind(LLImageGL* texture, bool for_rendering, bool forceBind)
 	stop_glerror();
 	if (mIndex < 0) return false;
 
-	gGL.flush();
-
-	if (texture == NULL)
+	if(!texture)
 	{
 		llwarns << "NULL LLTexUnit::bind texture" << llendl;
 		return false;
 	}
-	
-	if (!texture->getTexName()) //if texture does not exist
+
+	if(!texture->getTexName())
 	{
-		//if deleted, will re-generate it immediately
-		texture->forceImmediateUpdate() ;
-
-		return texture->bindDefaultImage(mIndex);
-	}
-
-#if !LL_RELEASE_FOR_DOWNLOAD
-	if(for_rendering)
-	{
-		int w = texture->getWidth(texture->getDiscardLevel()) ;
-		int h = texture->getHeight(texture->getDiscardLevel()) ;
-
-		if(w * h == LLImageGL::sCurTexPickSize)
+		if(LLImageGL::sDefaultGLTexture && LLImageGL::sDefaultGLTexture->getTexName())
 		{
-			texture->updateBindStats();
-			return bind(LLImageGL::sDefaultTexturep.get());
+			return bind(LLImageGL::sDefaultGLTexture) ;
 		}
+		return false ;
 	}
-#endif
 
 	if ((mCurrTexture != texture->getTexName()) || forceBind)
 	{
+		gGL.flush();
 		activate();
 		enable(texture->getTarget());
 		mCurrTexture = texture->getTexName();
 		glBindTexture(sGLTextureType[texture->getTarget()], mCurrTexture);
-		texture->updateBindStats();
-		texture->setActive() ;
+		texture->updateBindStats(texture->mTextureMemory);		
 		mHasMipMaps = texture->mHasMipMaps;
 		if (texture->mTexOptionsDirty)
 		{
@@ -228,6 +281,7 @@ bool LLTexUnit::bind(LLImageGL* texture, bool for_rendering, bool forceBind)
 			setTextureFilteringOption(texture->mFilterOption);
 		}
 	}
+
 	return true;
 }
 
@@ -252,7 +306,7 @@ bool LLTexUnit::bind(LLCubeMap* cubeMap)
 			mCurrTexture = cubeMap->mImages[0]->getTexName();
 			glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, mCurrTexture);
 			mHasMipMaps = cubeMap->mImages[0]->mHasMipMaps;
-			cubeMap->mImages[0]->updateBindStats();
+			cubeMap->mImages[0]->updateBindStats(cubeMap->mImages[0]->mTextureMemory);
 			if (cubeMap->mImages[0]->mTexOptionsDirty)
 			{
 				cubeMap->mImages[0]->mTexOptionsDirty = false;
@@ -282,7 +336,7 @@ bool LLTexUnit::bind(LLRenderTarget* renderTarget, bool bindDepth)
 	{
 		if (renderTarget->hasStencil())
 		{
-			llwarns << "Cannot bind a render buffer for sampling.  Allocate render target without a stencil buffer if sampling of depth buffer is required." << llendl;
+			llerrs << "Cannot bind a render buffer for sampling.  Allocate render target without a stencil buffer if sampling of depth buffer is required." << llendl;
 		}
 
 		bindManual(renderTarget->getUsage(), renderTarget->getDepth());
@@ -298,12 +352,15 @@ bool LLTexUnit::bind(LLRenderTarget* renderTarget, bool bindDepth)
 
 bool LLTexUnit::bindManual(eTextureType type, U32 texture, bool hasMips)
 {
-	if (mIndex < 0) return false;
+	if (mIndex < 0)  
+	{
+		return false;
+	}
 	
 	if(mCurrTexture != texture)
 	{
 		gGL.flush();
-	
+		
 		activate();
 		enable(type);
 		mCurrTexture = texture;
@@ -334,6 +391,8 @@ void LLTexUnit::setTextureAddressMode(eTextureAddressMode mode)
 {
 	if (mIndex < 0 || mCurrTexture == 0) return;
 
+	gGL.flush();
+
 	activate();
 
 	glTexParameteri (sGLTextureType[mCurrTexType], GL_TEXTURE_WRAP_S, sGLAddressMode[mode]);
@@ -347,6 +406,8 @@ void LLTexUnit::setTextureAddressMode(eTextureAddressMode mode)
 void LLTexUnit::setTextureFilteringOption(LLTexUnit::eTextureFilterOptions option)
 {
 	if (mIndex < 0 || mCurrTexture == 0) return;
+
+	gGL.flush();
 
 	if (option == TFO_POINT)
 	{
@@ -397,6 +458,8 @@ void LLTexUnit::setTextureBlendType(eTextureBlendType type)
 		return;
 	}
 
+	gGL.flush();
+
 	activate();
 	mCurrBlendType = type;
 	S32 scale_amount = 1;
@@ -422,7 +485,7 @@ void LLTexUnit::setTextureBlendType(eTextureBlendType type)
 			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
 			break;
 		default:
-			llwarns << "Unknown Texture Blend Type: " << type << llendl;
+			llerrs << "Unknown Texture Blend Type: " << type << llendl;
 			break;
 	}
 	setColorScale(scale_amount);
@@ -513,6 +576,7 @@ void LLTexUnit::setTextureCombiner(eTextureBlendOp op, eTextureBlendSrc src1, eT
 	if (mCurrBlendType != TB_COMBINE || gGL.mDirty)
 	{
 		mCurrBlendType = TB_COMBINE;
+		gGL.flush();
 		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
 	}
 
@@ -522,6 +586,8 @@ void LLTexUnit::setTextureCombiner(eTextureBlendOp op, eTextureBlendSrc src1, eT
 	{
 		return;
 	}
+
+	gGL.flush();
 
 	// Get the gl source enums according to the eTextureBlendSrc sources passed in
 	GLint source1 = getTextureSource(src1);
@@ -655,6 +721,7 @@ void LLTexUnit::setColorScale(S32 scale)
 	if (mCurrColorScale != scale || gGL.mDirty)
 	{
 		mCurrColorScale = scale;
+		gGL.flush();
 		glTexEnvi( GL_TEXTURE_ENV, GL_RGB_SCALE, scale );
 	}
 }
@@ -664,6 +731,7 @@ void LLTexUnit::setAlphaScale(S32 scale)
 	if (mCurrAlphaScale != scale || gGL.mDirty)
 	{
 		mCurrAlphaScale = scale;
+		gGL.flush();
 		glTexEnvi( GL_TEXTURE_ENV, GL_ALPHA_SCALE, scale );
 	}
 }
@@ -685,8 +753,11 @@ void LLTexUnit::debugTextureUnit(void)
 
 
 LLRender::LLRender()
-: mDirty(false), mCount(0), mMode(LLRender::TRIANGLES),
-	mMaxAnisotropy(0.f) 
+  : mDirty(false),
+    mCount(0),
+    mMode(LLRender::TRIANGLES),
+    mCurrTextureUnitIndex(0),
+    mMaxAnisotropy(0.f) 
 {
 	mBuffer = new LLVertexBuffer(immediate_mask, 0);
 	mBuffer->allocateBuffer(4096, 0, TRUE);
@@ -708,6 +779,8 @@ LLRender::LLRender()
 
 	mCurrAlphaFunc = CF_DEFAULT;
 	mCurrAlphaFuncVal = 0.01f;
+	mCurrBlendSFactor = BF_UNDEF;
+	mCurrBlendDFactor = BF_UNDEF;
 }
 
 LLRender::~LLRender()
@@ -770,6 +843,88 @@ void LLRender::popMatrix()
 	glPopMatrix();
 }
 
+void LLRender::translateUI(F32 x, F32 y, F32 z)
+{
+	if (mUIOffset.empty())
+	{
+		llerrs << "Need to push a UI translation frame before offsetting" << llendl;
+	}
+
+	mUIOffset.front().mV[0] += x;
+	mUIOffset.front().mV[1] += y;
+	mUIOffset.front().mV[2] += z;
+}
+
+void LLRender::scaleUI(F32 x, F32 y, F32 z)
+{
+	if (mUIScale.empty())
+	{
+		llerrs << "Need to push a UI transformation frame before scaling." << llendl;
+	}
+
+	mUIScale.front().scaleVec(LLVector3(x,y,z));
+}
+
+void LLRender::pushUIMatrix()
+{
+	if (mUIOffset.empty())
+	{
+		mUIOffset.push_front(LLVector3(0,0,0));
+	}
+	else
+	{
+		mUIOffset.push_front(mUIOffset.front());
+	}
+	
+	if (mUIScale.empty())
+	{
+		mUIScale.push_front(LLVector3(1,1,1));
+	}
+	else
+	{
+		mUIScale.push_front(mUIScale.front());
+	}
+}
+
+void LLRender::popUIMatrix()
+{
+	if (mUIOffset.empty())
+	{
+		llerrs << "UI offset stack blown." << llendl;
+	}
+	mUIOffset.pop_front();
+	mUIScale.pop_front();
+}
+
+LLVector3 LLRender::getUITranslation()
+{
+	if (mUIOffset.empty())
+	{
+		llerrs << "UI offset stack empty." << llendl;
+	}
+	return mUIOffset.front();
+}
+
+LLVector3 LLRender::getUIScale()
+{
+	if (mUIScale.empty())
+	{
+		llerrs << "UI scale stack empty." << llendl;
+	}
+	return mUIScale.front();
+}
+
+
+void LLRender::loadUIIdentity()
+{
+	if (mUIOffset.empty())
+	{
+		llerrs << "Need to push UI translation frame before clearing offset." << llendl;
+	}
+	mUIOffset.front().setVec(0,0,0);
+	mUIScale.front().setVec(1,1,1);
+}
+
 void LLRender::setColorMask(bool writeColor, bool writeAlpha)
 {
 	setColorMask(writeColor, writeColor, writeColor, writeAlpha);
@@ -792,32 +947,31 @@ void LLRender::setColorMask(bool writeColorR, bool writeColorG, bool writeColorB
 
 void LLRender::setSceneBlendType(eBlendType type)
 {
-	flush();
 	switch (type) 
 	{
 		case BT_ALPHA:
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			blendFunc(BF_SOURCE_ALPHA, BF_ONE_MINUS_SOURCE_ALPHA);
 			break;
 		case BT_ADD:
-			glBlendFunc(GL_ONE, GL_ONE);
+			blendFunc(BF_ONE, BF_ONE);
 			break;
 		case BT_ADD_WITH_ALPHA:
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+			blendFunc(BF_SOURCE_ALPHA, BF_ONE);
 			break;
 		case BT_MULT:
-			glBlendFunc(GL_DST_COLOR, GL_ZERO);
+			blendFunc(BF_DEST_COLOR, BF_ZERO);
 			break;
 		case BT_MULT_ALPHA:
-			glBlendFunc(GL_DST_ALPHA, GL_ZERO);
+			blendFunc(BF_DEST_ALPHA, BF_ZERO);
 			break;
 		case BT_MULT_X2:
-			glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR);
+			blendFunc(BF_DEST_COLOR, BF_SOURCE_COLOR);
 			break;
 		case BT_REPLACE:
-			glBlendFunc(GL_ONE, GL_ZERO);
+			blendFunc(BF_ONE, BF_ZERO);
 			break;
 		default:
-			llwarns << "Unknown Scene Blend Type: " << type << llendl;
+			llerrs << "Unknown Scene Blend Type: " << type << llendl;
 			break;
 	}
 }
@@ -840,13 +994,20 @@ void LLRender::setAlphaRejectSettings(eCompareFunc func, F32 value)
 
 void LLRender::blendFunc(eBlendFactor sfactor, eBlendFactor dfactor)
 {
-	flush();
-	glBlendFunc(sGLBlendFactor[sfactor], sGLBlendFactor[dfactor]);
+	llassert(sfactor < BF_UNDEF);
+	llassert(dfactor < BF_UNDEF);
+	if (mCurrBlendSFactor != sfactor || mCurrBlendDFactor != dfactor)
+	{
+		mCurrBlendSFactor = sfactor;
+		mCurrBlendDFactor = dfactor;
+		flush();
+		glBlendFunc(sGLBlendFactor[sfactor], sGLBlendFactor[dfactor]);
+	}
 }
 
 LLTexUnit* LLRender::getTexUnit(U32 index)
 {
-	if ((index >= 0) && (index < mTexUnits.size()))
+	if (index < mTexUnits.size())
 	{
 		return mTexUnits[index];
 	}
@@ -891,7 +1052,7 @@ void LLRender::begin(const GLuint& mode)
 		}
 		else if (mCount != 0)
 		{
-			llwarns << "gGL.begin() called redundantly." << llendl;
+			llerrs << "gGL.begin() called redundantly." << llendl;
 		}
 		
 		mMode = mode;
@@ -922,22 +1083,22 @@ void LLRender::flush()
 #if 0
 		if (!glIsEnabled(GL_VERTEX_ARRAY))
 		{
-			llwarns << "foo 1" << llendl;
+			llerrs << "foo 1" << llendl;
 		}
 
 		if (!glIsEnabled(GL_COLOR_ARRAY))
 		{
-			llwarns << "foo 2" << llendl;
+			llerrs << "foo 2" << llendl;
 		}
 
 		if (!glIsEnabled(GL_TEXTURE_COORD_ARRAY))
 		{
-			llwarns << "foo 3" << llendl;
+			llerrs << "foo 3" << llendl;
 		}
 
 		if (glIsEnabled(GL_NORMAL_ARRAY))
 		{
-			llwarns << "foo 7" << llendl;
+			llerrs << "foo 7" << llendl;
 		}
 
 		GLvoid* pointer;
@@ -945,22 +1106,55 @@ void LLRender::flush()
 		glGetPointerv(GL_VERTEX_ARRAY_POINTER, &pointer);
 		if (pointer != &(mBuffer[0].v))
 		{
-			llwarns << "foo 4" << llendl;
+			llerrs << "foo 4" << llendl;
 		}
 
 		glGetPointerv(GL_COLOR_ARRAY_POINTER, &pointer);
 		if (pointer != &(mBuffer[0].c))
 		{
-			llwarns << "foo 5" << llendl;
+			llerrs << "foo 5" << llendl;
 		}
 
 		glGetPointerv(GL_TEXTURE_COORD_ARRAY_POINTER, &pointer);
 		if (pointer != &(mBuffer[0].uv))
 		{
-			llwarns << "foo 6" << llendl;
+			llerrs << "foo 6" << llendl;
 		}
 #endif
 				
+		if (!mUIOffset.empty())
+		{
+			sUICalls++;
+			sUIVerts += mCount;
+		}
+		
+		if (gDebugGL)
+		{
+			if (mMode == LLRender::QUADS)
+			{
+				if (mCount%4 != 0)
+				{
+					llerrs << "Incomplete quad rendered." << llendl;
+				}
+			}
+			
+			if (mMode == LLRender::TRIANGLES)
+			{
+				if (mCount%3 != 0)
+				{
+					llerrs << "Incomplete triangle rendered." << llendl;
+				}
+			}
+			
+			if (mMode == LLRender::LINES)
+			{
+				if (mCount%2 != 0)
+				{
+					llerrs << "Incomplete line rendered." << llendl;
+				}
+			}
+		}
+
 		mBuffer->setBuffer(immediate_mask);
 		mBuffer->drawArrays(mMode, 0, mCount);
 		
@@ -980,7 +1174,16 @@ void LLRender::vertex3f(const GLfloat& x, const GLfloat& y, const GLfloat& z)
 		return;
 	}
 
-	mVerticesp[mCount] = LLVector3(x,y,z);
+	if (mUIOffset.empty())
+	{
+		mVerticesp[mCount] = LLVector3(x,y,z);
+	}
+	else
+	{
+		LLVector3 vert = (LLVector3(x,y,z)+mUIOffset.front()).scaledVec(mUIScale.front());
+		mVerticesp[mCount] = vert;
+	}
+
 	mCount++;
 	if (mCount < 4096)
 	{

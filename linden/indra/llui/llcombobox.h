@@ -39,7 +39,7 @@
 #include "llbutton.h"
 #include "lluictrl.h"
 #include "llctrlselectioninterface.h"
-#include "llimagegl.h"
+#include "lltexture.h"
 #include "llrect.h"
 
 // Classes

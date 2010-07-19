@@ -42,8 +42,8 @@
 // Project includes
 #include "llui.h"
 #include "llagent.h"
-#include "llviewerimage.h"
-#include "llviewerimagelist.h"
+#include "llviewertexture.h"
+#include "llviewertexturelist.h"
 #include "llviewerwindow.h"
 #include "llmoveview.h"
 
@@ -626,22 +626,22 @@ void LLJoystickCameraRotate::draw()
 
 	if( mInTop )
 	{
-		drawRotatedImage( getImageSelected()->getImage(), 0 );
+//impfixme:compile		drawRotatedImage( getImageSelected()->getImage(), 0 );
 	}
 
 	if( mInRight )
 	{
-		drawRotatedImage( getImageSelected()->getImage(), 1 );
+//impfixme:compile		drawRotatedImage( getImageSelected()->getImage(), 1 );
 	}
 
 	if( mInBottom )
 	{
-		drawRotatedImage( getImageSelected()->getImage(), 2 );
+//impfixme:compile		drawRotatedImage( getImageSelected()->getImage(), 2 );
 	}
 
 	if( mInLeft )
 	{
-		drawRotatedImage( getImageSelected()->getImage(), 3 );
+//impfixme:compile		drawRotatedImage( getImageSelected()->getImage(), 3 );
 	}
 
 	if (sDebugRects)
@@ -651,7 +651,7 @@ void LLJoystickCameraRotate::draw()
 }
 
 // Draws image rotated by multiples of 90 degrees
-void LLJoystickCameraRotate::drawRotatedImage( LLImageGL* image, S32 rotations )
+void LLJoystickCameraRotate::drawRotatedImage( LLViewerTexture* image, S32 rotations )
 {
 	S32 width = image->getWidth();
 	S32 height = image->getHeight();

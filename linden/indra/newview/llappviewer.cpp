@@ -40,7 +40,7 @@
 #include "lltexteditor.h"
 #include "llalertdialog.h"
 #include "llerrorcontrol.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llgroupmgr.h"
 #include "llagent.h"
 #include "llwindow.h"
@@ -1464,12 +1464,12 @@ bool LLAppViewer::cleanup()
 
 
 	//Note:
-	//LLViewerMedia::cleanupClass() has to be put before gImageList.shutdown()
+	//LLViewerMedia::cleanupClass() has to be put before gTextureList.shutdown()
 	//because some new image might be generated during cleaning up media. --bao
-	LLViewerMediaFocus::cleanupClass();
+	//may or may not cause logout trouble - not in SG2: LLViewerMediaFocus::cleanupClass();
 	LLViewerMedia::cleanupClass();
 	LLViewerParcelMedia::cleanupClass();
-	gImageList.shutdown(); // shutdown again in case a callback added something
+	gTextureList.shutdown(); // shutdown again in case a callback added something
 	LLUIImageList::getInstance()->cleanUp();
 	
 	// This should eventually be done in LLAppViewer

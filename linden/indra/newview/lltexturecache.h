@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #ifndef LL_LLTEXTURECACHE_
@@ -40,6 +41,7 @@
 
 #include "llworkerthread.h"
 
+class LLImageFormatted;
 class LLTextureCacheWorker;
 
 class LLTextureCache : public LLWorkerThread
@@ -58,10 +60,16 @@ private:
 	};
 	struct Entry
 	{
-		Entry() {}
+        	Entry() :
+		        mBodySize(0),
+			mImageSize(0),
+			mTime(0)
+		{
+		}
 		Entry(const LLUUID& id, S32 imagesize, S32 bodysize, U32 time) :
 			mID(id), mImageSize(imagesize), mBodySize(bodysize), mTime(time) {}
 		void init(const LLUUID& id, U32 time) { mID = id, mImageSize = 0; mBodySize = 0; mTime = time; }
+		Entry& operator=(const Entry& entry) {mID = entry.mID, mImageSize = entry.mImageSize; mBodySize = entry.mBodySize; mTime = entry.mTime; return *this;}
 		LLUUID mID; // 16 bytes
 		S32 mImageSize; // total size of image if known
 		S32 mBodySize; // size of body file in body cache
@@ -103,7 +111,8 @@ public:
 	/*virtual*/ S32 update(U32 max_time_ms);	
 	
 	void purgeCache(ELLPath location);
-	S64 initCache(ELLPath location, S64 maxsize, BOOL read_only);
+	void setReadOnly(BOOL read_only) ;
+	S64 initCache(ELLPath location, S64 maxsize, BOOL disable_texture_cache);
 
 	handle_t readFromCache(const std::string& local_filename, const LLUUID& id, U32 priority, S32 offset, S32 size,
 						   ReadResponder* responder);
@@ -116,7 +125,7 @@ public:
 	bool writeComplete(handle_t handle, bool abort = false);
 	void prioritizeWrite(handle_t handle);
 
-	void removeFromCache(const LLUUID& id);
+	bool removeFromCache(const LLUUID& id);
 
 	// For LLTextureCacheWorker::Responder
 	LLTextureCacheWorker* getReader(handle_t handle);
@@ -131,6 +140,8 @@ public:
 	S64 getMaxUsage() { return sCacheMaxTexturesSize; }
 	U32 getEntries() { return mHeaderEntriesInfo.mEntries; }
 	U32 getMaxEntries() { return sCacheMaxEntries; };
+	BOOL isInCache(const LLUUID& id) ;
+	BOOL isInLocal(const LLUUID& id) ;
 
 protected:
 	// Accessed by LLTextureCacheWorker
@@ -152,12 +163,20 @@ private:
 	void readEntriesHeader();
 	void writeEntriesHeader();
 	S32 openAndReadEntry(const LLUUID& id, Entry& entry, bool create);
-	void writeEntryAndClose(S32 idx, Entry& entry);
+	void updateEntry(S32 idx, Entry& entry, S32 new_image_size, S32 new_body_size);
+	void updateEntryTimeStamp(S32 idx, Entry& entry) ;
 	U32 openAndReadEntries(std::vector<Entry>& entries);
 	void writeEntriesAndClose(const std::vector<Entry>& entries);
+	void readEntryFromHeaderImmediately(S32 idx, Entry& entry) ;
+	void writeEntryToHeaderImmediately(S32 idx, Entry& entry, bool write_header = false) ;
+	void removeEntry(S32 idx, Entry& entry, std::string& filename);
+	void removeCachedTexture(const LLUUID& id) ;
 	S32 getHeaderCacheEntry(const LLUUID& id, S32& imagesize);
 	S32 setHeaderCacheEntry(const LLUUID& id, S32 imagesize);
-	bool removeHeaderCacheEntry(const LLUUID& id);
+	void writeUpdatedEntries() ;
+	void updatedHeaderEntriesFile() ;
+	void lockHeaders() { mHeaderMutex.lock(); }
+	void unlockHeaders() { mHeaderMutex.unlock(); }
 	
 private:
 	// Internal
@@ -193,6 +212,9 @@ private:
 	size_map_t mTexturesSizeMap;
 	S64 mTexturesSizeTotal;
 	LLAtomic32<BOOL> mDoPurge;
+
+	typedef std::map<S32, Entry> idx_entry_map_t;
+	idx_entry_map_t mUpdatedEntryMap;
 
 	// Statics
 	static F32 sHeaderCacheVersion;

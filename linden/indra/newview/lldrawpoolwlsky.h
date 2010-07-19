@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #ifndef LL_DRAWPOOLWLSKY_H
@@ -43,7 +44,7 @@ public:
 	static const U32 SKY_VERTEX_DATA_MASK =	LLVertexBuffer::MAP_VERTEX |
 							LLVertexBuffer::MAP_TEXCOORD0;
 	static const U32 STAR_VERTEX_DATA_MASK =	LLVertexBuffer::MAP_VERTEX |
-							LLVertexBuffer::MAP_COLOR;
+		LLVertexBuffer::MAP_COLOR | LLVertexBuffer::MAP_TEXCOORD0;
 
 	LLDrawPoolWLSky(void);
 	/*virtual*/ ~LLDrawPoolWLSky();
@@ -55,7 +56,7 @@ public:
 	/*virtual*/ void endPostDeferredPass(S32 pass) { endRenderPass(pass); }
 	/*virtual*/ void renderPostDeferred(S32 pass) { render(pass); }
 
-	/*virtual*/ LLViewerImage *getDebugTexture();
+	/*virtual*/ LLViewerTexture *getDebugTexture();
 	/*virtual*/ void beginRenderPass( S32 pass );
 	/*virtual*/ void endRenderPass( S32 pass );
 	/*virtual*/ S32	 getNumPasses() { return 1; }
@@ -65,11 +66,11 @@ public:
 	/*virtual*/ BOOL verify() const { return TRUE; }		// Verify that all data in the draw pool is correct!
 	/*virtual*/ S32 getVertexShaderLevel() const { return mVertexShaderLevel; }
 	
-	//static LLDrawPool* createPool(const U32 type, LLViewerImage *tex0 = NULL);
+	//static LLDrawPool* createPool(const U32 type, LLViewerTexture *tex0 = NULL);
 
 	// Create an empty new instance of the pool.
 	/*virtual*/ LLDrawPoolWLSky *instancePool();  ///< covariant override
-	/*virtual*/ LLViewerImage* getTexture();
+	/*virtual*/ LLViewerTexture* getTexture();
 	/*virtual*/ BOOL isFacePool() { return FALSE; }
 	/*virtual*/ void resetDrawOrders();
 
@@ -83,7 +84,7 @@ private:
 	void renderHeavenlyBodies();
 
 private:
-	static LLPointer<LLImageGL> sCloudNoiseTexture;
+	static LLPointer<LLViewerTexture> sCloudNoiseTexture;
 	static LLPointer<LLImageRaw> sCloudNoiseRawImage;
 };
 

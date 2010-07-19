@@ -55,7 +55,7 @@
 #include "llundo.h"
 #include "llviewborder.h"
 #include "llcontrol.h"
-#include "llimagegl.h"
+#include "lltexture.h"
 #include "llwindow.h"
 #include "lltextparser.h"
 #include <queue>

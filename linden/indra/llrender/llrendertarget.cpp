@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "linden_common.h"
@@ -35,6 +36,9 @@
 #include "llrendertarget.h"
 #include "llrender.h"
 #include "llgl.h"
+
+LLRenderTarget* LLRenderTarget::sBoundTarget = NULL;
+
 
 
 void check_framebuffer_status()
@@ -46,11 +50,9 @@ void check_framebuffer_status()
 		{
 		case GL_FRAMEBUFFER_COMPLETE_EXT:
 			break;
-		case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
-			llwarns << "WTF?" << llendl;
-			break;
 		default:
-			llwarns << "WTF?" << llendl;
+			llwarns << "check_framebuffer_status failed"<< llendl;	
+			break;
 		}
 	}
 }
@@ -139,9 +141,9 @@ void LLRenderTarget::addColorAttachment(U32 color_fmt)
 
 	U32 offset = mTex.size();
 	if (offset >= 4 ||
-		offset > 0 && (mFBO == 0 || !gGLManager.mHasDrawBuffers))
+		(offset > 0 && (mFBO == 0 || !gGLManager.mHasDrawBuffers)))
 	{
-		llwarns << "Too many color attachments!" << llendl; // KL
+		llerrs << "Too many color attachments!" << llendl;
 	}
 
 	U32 tex;
@@ -203,7 +205,7 @@ void LLRenderTarget::allocateDepth()
 		gGL.getTexUnit(0)->bindManual(mUsage, mDepth);
 		U32 internal_type = LLTexUnit::getInternalType(mUsage);
 		gGL.getTexUnit(0)->setTextureFilteringOption(LLTexUnit::TFO_POINT);
-		LLImageGL::setManualImage(internal_type, 0, GL_DEPTH_COMPONENT, mResX, mResY, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
+		LLImageGL::setManualImage(internal_type, 0, GL_DEPTH_COMPONENT32_ARB, mResX, mResY, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
 	}
 }
 
@@ -211,7 +213,7 @@ void LLRenderTarget::shareDepthBuffer(LLRenderTarget& target)
 {
 	if (!mFBO || !target.mFBO)
 	{
-		llwarns << "Cannot share depth buffer between non FBO render targets." << llendl;
+		llerrs << "Cannot share depth buffer between non FBO render targets." << llendl;
 	}
 
 	if (mDepth)
@@ -273,6 +275,7 @@ void LLRenderTarget::release()
 	}
 
 	mSampleBuffer = NULL;
+	sBoundTarget = NULL;
 }
 
 void LLRenderTarget::bindTarget()
@@ -311,6 +314,7 @@ void LLRenderTarget::bindTarget()
 	}
 
 	glViewport(0, 0, mResX, mResY);
+	sBoundTarget = this;
 }
 
 // static
@@ -320,6 +324,7 @@ void LLRenderTarget::unbindTarget()
 	{
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 	}
+	sBoundTarget = NULL;
 }
 
 void LLRenderTarget::clear(U32 mask_in)
@@ -349,16 +354,16 @@ U32 LLRenderTarget::getTexture(U32 attachment) const
 {
 	if (attachment > mTex.size()-1)
 	{
-		llwarns << "Invalid attachment index [getTexture]." << llendl; // lets not crash KL its a pain in the ass!
+		llerrs << "Invalid attachment index." << llendl;
 	}
 	return mTex[attachment];
 }
 
 void LLRenderTarget::bindTexture(U32 index, S32 channel)
 {
-	if (index > 6)//mTex.size()-1) // KL yeah i know its a bit arbitary but make the number big enough as some unused render defer elements cause this to go wild
+	if (index > mTex.size()-1)
 	{
-		llwarns << "Invalid attachment index [bindtexture]." << llendl;
+		llerrs << "Invalid attachment index." << llendl;
 	}
 	gGL.getTexUnit(channel)->bindManual(mUsage, mTex[index]);
 }
@@ -378,7 +383,7 @@ void LLRenderTarget::flush(BOOL fetch_depth)
 				allocateDepth();
 			}
 
-			gGL.getTexUnit(0)->bind(this, true);
+			gGL.getTexUnit(0)->bind(this);
 			glCopyTexImage2D(LLTexUnit::getInternalType(mUsage), 0, GL_DEPTH24_STENCIL8_EXT, 0, 0, mResX, mResY, 0);
 		}
 
@@ -388,7 +393,11 @@ void LLRenderTarget::flush(BOOL fetch_depth)
 	{
 #if !LL_DARWIN
 
+		stop_glerror();
+
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
+		stop_glerror();
 	
 		if (mSampleBuffer)
 		{
@@ -430,7 +439,6 @@ void LLRenderTarget::flush(BOOL fetch_depth)
 #endif
 
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-		glFlush();
 	}
 }
 
@@ -438,9 +446,10 @@ void LLRenderTarget::copyContents(LLRenderTarget& source, S32 srcX0, S32 srcY0, 
 						S32 dstX0, S32 dstY0, S32 dstX1, S32 dstY1, U32 mask, U32 filter)
 {
 #if !LL_DARWIN
+	gGL.flush();
 	if (!source.mFBO || !mFBO)
 	{
-		llwarns << "Cannot copy framebuffer contents for non FBO render targets." << llendl;
+		llerrs << "Cannot copy framebuffer contents for non FBO render targets." << llendl;
 	}
 
 	if (mSampleBuffer)
@@ -451,11 +460,15 @@ void LLRenderTarget::copyContents(LLRenderTarget& source, S32 srcX0, S32 srcY0, 
 	{
 		if (mask == GL_DEPTH_BUFFER_BIT && source.mStencil != mStencil)
 		{
-			source.bindTarget();
+			stop_glerror();
+		
+			glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, source.mFBO);
 			gGL.getTexUnit(0)->bind(this, true);
-
+			stop_glerror();
 			glCopyTexSubImage2D(LLTexUnit::getInternalType(mUsage), 0, srcX0, srcY0, dstX0, dstY0, dstX1, dstY1);
-			source.flush();
+			stop_glerror();
+			glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+			stop_glerror();
 		}
 		else
 		{
@@ -470,6 +483,30 @@ void LLRenderTarget::copyContents(LLRenderTarget& source, S32 srcX0, S32 srcY0, 
 			glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 			stop_glerror();
 		}
+	}
+#endif
+}
+
+//static
+void LLRenderTarget::copyContentsToFramebuffer(LLRenderTarget& source, S32 srcX0, S32 srcY0, S32 srcX1, S32 srcY1,
+						S32 dstX0, S32 dstY0, S32 dstX1, S32 dstY1, U32 mask, U32 filter)
+{
+#if !LL_DARWIN
+	if (!source.mFBO)
+	{
+		llerrs << "Cannot copy framebuffer contents for non FBO render targets." << llendl;
+	}
+	{
+		glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, source.mFBO);
+		stop_glerror();
+		glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, 0);
+		stop_glerror();
+		check_framebuffer_status();
+		stop_glerror();
+		glBlitFramebufferEXT(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
+		stop_glerror();
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+		stop_glerror();
 	}
 #endif
 }
@@ -547,6 +584,7 @@ void LLMultisampleBuffer::bindTarget(LLRenderTarget* ref)
 
 	glViewport(0, 0, mResX, mResY);
 
+	sBoundTarget = this;
 }
 
 void LLMultisampleBuffer::allocate(U32 resx, U32 resy, U32 color_fmt, BOOL depth, BOOL stencil,  LLTexUnit::eTextureType usage, BOOL use_fbo )
@@ -568,14 +606,14 @@ void LLMultisampleBuffer::allocate(U32 resx, U32 resy, U32 color_fmt, BOOL depth
 
 	if (!gGLManager.mHasFramebufferMultisample)
 	{
-		llwarns << "Attempting to allocate unsupported render target type!" << llendl;
+		llerrs << "Attempting to allocate unsupported render target type!" << llendl;
 	}
 
 	mSamples = samples;
 	
 	if (mSamples <= 1)
 	{
-		llwarns << "Cannot create a multisample buffer with less than 2 samples." << llendl;
+		llerrs << "Cannot create a multisample buffer with less than 2 samples." << llendl;
 	}
 
 	stop_glerror();
@@ -623,9 +661,9 @@ void LLMultisampleBuffer::addColorAttachment(U32 color_fmt)
 
 	U32 offset = mTex.size();
 	if (offset >= 4 ||
-		offset > 0 && (mFBO == 0 || !gGLManager.mHasDrawBuffers))
+		(offset > 0 && (mFBO == 0 || !gGLManager.mHasDrawBuffers)))
 	{
-		llwarns << "Too many color attachments!" << llendl;
+		llerrs << "Too many color attachments!" << llendl;
 	}
 
 	U32 tex;
@@ -646,10 +684,10 @@ void LLMultisampleBuffer::addColorAttachment(U32 color_fmt)
 		case GL_FRAMEBUFFER_COMPLETE_EXT:
 			break;
 		case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
-			llwarns << "WTF?" << llendl;
+			llerrs << "WTF?" << llendl;
 			break;
 		default:
-			llwarns << "WTF?" << llendl;
+			llerrs << "WTF?" << llendl;
 		}
 
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);

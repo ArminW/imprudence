@@ -56,7 +56,7 @@ class LLTextBox;
 class LLTextEditor;
 class LLTextureCtrl;
 class LLUICtrl;
-class LLViewerImage;
+class LLViewerTexture;
 class LLViewerObject;
 
 class LLFloaterAvatarInfo

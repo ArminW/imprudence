@@ -65,7 +65,7 @@
 #include "llviewerregion.h"
 #include "llviewerwindow.h"
 #include "llglheaders.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 //#include "lltoolobjpicker.h"
 #include "llhudmanager.h"	// HACK for creating flex obj's
 

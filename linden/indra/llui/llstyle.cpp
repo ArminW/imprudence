@@ -36,7 +36,7 @@
 #include "llstring.h"
 #include "llui.h"
 
-//#include "llviewerimagelist.h"
+//#include "llviewertexturelist.h"
 
 LLStyle::LLStyle()
 {

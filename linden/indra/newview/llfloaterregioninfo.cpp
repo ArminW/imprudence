@@ -73,8 +73,8 @@
 #include "lltrans.h"
 #include "llviewercontrol.h"
 #include "lluictrlfactory.h"
-#include "llviewerimage.h"
-#include "llviewerimagelist.h"
+#include "llviewertexture.h"
+#include "llviewertexturelist.h"
 #include "llviewerregion.h"
 #include "llviewerstats.h"
 #include "llviewertexteditor.h"
@@ -1136,7 +1136,7 @@ BOOL LLPanelRegionTextureInfo::validateTextureSizes()
 		if (!texture_ctrl) continue;
 
 		LLUUID image_asset_id = texture_ctrl->getImageAssetID();
-		LLViewerImage* img = gImageList.getImage(image_asset_id);
+		LLViewerFetchedTexture* img =  LLViewerTextureManager::getFetchedTexture(image_asset_id);
 		S32 components = img->getComponents();
 		// Must ask for highest resolution version's width. JC
 		S32 width = img->getWidth(0);

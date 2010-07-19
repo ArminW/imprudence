@@ -41,16 +41,18 @@
 #include "llface.h"
 #include "llsky.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerregion.h"
-#include "llviewerwindow.h"
+//impfixme:rm #include "llviewerwindow.h"
 #include "llvosky.h"
 #include "llworld.h" // To get water height
 #include "pipeline.h"
 #include "llviewershadermgr.h"
 
-LLDrawPoolSky::LLDrawPoolSky() :
-	LLFacePool(POOL_SKY), mShader(NULL)
+LLDrawPoolSky::LLDrawPoolSky() 
+: LLFacePool(POOL_SKY), 
+	mSkyTex(NULL),
+	mShader(NULL)
 {
 }
 
@@ -62,7 +64,7 @@ LLDrawPool *LLDrawPoolSky::instancePool()
 void LLDrawPoolSky::prerender()
 {
 	mVertexShaderLevel = LLViewerShaderMgr::instance()->getVertexShaderLevel(LLViewerShaderMgr::SHADER_ENVIRONMENT);
-//	gSky.mVOSkyp->updateGeometry(gSky.mVOSkyp->mDrawable);
+	gSky.mVOSkyp->updateGeometry(gSky.mVOSkyp->mDrawable);
 }
 
 void LLDrawPoolSky::render(S32 pass)
@@ -97,7 +99,6 @@ void LLDrawPoolSky::render(S32 pass)
 	}
 	
 
-	LLVOSky *voskyp = gSky.mVOSkyp;
 	LLGLSPipelineSkyBox gls_skybox;
 
 	LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
@@ -120,43 +121,7 @@ void LLDrawPoolSky::render(S32 pass)
 	{
 		renderSkyCubeFace(i);
 	}
-	
-	LLFace *hbfaces[3];
-	hbfaces[0] = NULL;
-	hbfaces[1] = NULL;
-	hbfaces[2] = NULL;
-	for (S32 curr_face = 0; curr_face < face_count; curr_face++)
-	{
-		LLFace* facep = mDrawFace[curr_face];
-		if (voskyp->isSameFace(LLVOSky::FACE_SUN, facep))
-		{
-			hbfaces[0] = facep;
-		}
-		if (voskyp->isSameFace(LLVOSky::FACE_MOON, facep))
-		{
-			hbfaces[1] = facep;
-		}
-		if (voskyp->isSameFace(LLVOSky::FACE_BLOOM, facep))
-		{
-			hbfaces[2] = facep;
-		}
-	}
-
 	LLGLEnable blend(GL_BLEND);
-
-	if (hbfaces[2])
-	{
-		// renderSunHalo(hbfaces[2]);
-	}
-	if (hbfaces[0])
-	{
-		// renderHeavenlyBody(0, hbfaces[0]);
-	}
-	if (hbfaces[1])
-	{
-		// renderHeavenlyBody(1, hbfaces[1]);
-	}
-
 	glPopMatrix();
 }
 
@@ -168,6 +133,7 @@ void LLDrawPoolSky::renderSkyCubeFace(U8 side)
 		return;
 	}
 
+	llassert(mSkyTex);
 	mSkyTex[side].bindTexture(TRUE);
 	
 	face.renderIndexed();
@@ -180,35 +146,6 @@ void LLDrawPoolSky::renderSkyCubeFace(U8 side)
 		face.renderIndexed();
 	}
 }
-
-void LLDrawPoolSky::renderHeavenlyBody(U8 hb, LLFace* face)
-{
-	if ( !mHB[hb]->getDraw() ) return;
-	if (! face->getGeomCount()) return;
-
-	LLImageGL* tex = face->getTexture();
-	gGL.getTexUnit(0)->bind(tex);
-	LLColor4 color(mHB[hb]->getInterpColor());
-	LLOverrideFaceColor override(this, color);
-	face->renderIndexed();
-}
-
-
-
-void LLDrawPoolSky::renderSunHalo(LLFace* face)
-{
-	if (! mHB[0]->getDraw()) return;
-	if (! face->getGeomCount()) return;
-
-	LLImageGL* tex = face->getTexture();
-	gGL.getTexUnit(0)->bind(tex);
-	LLColor4 color(mHB[0]->getInterpColor());
-	color.mV[3] = llclamp(mHB[0]->getHaloBrighness(), 0.f, 1.f);
-
-	LLOverrideFaceColor override(this, color);
-	face->renderIndexed();
-}
-
 
 void LLDrawPoolSky::renderForSelect()
 {

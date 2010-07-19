@@ -46,7 +46,7 @@
 #include "llsurfacepatch.h"
 #include "llvosky.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerregion.h"
 #include "pipeline.h"
 #include "llspatialpartition.h"
@@ -108,7 +108,7 @@ void LLVOGrass::updateSpecies()
 		SpeciesMap::const_iterator it = sSpeciesTable.begin();
 		mSpecies = (*it).first;
 	}
-	setTEImage(0, gImageList.getImage(sSpeciesTable[mSpecies]->mTextureID));
+	setTEImage(0, LLViewerTextureManager::getFetchedTexture(sSpeciesTable[mSpecies]->mTextureID, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE));
 }
 
 
@@ -167,15 +167,15 @@ void LLVOGrass::initClass()
 		grass_def->getFastAttributeUUID(texture_id_string, id);
 		newGrass->mTextureID = id;
 
-		if (newGrass->mTextureID.isNull())
-		{
-			std::string textureName;
-
-			static LLStdStringHandle texture_name_string = LLXmlTree::addAttributeString("texture_name");
-			success &= grass_def->getFastAttributeString(texture_name_string, textureName);
-			LLViewerImage* grass_image = gImageList.getImageFromFile(textureName);
-			newGrass->mTextureID = grass_image->getID();
-		}
+//impfixme 		if (newGrass->mTextureID.isNull())
+// 		{
+// 			std::string textureName;
+// 
+// 			static LLStdStringHandle texture_name_string = LLXmlTree::addAttributeString("texture_name");
+// 			success &= grass_def->getFastAttributeString(texture_name_string, textureName);
+// 			LLViewerTexture* grass_image = LLViewerTextureManager::getFetchedTextureFromHost(textureName);
+// 			newGrass->mTextureID = grass_image->getID();
+// 		}
 
 		static LLStdStringHandle blade_sizex_string = LLXmlTree::addAttributeString("blade_size_x");
 		success &= grass_def->getFastAttributeF32(blade_sizex_string, F32_val);
@@ -198,16 +198,16 @@ void LLVOGrass::initClass()
 
 		if (species >= sMaxGrassSpecies) sMaxGrassSpecies = species + 1;
 
-		std::string name;
-		static LLStdStringHandle name_string = LLXmlTree::addAttributeString("name");
-		success &= grass_def->getFastAttributeString(name_string, name);
-		sSpeciesNames[name] = species;
+//impfixme 		std::string name;
+// 		static LLStdStringHandle name_string = LLXmlTree::addAttributeString("name");
+// 		success &= grass_def->getFastAttributeString(name_string, name);
+// 		sSpeciesNames[name] = species;
 
 		if (!success)
 		{
-			/*std::string name;
+			std::string name;
 			static LLStdStringHandle name_string = LLXmlTree::addAttributeString("name");
-			grass_def->getFastAttributeString(name_string, name);*/
+			grass_def->getFastAttributeString(name_string, name);
 			llwarns << "Incomplete definition of grass " << name << llendl;
 		}
 	}

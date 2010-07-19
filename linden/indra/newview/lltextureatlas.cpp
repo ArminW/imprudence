@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,7 +28,9 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
+#include "llviewerprecompiledheaders.h"
 #include "linden_common.h"
 #include "llerror.h"
 #include "llimage.h"
@@ -49,23 +51,19 @@ S16 LLTextureAtlas::sSlotSize = 32 ;
 #define DEBUG_USAGE_BITS 0
 #endif
 //**************************************************************************************************************
-LLTextureAtlas::LLTextureAtlas(U8 ncomponents, S16 atlas_dim) : LLImageGL(),
-	mAtlasDim(atlas_dim)
+LLTextureAtlas::LLTextureAtlas(U8 ncomponents, S16 atlas_dim) : 
+    LLViewerTexture(atlas_dim * sSlotSize, atlas_dim * sSlotSize, ncomponents, TRUE),
+	mAtlasDim(atlas_dim),
+	mNumSlotsReserved(0),
+	mMaxSlotsInAtlas(atlas_dim * atlas_dim)
 {
-	setComponents(ncomponents) ;
-
-	mCanAddToAtlas = FALSE ;//do not add one atlas to another.
-	mNumSlotsReserved = 0 ;
-	mMaxSlotsInAtlas = mAtlasDim * mAtlasDim ;
-
 	generateEmptyUsageBits() ;
 
 	//generate an empty texture
-	S32 dim = mAtlasDim * sSlotSize ; //number of pixels per dimension 
-	LLPointer<LLImageRaw> image_raw = new LLImageRaw(dim, dim, getComponents());
+	generateGLTexture() ;
+	LLPointer<LLImageRaw> image_raw = new LLImageRaw(mFullWidth, mFullHeight, mComponents);
 	createGLTexture(0, image_raw, 0);
 	image_raw = NULL;
-	dontDiscard();
 }
 
 LLTextureAtlas::~LLTextureAtlas() 
@@ -77,25 +75,32 @@ LLTextureAtlas::~LLTextureAtlas()
 	releaseUsageBits() ;
 }
 
+//virtual 
+S8 LLTextureAtlas::getType() const
+{
+	return LLViewerTexture::ATLAS_TEXTURE ;
+}
+
 void LLTextureAtlas::getTexCoordOffset(S16 col, S16 row, F32& xoffset, F32& yoffset)
 {
-#if !DEBUG_ATLAS
 	xoffset = (F32)col / mAtlasDim ;
 	yoffset = (F32)row / mAtlasDim ;	
-#endif
 }
 
 void LLTextureAtlas::getTexCoordScale(S32 w, S32 h, F32& xscale, F32& yscale)
 {
-#if !DEBUG_ATLAS
 	xscale = (F32)w / (mAtlasDim * sSlotSize) ;
 	yscale = (F32)h / (mAtlasDim * sSlotSize) ;	
-#endif
 }
 
 //insert a texture piece into the atlas
-LLGLuint LLTextureAtlas::insertSubTexture(const LLImageRaw* raw_image, S16 slot_col, S16 slot_row)
+LLGLuint LLTextureAtlas::insertSubTexture(LLImageGL* source_gl_tex, S32 discard_level, const LLImageRaw* raw_image, S16 slot_col, S16 slot_row)
 {
+	if(!getTexName())
+	{
+		return 0 ;
+	}
+
 	S32 w = raw_image->getWidth() ;
 	S32 h = raw_image->getHeight() ;
 	if(w < 8 || w > sMaxSubTextureSize || h < 8 || h > sMaxSubTextureSize)
@@ -105,16 +110,24 @@ LLGLuint LLTextureAtlas::insertSubTexture(const LLImageRaw* raw_image, S16 slot_
 	}
 
 	BOOL res = gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, getTexName());
-	if (!res) llwarns << "bindTexture failed" << llendl;
-	stop_glerror();
-
+	if (!res) 
+	{
+		llwarns << "bindTexture failed" << llendl;
+	}
+	
 	GLint xoffset = sSlotSize * slot_col ;
 	GLint yoffset = sSlotSize * slot_row ;
 
+	if(!source_gl_tex->preAddToAtlas(discard_level, raw_image))
+	{
+		return 0 ;
+	}
+
 	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP_SGIS, TRUE);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, xoffset, yoffset, 
-						w, h, mFormatPrimary, mFormatType, raw_image->getData());
+	glTexSubImage2D(GL_TEXTURE_2D, 0, xoffset, yoffset, w, h,
+						mGLTexturep->getPrimaryFormat(), mGLTexturep->getFormatType(), raw_image->getData());
 	
+	source_gl_tex->postAddToAtlas() ;
 	return getTexName();
 }
 	

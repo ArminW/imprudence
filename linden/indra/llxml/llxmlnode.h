@@ -44,6 +44,8 @@
 #include <map>
 
 #include "indra_constants.h"
+// #include "llrefcount.h"
+// #include "llpointer.h"
 #include "llmemory.h"
 #include "llthread.h"
 #include "llstring.h"

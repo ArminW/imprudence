@@ -47,6 +47,7 @@ class LLViewerParcelMediaAutoPlay : LLEventTimer
 
  private:
 	S32 mLastParcelID;
+	LLUUID mLastRegionID;
 	BOOL mPlayed;
 	F32 mTimeInParcel;
 };

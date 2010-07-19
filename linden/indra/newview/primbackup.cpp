@@ -44,7 +44,7 @@
 #include "llfloatersnapshot.h"
 #include "llresourcedata.h"
 #include "llstatusbar.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "lluictrlfactory.h"
 #include "llviewerregion.h"
 #include "llviewerstats.h"
@@ -592,14 +592,14 @@ void primbackup::export_next_texture()
 
 		id=(*iter);
 
-		LLViewerImage * imagep = gImageList.hasImage(id);
+		LLViewerTexture * imagep ;//impfixme:compile= gTextureList.hasImage(id);
 		if(imagep!=NULL)
 		{
 			S32 cur_discard = imagep->getDiscardLevel();
 			if(cur_discard>0)
 			{
-				if(imagep->getBoostLevel()!=LLViewerImageBoostLevel::BOOST_PREVIEW)
-					imagep->setBoostLevel(LLViewerImageBoostLevel::BOOST_PREVIEW); //we want to force discard 0 this one does this.
+				if(imagep->getBoostLevel()!=LLViewerTexture::BOOST_PREVIEW)
+					imagep->setBoostLevel(LLViewerTexture::BOOST_PREVIEW); //we want to force discard 0 this one does this.
 			}
 			else
 			{

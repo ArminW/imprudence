@@ -827,6 +827,7 @@ class LinuxManifest(ViewerManifest):
             #self.path("client-readme-voice.txt","README-linux-voice.txt")
             #self.path("client-readme-joystick.txt","README-linux-joystick.txt")
             self.path("wrapper.sh","imprudence")
+	    self.path("debugwrapper.sh","debugimprudence")
             self.path("handle_secondlifeprotocol.sh")
             self.path("register_secondlifeprotocol.sh")
 	    self.path("getvoice.sh")

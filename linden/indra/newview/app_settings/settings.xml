@@ -1,7 +1,140 @@
 <?xml version="1.0" ?>
 <llsd>
 <map>
-  
+
+	<key>PrimMediaMasterEnabled</key>
+	<map>
+	  <key>Comment</key>
+      <string>Whether or not Media on a Prim is enabled.</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>Boolean</string>
+      <key>Value</key>
+      <integer>1</integer>
+    </map>
+	<key>PrimMediaControlsUseHoverControlSet</key>
+	<map>
+	  <key>Comment</key>
+      <string>Whether or not hovering over prim media uses minimal "hover" controls or the authored control set.</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>Boolean</string>
+      <key>Value</key>
+      <integer>0</integer>
+    </map>
+	<key>PrimMediaDragNDrop</key>
+	<map>
+		<key>Comment</key>
+		<string>Enable drag and drop of URLs onto prim faces</string>
+		<key>Persist</key>
+		<integer>1</integer>
+		<key>Type</key>
+		<string>Boolean</string>
+		<key>Value</key>
+		<integer>1</integer>
+	</map>
+    <key>PrimMediaMaxRetries</key>
+    <map>
+      <key>Comment</key>
+      <string>Maximum number of retries for media queries.</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>U32</string>
+      <key>Value</key>
+      <integer>4</integer>
+    </map>
+    <key>PrimMediaRequestQueueDelay</key>
+    <map>
+      <key>Comment</key>
+      <string>Timer delay for fetching media from the queue (in seconds).</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>F32</string>
+      <key>Value</key>
+      <real>1.0</real>
+    </map>
+    <key>PrimMediaRetryTimerDelay</key>
+    <map>
+      <key>Comment</key>
+      <string>Timer delay for retrying on media queries (in seconds).</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>F32</string>
+      <key>Value</key>
+      <real>5.0</real>
+    </map>
+	<key>PrimMediaMaxSortedQueueSize</key>
+    <map>
+      <key>Comment</key>
+      <string>Maximum number of objects the viewer will load media for initially</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>U32</string>
+      <key>Value</key>
+      <integer>100000</integer>
+    </map>
+	<key>PrimMediaMaxRoundRobinQueueSize</key>
+    <map>
+      <key>Comment</key>
+      <string>Maximum number of objects the viewer will continuously update media for</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>U32</string>
+      <key>Value</key>
+      <integer>100000</integer>
+    </map>
+
+    <key>LoginLocation</key>
+    <map>
+      <key>Comment</key>
+      <string>Login location ('last', 'home')</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>String</string>
+      <key>Value</key>
+      <string>last</string>
+    </map>
+    <key>TextureDecodeDisabled</key>
+  <map>
+    <key>Comment</key>
+    <string>If TRUE, do not fetch and decode any textures</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>Boolean</string>
+    <key>Value</key>
+    <integer>0</integer>
+  </map>
+    <key>TextureDisable</key>
+    <map>
+      <key>Comment</key>
+      <string>If TRUE, do not load textures for in-world content</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>Boolean</string>
+      <key>Value</key>
+      <integer>0</integer>
+    </map>
+    <key>TextureLoadFullRes</key>
+  <map>
+    <key>Comment</key>
+    <string>If TRUE, always load textures at full resolution (discard = 0)</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>Boolean</string>
+    <key>Value</key>
+    <integer>0</integer>
+  </map>
   <!-- Imprudence-specific settings -->
 
   <key>AppearanceAnimate</key>

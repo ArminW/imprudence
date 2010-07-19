@@ -52,7 +52,7 @@
 #include "llscrollbar.h"
 #include "lltooldraganddrop.h"
 #include "llviewercontrol.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerwindow.h"
 #include "llviewerinventory.h"
 #include "lluictrlfactory.h"
@@ -442,7 +442,7 @@ void LLEmbeddedItems::bindEmbeddedChars( const LLFontGL* font ) const
 
 		LLUIImagePtr image = LLUI::getUIImage(img_name);
 
-		font->addEmbeddedChar( wch, image->getImage(), item->getName() );
+//impfixme:compile		font->addEmbeddedChar( wch, image->getImage(), item->getName() );
 	}
 }
 

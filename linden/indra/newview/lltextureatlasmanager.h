@@ -37,7 +37,7 @@
 #include "llmemory.h"
 
 class LLSpatialGroup ;
-class LLViewerImage ;
+class LLViewerTexture ;
 
 //just use it as a structure.
 class LLTextureAtlasSlot : public LLRefCount
@@ -99,7 +99,7 @@ public:
 	~LLTextureAtlasManager();
 
 	LLPointer<LLTextureAtlasSlot> reserveAtlasSlot(S32 sub_texture_size, S8 ncomponents, 
-		LLSpatialGroup* groupp, LLViewerImage* imagep) ;
+		LLSpatialGroup* groupp, LLViewerTexture* imagep) ;
 	void releaseAtlas(LLTextureAtlas* atlasp);
 
 	BOOL canAddToAtlas(S32 w, S32 h, S8 ncomponents, LLGLenum target) ;

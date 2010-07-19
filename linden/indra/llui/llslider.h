@@ -36,7 +36,7 @@
 #include "lluictrl.h"
 #include "v4color.h"
 
-class LLImageGL;
+class LLTexture;
 
 class LLSlider : public LLUICtrl
 {

@@ -52,7 +52,6 @@
 #include "llviewerobject.h"
 #include "llviewercamera.h"
 #include "pipeline.h"
-#include "llagent.h"
 #include "lldrawpool.h"
 
 #include "llvosky.h"
@@ -66,6 +65,9 @@ F32 elevation_from_vector(const LLVector3 &v);
 
 LLSky				gSky;
 // ---------------- LLSky ----------------
+
+const F32 LLSky::NIGHTTIME_ELEVATION = -8.0f; // degrees
+const F32 LLSky::NIGHTTIME_ELEVATION_COS = (F32)sin(NIGHTTIME_ELEVATION*DEG_TO_RAD);
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -422,20 +424,6 @@ void LLSky::updateFog(const F32 distance)
 
 void LLSky::updateCull()
 {
-	/*if (mVOSkyp.notNull() && mVOSkyp->mDrawable.notNull())
-	{
-		gPipeline.markVisible(mVOSkyp->mDrawable);
-	}
-	else
-	{
-		llinfos << "No sky drawable!" << llendl;
-	}*/
-
-	/*if (mVOGroundp.notNull() && mVOGroundp->mDrawable.notNull())
-	{
-		gPipeline.markVisible(mVOGroundp->mDrawable);
-	}*/
-
 	// *TODO: do culling for wl sky properly -Brad
 }
 

@@ -35,7 +35,7 @@
 #include "llmapresponders.h"
 
 #include "llfloaterworldmap.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llworldmap.h"
 #include "llagent.h"
 
@@ -66,7 +66,7 @@ void LLMapLayerResponder::result(const LLSD& result)
 		LLWorldMapLayer new_layer;
 		new_layer.LayerDefined = TRUE;
 		new_layer.LayerImageID = layer_data["ImageID"];
-		new_layer.LayerImage = gImageList.getImage(new_layer.LayerImageID, MIPMAP_TRUE, FALSE);
+		new_layer.LayerImage = LLViewerTextureManager::getLocalTexture(new_layer.LayerImageID, MIPMAP_TRUE, FALSE);
 		gGL.getTexUnit(0)->bind(new_layer.LayerImage.get());
 		new_layer.LayerImage->setAddressMode(LLTexUnit::TAM_CLAMP);
 		
@@ -163,13 +163,15 @@ void LLMapLayerResponder::result(const LLSD& result)
 				siminfo->mRegionFlags = region_flags;
 				siminfo->mWaterHeight = (F32) water_height;
 				siminfo->mMapImageID[agent_flags] = image_id;
-				siminfo->mCurrentImage = gImageList.getImage(siminfo->mMapImageID[LLWorldMap::getInstance()->mCurrentMap], MIPMAP_TRUE, FALSE);
+				siminfo->mCurrentImage = LLViewerTextureManager::getLocalTexture(siminfo->mMapImageID[LLWorldMap::getInstance()->mCurrentMap], MIPMAP_TRUE, FALSE);
 				siminfo->mCurrentImage->setAddressMode(LLTexUnit::TAM_CLAMP);
 				gGL.getTexUnit(0)->bind(siminfo->mCurrentImage.get());
 			
 				if (siminfo->mMapImageID[2].notNull())
 				{
-					siminfo->mOverlayImage = gImageList.getImage(siminfo->mMapImageID[2], MIPMAP_TRUE, FALSE);
+					siminfo->mOverlayImage = LLViewerTextureManager::getLocalTexture(siminfo->mMapImageID[2], MIPMAP_TRUE, FALSE);
+
+					LLViewerTextureManager::getLocalTexture(siminfo->mMapImageID[2], MIPMAP_TRUE, FALSE);
 				}
 				else
 				{

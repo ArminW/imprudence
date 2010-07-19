@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2007&license=viewergpl$
  * 
- * Copyright (c) 2007-2009, Linden Research, Inc.
+ * Copyright (c) 2007-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,12 +28,14 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
 #include "llviewerparcelmedia.h"
 
 #include "llagent.h"
+#include "llaudioengine.h"
 #include "llviewercontrol.h"
 #include "llviewermedia.h"
 #include "llviewerregion.h"
@@ -43,19 +45,16 @@
 #include "message.h"
 #include "llviewermediafocus.h"
 #include "llviewerparcelmediaautoplay.h"
-#include "llviewerwindow.h"
-#include "llfirstuse.h"
+//#include "llnotificationsutil.h"
+//#include "llfirstuse.h"
 #include "llpluginclassmedia.h"
+#include "llviewertexture.h"
 
 // Static Variables
 
 S32 LLViewerParcelMedia::sMediaParcelLocalID = 0;
 LLUUID LLViewerParcelMedia::sMediaRegionID;
 viewer_media_t LLViewerParcelMedia::sMediaImpl;
-
-
-// Local functions
-bool callback_play_media(const LLSD& notification, const LLSD& response, LLParcel* parcel);
 
 
 // static
@@ -106,15 +105,6 @@ void LLViewerParcelMedia::update(LLParcel* parcel)
 
 			std::string mediaUrl = std::string ( parcel->getMediaURL () );
 			std::string mediaCurrentUrl = std::string( parcel->getMediaCurrentURL());
-
-			// First use warning
-			if(	! mediaUrl.empty() && gSavedSettings.getWarning("FirstStreamingVideo") )
-			{
-				LLNotifications::instance().add("ParcelCanPlayMedia", LLSD(), LLSD(),
-					boost::bind(callback_play_media, _1, _2, parcel));
-				return;
-
-			}
 
 			// if we have a current (link sharing) url, use it instead
 			if (mediaCurrentUrl != "" && parcel->getMediaType() == "text/html")
@@ -193,9 +183,6 @@ void LLViewerParcelMedia::play(LLParcel* parcel)
 	S32 media_width = parcel->getMediaWidth();
 	S32 media_height = parcel->getMediaHeight();
 
-	// Debug print
-	// LL_DEBUGS("Media") << "Play media type : " << mime_type << ", url : " << media_url << LL_ENDL;
-
 	if(sMediaImpl)
 	{
 		// If the url and mime type are the same, call play again
@@ -217,28 +204,36 @@ void LLViewerParcelMedia::play(LLParcel* parcel)
 		else
 		{
 			// Since the texture id is different, we need to generate a new impl
-			LL_DEBUGS("Media") << "new media impl with mime type " << mime_type << ", url " << media_url << LL_ENDL;
 
 			// Delete the old one first so they don't fight over the texture.
-			sMediaImpl->stop();
-
-			sMediaImpl = LLViewerMedia::newMediaImpl(media_url, placeholder_texture_id,
-				media_width, media_height, media_auto_scale,
-				media_loop, mime_type);
+			sMediaImpl = NULL;
+			
+			// A new impl will be created below.
 		}
 	}
-	else
-	{
-		// There is no media impl, make a new one
-		sMediaImpl = LLViewerMedia::newMediaImpl(media_url, placeholder_texture_id,
-			media_width, media_height, media_auto_scale,
-			media_loop, mime_type);
-	}
-
 	
-	LLFirstUse::useMedia();
+	// Don't ever try to play if the media type is set to "none/none"
+	if(stricmp(mime_type.c_str(), "none/none") != 0)
+	{
+		if(!sMediaImpl)
+		{
+			LL_DEBUGS("Media") << "new media impl with mime type " << mime_type << ", url " << media_url << LL_ENDL;
 
-	LLViewerParcelMediaAutoPlay::playStarted();
+			// There is no media impl, make a new one
+			sMediaImpl = LLViewerMedia::newMediaImpl(
+				placeholder_texture_id,
+				media_width, 
+				media_height, 
+				media_auto_scale,
+				media_loop);
+			sMediaImpl->setIsParcelMedia(true);
+			sMediaImpl->navigateTo(media_url, mime_type, true);
+		}
+
+		//LLFirstUse::useMedia();
+
+		LLViewerParcelMediaAutoPlay::playStarted();
+	}
 }
 
 // static
@@ -252,8 +247,7 @@ void LLViewerParcelMedia::stop()
 	// We need to remove the media HUD if it is up.
 	LLViewerMediaFocus::getInstance()->clearFocus();
 
-	// This will kill the media instance.
-	sMediaImpl->stop();
+	// This will unload & kill the media instance.
 	sMediaImpl = NULL;
 }
 
@@ -276,7 +270,7 @@ void LLViewerParcelMedia::start()
 	}
 	sMediaImpl->start();
 
-	LLFirstUse::useMedia();
+	//LLFirstUse::useMedia();
 
 	LLViewerParcelMediaAutoPlay::playStarted();
 }
@@ -298,9 +292,9 @@ void LLViewerParcelMedia::focus(bool focus)
 }
 
 // static
-LLViewerMediaImpl::EMediaStatus LLViewerParcelMedia::getStatus()
+LLPluginClassMediaOwner::EMediaStatus LLViewerParcelMedia::getStatus()
 {	
-	LLViewerMediaImpl::EMediaStatus result = LLViewerMediaImpl::MEDIA_NONE;
+	LLPluginClassMediaOwner::EMediaStatus result = LLPluginClassMediaOwner::MEDIA_NONE;
 	
 	if(sMediaImpl.notNull() && sMediaImpl->hasMedia())
 	{
@@ -315,10 +309,39 @@ std::string LLViewerParcelMedia::getMimeType()
 {
 	return sMediaImpl.notNull() ? sMediaImpl->getMimeType() : "none/none";
 }
+
+//static 
+std::string LLViewerParcelMedia::getURL()
+{
+	std::string url;
+	if(sMediaImpl.notNull())
+		url = sMediaImpl->getMediaURL();
+	
+	if(stricmp(LLViewerParcelMgr::getInstance()->getAgentParcel()->getMediaType().c_str(), "none/none") != 0)
+	{
+		if (url.empty())
+			url = LLViewerParcelMgr::getInstance()->getAgentParcel()->getMediaCurrentURL();
+		
+		if (url.empty())
+			url = LLViewerParcelMgr::getInstance()->getAgentParcel()->getMediaURL();
+	}
+	
+	return url;
+}
+
+//static 
+std::string LLViewerParcelMedia::getName()
+{
+	if(sMediaImpl.notNull())
+		return sMediaImpl->getName();
+	return "";
+}
+
 viewer_media_t LLViewerParcelMedia::getParcelMedia()
 {
 	return sMediaImpl;
 }
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // static
 void LLViewerParcelMedia::processParcelMediaCommandMessage( LLMessageSystem *msg, void ** )
@@ -552,22 +575,6 @@ void LLViewerParcelMedia::handleMediaEvent(LLPluginClassMedia* self, EMediaEvent
 		};
 		break;
 	};
-}
-
-bool callback_play_media(const LLSD& notification, const LLSD& response, LLParcel* parcel)
-{
-	S32 option = LLNotification::getSelectedOption(notification, response);
-	if (option == 0)
-	{
-		gSavedSettings.setBOOL("AudioStreamingVideo", TRUE);
-		LLViewerParcelMedia::play(parcel);
-	}
-	else
-	{
-		gSavedSettings.setBOOL("AudioStreamingVideo", FALSE);
-	}
-	gSavedSettings.setWarning("FirstStreamingVideo", FALSE);
-	return false;
 }
 
 // TODO: observer

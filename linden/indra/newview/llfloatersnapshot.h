@@ -36,7 +36,6 @@
 #include "llfloater.h"
 
 #include "llmemory.h"
-#include "llimagegl.h"
 #include "llcharacter.h"
 
 

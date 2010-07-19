@@ -463,7 +463,7 @@ bool LLPanelMediaHUD::isMouseOver()
 //static
 void LLPanelMediaHUD::onClickClose(void* user_data)
 {
-	LLViewerMediaFocus::getInstance()->setFocusFace(FALSE, NULL, 0, NULL);
+	LLViewerMediaFocus::getInstance()->clearFocus();
 	LLPanelMediaHUD* this_panel = static_cast<LLPanelMediaHUD*> (user_data);
 	if(this_panel->mCurrentZoom != ZOOM_NONE)
 	{
@@ -601,9 +601,9 @@ void LLPanelMediaHUD::nextZoomLevel()
 			break;
 		}
 	}
-
-	if (zoom_padding > 0.0f)		
-		LLViewerMediaFocus::getInstance()->setCameraZoom(zoom_padding);
+//impfixme:compile
+// 	if (zoom_padding > 0.0f)		
+// 		LLViewerMediaFocus::setCameraZoom(getTargetObject(), mTargetObjectNormal, zoom_padding, true);
 }
 void LLPanelMediaHUD::onScrollUp(void* user_data)
 {

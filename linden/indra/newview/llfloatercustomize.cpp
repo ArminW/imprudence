@@ -54,7 +54,7 @@
 #include "llinventoryview.h"
 #include "lltextbox.h"
 #include "lllineeditor.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llfocusmgr.h"
 #include "llviewerwindow.h"
 #include "llviewercamera.h"
@@ -707,7 +707,7 @@ void LLPanelEditWearable::onInvisibilityCommit(LLUICtrl* ctrl, void* userdata)
 	bool new_invis_state = checkbox_ctrl->get();
 	if (new_invis_state)
 	{
-		LLViewerImage* image = gImageList.getImage(IMG_INVISIBLE);
+		LLViewerFetchedTexture* image = LLViewerTextureManager::getFetchedTexture(IMG_INVISIBLE);
 		const LLTextureEntry* current_te = avatar->getTE(te);
 		if (current_te)
 		{
@@ -726,7 +726,7 @@ void LLPanelEditWearable::onInvisibilityCommit(LLUICtrl* ctrl, void* userdata)
 		}
 		if (prev_id.notNull())
 		{
-			LLViewerImage* image = gImageList.getImage(prev_id);
+			LLViewerFetchedTexture* image = LLViewerTextureManager::getFetchedTexture(prev_id);
 			avatar->setLocTexTE(te, image, TRUE);
 			avatar->wearableUpdated(self->mType, FALSE);
 		}
@@ -829,10 +829,10 @@ void LLPanelEditWearable::onTextureCommit( LLUICtrl* ctrl, void* userdata )
 		ETextureIndex te = (ETextureIndex)(self->mTextureList[ctrl->getName()]);
 
 		// Set the new version
-		LLViewerImage* image = gImageList.getImage( texture_ctrl->getImageAssetID() );
+		LLViewerFetchedTexture* image = LLViewerTextureManager::getFetchedTexture( texture_ctrl->getImageAssetID() );
 		if (image->getID().isNull())
 		{
-			image = gImageList.getImage(IMG_DEFAULT_AVATAR);
+			image =  LLViewerTextureManager::getFetchedTexture(IMG_DEFAULT_AVATAR);
 		}
 		self->mTextureList[ctrl->getName()] = te;
 		if (gAgent.getWearable(self->mType))

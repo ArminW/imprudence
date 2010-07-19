@@ -37,13 +37,13 @@
 
 #include "llrender.h"
 #include "llagent.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llcheckboxctrl.h"
 #include "llcombobox.h"
 #include "llbutton.h"
 #include "lldraghandle.h"
 #include "llfocusmgr.h"
-#include "llviewerimage.h"
+#include "llviewertexture.h"
 #include "llfolderview.h"
 #include "llinventory.h"
 #include "llinventorymodel.h"
@@ -164,7 +164,7 @@ public:
 	static void		onTextureSelect( const LLTextureEntry& te, void *data );
 
 protected:
-	LLPointer<LLViewerImage> mTexturep;
+	LLPointer<LLViewerTexture> mTexturep;
 	LLTextureCtrl*		mOwner;
 
 	LLUUID				mImageAssetID; // Currently selected texture
@@ -559,13 +559,13 @@ void LLFloaterTexturePicker::draw()
 		mTexturep = NULL;
 		if(mImageAssetID.notNull())
 		{
-			mTexturep = gImageList.getImage(mImageAssetID, MIPMAP_YES, IMMEDIATE_NO);
-			mTexturep->setBoostLevel(LLViewerImageBoostLevel::BOOST_PREVIEW);
+			mTexturep = LLViewerTextureManager::getLocalTexture(mImageAssetID, MIPMAP_YES, IMMEDIATE_NO);
+			mTexturep->setBoostLevel(LLViewerTexture::BOOST_PREVIEW);
 		}
 		else if (!mFallbackImageName.empty())
 		{
-			mTexturep = gImageList.getImageFromFile(mFallbackImageName);
-			mTexturep->setBoostLevel(LLViewerImageBoostLevel::BOOST_PREVIEW);
+//impfixme:compile			mTexturep = LLViewerTextureManager::getImageFromFile(mFallbackImageName);
+			mTexturep->setBoostLevel(LLViewerTexture::BOOST_PREVIEW);
 		}
 
 		if (mTentativeLabel)
@@ -1334,14 +1334,18 @@ void LLTextureCtrl::draw()
 	}
 	else if (!mImageAssetID.isNull())
 	{
-		mTexturep = gImageList.getImage(mImageAssetID, MIPMAP_YES, IMMEDIATE_NO);
-		mTexturep->setBoostLevel(LLViewerImageBoostLevel::BOOST_PREVIEW);
+		LLPointer<LLViewerFetchedTexture> texture = LLViewerTextureManager::getFetchedTexture(mImageAssetID, MIPMAP_YES,LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE);
+		
+		texture->setBoostLevel(LLViewerTexture::BOOST_PREVIEW);
+		texture->forceToSaveRawImage(0) ;
+
+		mTexturep = texture;
 	}
 	else if (!mFallbackImageName.empty())
 	{
 		// Show fallback image.
-		mTexturep = gImageList.getImageFromFile(mFallbackImageName);
-		mTexturep->setBoostLevel(LLViewerImageBoostLevel::BOOST_PREVIEW);
+		mTexturep = LLViewerTextureManager::getFetchedTextureFromFile(mFallbackImageName);
+		mTexturep->setBoostLevel(LLViewerTexture::BOOST_PREVIEW);
 	}
 	else	// mImageAssetID == LLUUID::null
 	{
@@ -1509,7 +1513,7 @@ BOOL LLToolTexEyedropper::handleMouseDown(S32 x, S32 y, MASK mask)
 	{
 		if( (0 <= pick.mObjectFace) && (pick.mObjectFace < hit_obj->getNumTEs()) )
 		{
-			LLViewerImage* image = hit_obj->getTEImage( pick.mObjectFace );
+			LLViewerTexture* image = hit_obj->getTEImage( pick.mObjectFace );
 			if( image )
 			{
 				if( mCallback )

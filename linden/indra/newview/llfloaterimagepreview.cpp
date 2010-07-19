@@ -56,7 +56,7 @@
 #include "llvoavatar.h"
 #include "pipeline.h"
 #include "lluictrlfactory.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llstring.h"
 #include "llviewercontrol.h"
 
@@ -257,7 +257,7 @@ void LLFloaterImagePreview::draw()
 			}
 			else
 			{
-				mImagep = new LLImageGL(mRawImagep, FALSE) ;
+				mImagep = LLViewerTextureManager::getLocalTexture(mRawImagep.get(), FALSE) ;
 				
 				gGL.getTexUnit(0)->unbind(mImagep->getTarget()) ;
 				gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, mImagep->getTexName());
@@ -299,11 +299,11 @@ void LLFloaterImagePreview::draw()
 
 				if (selected == 9)
 				{
-					gGL.getTexUnit(0)->bind(mSculptedPreview->getTexture());
+					gGL.getTexUnit(0)->bind(mSculptedPreview);
 				}
 				else
 				{
-					gGL.getTexUnit(0)->bind(mAvatarPreview->getTexture());
+					gGL.getTexUnit(0)->bind(mAvatarPreview);
 				}
 
 				gGL.begin( LLRender::QUADS );
@@ -701,7 +701,7 @@ BOOL LLImagePreviewAvatar::render()
 	glMatrixMode(GL_PROJECTION);
 	gGL.pushMatrix();
 	glLoadIdentity();
-	glOrtho(0.0f, mWidth, 0.0f, mHeight, -1.0f, 1.0f);
+	glOrtho(0.0f, mFullWidth, 0.0f, mFullHeight, -1.0f, 1.0f);
 
 	glMatrixMode(GL_MODELVIEW);
 	gGL.pushMatrix();
@@ -710,7 +710,7 @@ BOOL LLImagePreviewAvatar::render()
 	LLGLSUIDefault def;
 	gGL.color4f(0.15f, 0.2f, 0.3f, 1.f);
 
-	gl_rect_2d_simple( mWidth, mHeight );
+	gl_rect_2d_simple( mFullWidth, mFullHeight );
 
 	glMatrixMode(GL_PROJECTION);
 	gGL.popMatrix();
@@ -732,9 +732,9 @@ BOOL LLImagePreviewAvatar::render()
 
 	stop_glerror();
 
-	LLViewerCamera::getInstance()->setAspect((F32)mWidth / mHeight);
+	LLViewerCamera::getInstance()->setAspect((F32)mFullWidth / mFullHeight);
 	LLViewerCamera::getInstance()->setView(LLViewerCamera::getInstance()->getDefaultFOV() / mCameraZoom);
-	LLViewerCamera::getInstance()->setPerspective(FALSE, mOrigin.mX, mOrigin.mY, mWidth, mHeight, FALSE);
+	LLViewerCamera::getInstance()->setPerspective(FALSE, mOrigin.mX, mOrigin.mY, mFullWidth, mFullHeight, FALSE);
 
 	LLVertexBuffer::unbind();
 	avatarp->updateLOD();
@@ -875,7 +875,7 @@ BOOL LLImagePreviewSculpted::render()
 	glMatrixMode(GL_PROJECTION);
 	gGL.pushMatrix();
 	glLoadIdentity();
-	glOrtho(0.0f, mWidth, 0.0f, mHeight, -1.0f, 1.0f);
+	glOrtho(0.0f, mFullWidth, 0.0f, mFullHeight, -1.0f, 1.0f);
 
 	glMatrixMode(GL_MODELVIEW);
 	gGL.pushMatrix();
@@ -883,7 +883,7 @@ BOOL LLImagePreviewSculpted::render()
 		
 	gGL.color4f(0.15f, 0.2f, 0.3f, 1.f);
 
-	gl_rect_2d_simple( mWidth, mHeight );
+	gl_rect_2d_simple( mFullWidth, mFullHeight );
 
 	glMatrixMode(GL_PROJECTION);
 	gGL.popMatrix();
@@ -906,9 +906,9 @@ BOOL LLImagePreviewSculpted::render()
 
 	stop_glerror();
 
-	LLViewerCamera::getInstance()->setAspect((F32) mWidth / mHeight);
+	LLViewerCamera::getInstance()->setAspect((F32) mFullWidth / mFullHeight);
 	LLViewerCamera::getInstance()->setView(LLViewerCamera::getInstance()->getDefaultFOV() / mCameraZoom);
-	LLViewerCamera::getInstance()->setPerspective(FALSE, mOrigin.mX, mOrigin.mY, mWidth, mHeight, FALSE);
+	LLViewerCamera::getInstance()->setPerspective(FALSE, mOrigin.mX, mOrigin.mY, mFullWidth, mFullHeight, FALSE);
 
 	const LLVolumeFace &vf = mVolume->getVolumeFace(0);
 	U32 num_indices = vf.mIndices.size();

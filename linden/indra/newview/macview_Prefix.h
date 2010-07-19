@@ -141,7 +141,7 @@
 
 /////////////////// From llface.cpp
 #include "llgl.h"
-#include "llviewerimage.h"
+#include "llviewertexture.h"
 #include "llsky.h"
 #include "llvosky.h"
 #include "llcontrol.h"
@@ -174,7 +174,7 @@
 #include "lluictrl.h"
 #include "lluictrlfactory.h"
 #include "llviewborder.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llbutton.h"
 #include "llfocusmgr.h"
 
@@ -182,7 +182,7 @@
 
 /////////////////// From llvovolume.cpp
 #include "llvovolume.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 
 #include "llcontrol.h"
 
@@ -231,7 +231,7 @@
 #include "lltextbox.h"
 #include "llui.h"
 //#include "lluiconstants.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewermenu.h"			// for handle_preferences()
 #include "llviewerwindow.h"			// to link into child list
 #include "llfocusmgr.h"

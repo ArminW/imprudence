@@ -39,6 +39,7 @@
 #include "llsaleinfo.h"
 #include "llassetstorage.h"
 #include "llwearabletype.h"
+//SG2: #include "lllocaltextureobject.h"
 
 class LLViewerInventoryItem;
 

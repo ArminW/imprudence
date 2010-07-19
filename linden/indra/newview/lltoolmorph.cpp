@@ -59,7 +59,7 @@
 #include "lltoolview.h"
 #include "llui.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerobject.h"
 #include "llviewerwindow.h"
 #include "llvoavatar.h"
@@ -170,7 +170,7 @@ BOOL LLVisualParamHint::render()
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	glLoadIdentity();
-	glOrtho(0.0f, mWidth, 0.0f, mHeight, -1.0f, 1.0f);
+	glOrtho(0.0f, mFullWidth, 0.0f, mFullHeight, -1.0f, 1.0f);
 
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
@@ -178,7 +178,7 @@ BOOL LLVisualParamHint::render()
 
 	LLGLSUIDefault gls_ui;
 	//LLGLState::verify(TRUE);
-	mBackgroundp->draw(0, 0, mWidth, mHeight);
+	mBackgroundp->draw(0, 0, mFullWidth, mFullHeight);
 
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
@@ -225,13 +225,13 @@ BOOL LLVisualParamHint::render()
 	
 	gGL.flush();
 	
-	LLViewerCamera::getInstance()->setAspect((F32)mWidth / (F32)mHeight);
+	LLViewerCamera::getInstance()->setAspect((F32)mFullWidth / (F32)mFullHeight);
 	LLViewerCamera::getInstance()->setOriginAndLookAt(
 		camera_pos,		// camera
 		LLVector3(0.f, 0.f, 1.f),						// up
 		target_pos );	// point of interest
 
-	LLViewerCamera::getInstance()->setPerspective(FALSE, mOrigin.mX, mOrigin.mY, mWidth, mHeight, FALSE);
+	LLViewerCamera::getInstance()->setPerspective(FALSE, mOrigin.mX, mOrigin.mY, mFullWidth, mFullHeight, FALSE);
 
 	if (avatarp->mDrawable.notNull())
 	{
@@ -245,7 +245,7 @@ BOOL LLVisualParamHint::render()
 	}
 	avatarp->setVisualParamWeight(mVisualParam, mLastParamWeight);
 	gGL.color4f(1,1,1,1);
-	mTexture->setGLTextureCreated(true);
+	mGLTexturep->setGLTextureCreated(true);
 	return TRUE;
 }
 
@@ -257,7 +257,7 @@ void LLVisualParamHint::draw()
 {
 	if (!mIsVisible) return;
 
-	gGL.getTexUnit(0)->bind(getTexture());
+	gGL.getTexUnit(0)->bind(this);
 
 	gGL.color4f(1.f, 1.f, 1.f, 1.f);
 
@@ -265,13 +265,13 @@ void LLVisualParamHint::draw()
 	gGL.begin(LLRender::QUADS);
 	{
 		gGL.texCoord2i(0, 1);
-		gGL.vertex2i(0, mHeight);
+		gGL.vertex2i(0, mFullHeight);
 		gGL.texCoord2i(0, 0);
 		gGL.vertex2i(0, 0);
 		gGL.texCoord2i(1, 0);
-		gGL.vertex2i(mWidth, 0);
+		gGL.vertex2i(mFullWidth, 0);
 		gGL.texCoord2i(1, 1);
-		gGL.vertex2i(mWidth, mHeight);
+		gGL.vertex2i(mFullWidth, mFullHeight);
 	}
 	gGL.end();
 

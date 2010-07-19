@@ -10,7 +10,7 @@
 #include "llfloater.h"
 #include "llinventorymodel.h"
 #include "llview.h"
-#include "llviewerimage.h"
+#include "llviewertexture.h"
 
 class LLInventoryPanel;
 
@@ -23,7 +23,7 @@ struct LLAssetSelection
 	S32							mWidth;
 	S32							mHeight;
 	LLTextBox*					mAssetInfoTextBox;
-	LLPointer<LLViewerImage>	mTexturep;
+	LLPointer<LLViewerTexture>	mTexturep;
 	LLRect						mAssetRect;
 };
 
@@ -61,7 +61,7 @@ protected:
 	LLUUID							mImageAssetID; 
 	LLUUID							mMouseOverUUID;
 	LLUUID							mMouseOverAssetUUID;
-	LLPointer<LLViewerImage>		mTexturep;
+	LLPointer<LLViewerTexture>		mTexturep;
 	std::vector<LLAssetSelection>	mTextureAssets;
 	std::vector<LLTextBox*>			mAssetInfoLabelList;
 	U32								mLastIndex;

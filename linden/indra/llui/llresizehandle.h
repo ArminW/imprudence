@@ -35,7 +35,7 @@
 
 #include "stdtypes.h"
 #include "llview.h"
-#include "llimagegl.h"
+#include "lltexture.h"
 #include "llcoord.h"
 
 

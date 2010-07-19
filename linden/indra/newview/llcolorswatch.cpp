@@ -48,7 +48,7 @@
 #include "lltextbox.h"
 #include "llfloatercolorpicker.h"
 #include "llviewborder.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llfocusmgr.h"
 
 static LLRegisterWidget<LLColorSwatchCtrl> r("color_swatch");
@@ -203,6 +203,9 @@ BOOL LLColorSwatchCtrl::handleMouseUp(S32 x, S32 y, MASK mask)
 // assumes GL state is set for 2D
 void LLColorSwatchCtrl::draw()
 {
+//impru	F32 alpha = getDrawContext().mAlpha;
+	F32 alpha;
+
 	mBorder->setKeyboardFocusHighlight(hasFocus());
 	// Draw border
 	LLRect border( 0, getRect().getHeight(), getRect().getWidth(), BTN_HEIGHT_SMALL );
@@ -233,20 +236,21 @@ void LLColorSwatchCtrl::draw()
 	{
 		if (!mFallbackImageName.empty())
 		{
-			LLPointer<LLViewerImage> fallback_image = gImageList.getImageFromFile(mFallbackImageName);
+			LLPointer<LLViewerFetchedTexture> fallback_image = LLViewerTextureManager::getFetchedTextureFromFile(mFallbackImageName, TRUE, 
+				LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE);
 			if( fallback_image->getComponents() == 4 )
 			{	
 				gl_rect_2d_checkerboard( interior );
 			}	
-			gl_draw_scaled_image( interior.mLeft, interior.mBottom, interior.getWidth(), interior.getHeight(), fallback_image);
+			gl_draw_scaled_image( interior.mLeft, interior.mBottom, interior.getWidth(), interior.getHeight(), fallback_image, LLColor4::white % alpha);
 			fallback_image->addTextureStats( (F32)(interior.getWidth() * interior.getHeight()) );
 		}
 		else
 		{
 			// Draw grey and an X
-			gl_rect_2d(interior, LLColor4::grey, TRUE);
+			gl_rect_2d(interior, LLColor4::grey % alpha, TRUE);
 			
-			gl_draw_x(interior, LLColor4::black);
+			gl_draw_x(interior, LLColor4::black % alpha);
 		}
 	}
 

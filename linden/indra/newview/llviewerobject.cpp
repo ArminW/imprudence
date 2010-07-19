@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -70,7 +71,7 @@
 #include "llrendersphere.h"
 #include "lltooldraganddrop.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerinventory.h"
 #include "llviewerobjectlist.h"
 #include "llviewerparceloverlay.h"
@@ -97,6 +98,9 @@
 #include "llviewernetwork.h"
 #include "llvowlsky.h"
 #include "llmanip.h"
+#include "lltrans.h"
+//#include "llsdutil.h"
+#include "llmediaentry.h"
 
 //#define DEBUG_UPDATE_TYPE
 
@@ -201,7 +205,8 @@ LLViewerObject::LLViewerObject(const LLUUID &id, const LLPCode pcode, LLViewerRe
 	mJointInfo(NULL),
 	mState(0),
 	mMedia(NULL),
-	mClickAction(0)
+	mClickAction(0),
+	mAttachmentItemID(LLUUID::null)
 {
 	if(!is_global)
 	{
@@ -454,6 +459,7 @@ void LLViewerObject::cleanupVOClasses()
 	LLVOWater::cleanupClass();
 	LLVOTree::cleanupClass();
 	LLVOAvatar::cleanupClass();
+	LLVOVolume::cleanupClass();
 }
 
 // Replaces all name value pairs with data from \n delimited list
@@ -485,7 +491,6 @@ void LLViewerObject::setNameValueList(const std::string& name_value_list)
 // agent.
 BOOL LLViewerObject::isOverAgentOwnedLand() const
 {
-	LL_DEBUGS("isOwnedSelf")<< " LLViewerObject::isOverAgentOwnedLand()" << LL_ENDL; 
 	return mRegionp
 		&& mRegionp->getParcelOverlay()
 		&& mRegionp->getParcelOverlay()->isOwnedSelf(getPositionRegion());
@@ -500,9 +505,20 @@ BOOL LLViewerObject::isOverGroupOwnedLand() const
 		&& mRegionp->getParcelOverlay()->isOwnedGroup(getPositionRegion());
 }
 
-void LLViewerObject::setParent(LLViewerObject* parent)
+BOOL LLViewerObject::setParent(LLViewerObject* parent)
 {
-	LLPrimitive::setParent(parent);
+	if(mParent != parent)
+	{
+		LLViewerObject* old_parent = (LLViewerObject*)mParent ;		
+		BOOL ret = LLPrimitive::setParent(parent);
+		if(ret && old_parent && parent)
+		{
+			old_parent->removeChild(this) ;
+		}
+		return ret ;
+	}
+
+	return FALSE ;
 }
 
 void LLViewerObject::addChild(LLViewerObject *childp)
@@ -521,9 +537,10 @@ void LLViewerObject::addChild(LLViewerObject *childp)
 		childp->mbCanSelect = mbCanSelect;
 	}
 
-	childp->setParent(this);
-	mChildList.push_back(childp);
-
+	if(childp->setParent(this))
+	{
+		mChildList.push_back(childp);
+	}
 }
 
 void LLViewerObject::removeChild(LLViewerObject *childp)
@@ -538,7 +555,11 @@ void LLViewerObject::removeChild(LLViewerObject *childp)
 			}
 
 			mChildList.erase(i);
-			childp->setParent(NULL);			
+
+			if(childp->getParent() == this)
+			{
+				childp->setParent(NULL);			
+			}
 			break;
 		}
 	}
@@ -551,9 +572,9 @@ void LLViewerObject::removeChild(LLViewerObject *childp)
 	}
 }
 
-void LLViewerObject::addThisAndAllChildren(LLDynamicArray<LLViewerObject*>& objects)
+void LLViewerObject::addThisAndAllChildren(std::vector<LLViewerObject*>& objects)
 {
-	objects.put(this);
+	objects.push_back(this);
 	for (child_list_t::iterator iter = mChildList.begin();
 		 iter != mChildList.end(); iter++)
 	{
@@ -565,9 +586,9 @@ void LLViewerObject::addThisAndAllChildren(LLDynamicArray<LLViewerObject*>& obje
 	}
 }
 
-void LLViewerObject::addThisAndNonJointChildren(LLDynamicArray<LLViewerObject*>& objects)
+void LLViewerObject::addThisAndNonJointChildren(std::vector<LLViewerObject*>& objects)
 {
-	objects.put(this);
+	objects.push_back(this);
 	// don't add any attachments when temporarily selecting avatar
 	if (isAvatar())
 	{
@@ -620,11 +641,14 @@ BOOL LLViewerObject::setDrawableParent(LLDrawable* parentp)
 		return FALSE;
 	}
 
-	LLDrawable* old_parent = mDrawable->mParent;
-
-	mDrawable->mParent = parentp; 
-	
 	BOOL ret = mDrawable->mXform.setParent(parentp ? &parentp->mXform : NULL);
+	if(!ret)
+	{
+		return FALSE ;
+	}
+	LLDrawable* old_parent = mDrawable->mParent;
+	mDrawable->mParent = parentp; 
+		
 	gPipeline.markRebuild(mDrawable, LLDrawable::REBUILD_VOLUME, TRUE);
 	if(	(old_parent != parentp && old_parent)
 		|| (parentp && parentp->isActive()))
@@ -666,6 +690,42 @@ void LLViewerObject::hideExtraDisplayItems( BOOL hidden )
 	}
 }
 
+U32 LLViewerObject::checkMediaURL(const std::string &media_url)
+{
+    U32 retval = (U32)0x0;
+    if (!mMedia && !media_url.empty())
+    {
+        retval |= MEDIA_URL_ADDED;
+        mMedia = new LLViewerObjectMedia;
+        mMedia->mMediaURL = media_url;
+        mMedia->mMediaType = LLViewerObject::MEDIA_SET;
+        mMedia->mPassedWhitelist = FALSE;
+    }
+    else if (mMedia)
+    {
+        if (media_url.empty())
+        {
+            retval |= MEDIA_URL_REMOVED;
+            delete mMedia;
+            mMedia = NULL;
+        }
+        else if (mMedia->mMediaURL != media_url) // <-- This is an optimization.  If they are equal don't bother with below's test.
+        {
+            /*if (! (LLTextureEntry::getAgentIDFromMediaVersionString(media_url) == gAgent.getID() &&
+                   LLTextureEntry::getVersionFromMediaVersionString(media_url) == 
+                        LLTextureEntry::getVersionFromMediaVersionString(mMedia->mMediaURL) + 1))
+			*/
+            {
+                // If the media URL is different and WE were not the one who
+                // changed it, mark dirty.
+                retval |= MEDIA_URL_UPDATED;
+            }
+            mMedia->mMediaURL = media_url;
+            mMedia->mPassedWhitelist = FALSE;
+        }
+    }
+    return retval;
+}
 
 U32 LLViewerObject::processUpdateMessage(LLMessageSystem *mesgsys,
 					 void **user_data,
@@ -787,6 +847,7 @@ U32 LLViewerObject::processUpdateMessage(LLMessageSystem *mesgsys,
 					htonmemcpy(collision_plane.mV, &data[count], MVT_LLVector4, sizeof(LLVector4));
 					((LLVOAvatar*)this)->setFootPlane(collision_plane);
 					count += sizeof(LLVector4);
+					// fall through
 				case 60:
 					this_update_precision = 32;
 					// this is a terse update
@@ -826,6 +887,7 @@ U32 LLViewerObject::processUpdateMessage(LLMessageSystem *mesgsys,
 					htonmemcpy(collision_plane.mV, &data[count], MVT_LLVector4, sizeof(LLVector4));
 					((LLVOAvatar*)this)->setFootPlane(collision_plane);
 					count += sizeof(LLVector4);
+					// fall through
 				case 32:
 					this_update_precision = 16;
 					test_pos_parent.quantize16(-0.5f*size, 1.5f*size, MIN_HEIGHT, MAX_HEIGHT);
@@ -1017,35 +1079,8 @@ U32 LLViewerObject::processUpdateMessage(LLMessageSystem *mesgsys,
 
 				std::string media_url;
 				mesgsys->getStringFast(_PREHASH_ObjectData, _PREHASH_MediaURL, media_url, block_num);
-				//if (!media_url.empty())
-				//{
-				//	llinfos << "WEBONPRIM media_url " << media_url << llendl;
-				//}
-				if (!mMedia && !media_url.empty())
-				{
-					retval |= MEDIA_URL_ADDED;
-					mMedia = new LLViewerObjectMedia;
-					mMedia->mMediaURL = media_url;
-					mMedia->mMediaType = LLViewerObject::MEDIA_TYPE_WEB_PAGE;
-					mMedia->mPassedWhitelist = FALSE;
-				}
-				else if (mMedia)
-				{
-					if (media_url.empty())
-					{
-						retval |= MEDIA_URL_REMOVED;
-						delete mMedia;
-						mMedia = NULL;
-					}
-					else if (mMedia->mMediaURL != media_url)
-					{
-						// We just added or changed a web page.
-						retval |= MEDIA_URL_UPDATED;
-						mMedia->mMediaURL = media_url;
-						mMedia->mPassedWhitelist = FALSE;
-					}
-				}
-
+                retval |= checkMediaURL(media_url);
+                
 				//
 				// Unpack particle system data
 				//
@@ -1131,6 +1166,7 @@ U32 LLViewerObject::processUpdateMessage(LLMessageSystem *mesgsys,
 					htonmemcpy(collision_plane.mV, &data[count], MVT_LLVector4, sizeof(LLVector4));
 					((LLVOAvatar*)this)->setFootPlane(collision_plane);
 					count += sizeof(LLVector4);
+					// fall through
 				case 60:
 					// this is a terse 32 update
 					// pos
@@ -1170,6 +1206,7 @@ U32 LLViewerObject::processUpdateMessage(LLMessageSystem *mesgsys,
 					htonmemcpy(collision_plane.mV, &data[count], MVT_LLVector4, sizeof(LLVector4));
 					((LLVOAvatar*)this)->setFootPlane(collision_plane);
 					count += sizeof(LLVector4);
+					// fall through
 				case 32:
 					// this is a terse 16 update
 					this_update_precision = 16;
@@ -1434,31 +1471,12 @@ U32 LLViewerObject::processUpdateMessage(LLMessageSystem *mesgsys,
 					mText = NULL;
 				}
 
+                std::string media_url;
 				if (value & 0x200)
 				{
-					std::string media_url;
 					dp->unpackString(media_url, "MediaURL");
-					if (!mMedia)
-					{
-						retval |= MEDIA_URL_ADDED;
-						mMedia = new LLViewerObjectMedia;
-						mMedia->mMediaURL = media_url;
-						mMedia->mMediaType = LLViewerObject::MEDIA_TYPE_WEB_PAGE;
-						mMedia->mPassedWhitelist = FALSE;
-					}
-					else if (mMedia->mMediaURL != media_url)
-					{
-						retval |= MEDIA_URL_UPDATED;
-						mMedia->mMediaURL = media_url;
-						mMedia->mPassedWhitelist = FALSE;
-					}
 				}
-				else if (mMedia)
-				{
-					retval |= MEDIA_URL_REMOVED;
-					delete mMedia;
-					mMedia = NULL;
-				}
+                retval |= checkMediaURL(media_url);
 
 				//
 				// Unpack particle system data
@@ -2462,7 +2480,7 @@ void LLViewerObject::processTaskInv(LLMessageSystem* msg, void** user_data)
 		LLPointer<LLInventoryObject> obj;
 		obj = new LLInventoryObject(object->mID, LLUUID::null,
 									LLAssetType::AT_CATEGORY,
-									std::string("Contents"));
+									LLTrans::getString("ViewerObjectContents").c_str());
 		object->mInventory->push_front(obj);
 		object->doInventoryCallback();
 		delete ft;
@@ -2529,6 +2547,7 @@ void LLViewerObject::loadTaskInvFile(const std::string& filename)
 			{
 				LLPointer<LLInventoryObject> inv = new LLInventoryObject;
 				inv->importLegacyStream(ifs);
+				inv->rename(LLTrans::getString("ViewerObjectContents").c_str());
 				mInventory->push_front(inv);
 			}
 			else
@@ -2588,11 +2607,6 @@ void LLViewerObject::removeInventory(const LLUUID& item_id)
 	msg->sendReliable(mRegionp->getHost());
 	deleteInventoryItem(item_id);
 	++mInventorySerialNum;
-
-	// The viewer object should not refresh UI since this is a utility
-	// function. The UI functionality that called this method should
-	// refresh the views if necessary.
-	//gBuildView->refresh();
 }
 
 void LLViewerObject::updateInventory(
@@ -2755,22 +2769,23 @@ void LLViewerObject::setPixelAreaAndAngle(LLAgent &agent)
 	// I don't think there's a better way to do this without calculating distance per-poly
 	F32 range = sqrt(dx*dx + dy*dy + dz*dz) - min_scale/2;
 
+	LLViewerCamera* camera = LLViewerCamera::getInstance();
 	if (range < 0.001f || isHUDAttachment())		// range == zero
 	{
 		mAppAngle = 180.f;
-		mPixelArea = (F32)LLViewerCamera::getInstance()->getScreenPixelArea();
+		mPixelArea = (F32)camera->getScreenPixelArea();
 	}
 	else
 	{
 		mAppAngle = (F32) atan2( max_scale, range) * RAD_TO_DEG;
 
-		F32 pixels_per_meter = LLViewerCamera::getInstance()->getPixelMeterRatio() / range;
+		F32 pixels_per_meter = camera->getPixelMeterRatio() / range;
 
 		mPixelArea = (pixels_per_meter * max_scale) * (pixels_per_meter * mid_scale);
-		if (mPixelArea > LLViewerCamera::getInstance()->getScreenPixelArea())
+		if (mPixelArea > camera->getScreenPixelArea())
 		{
 			mAppAngle = 180.f;
-			mPixelArea = (F32)LLViewerCamera::getInstance()->getScreenPixelArea();
+			mPixelArea = (F32)camera->getScreenPixelArea();
 		}
 	}
 }
@@ -2894,7 +2909,7 @@ F32 LLViewerObject::getMidScale() const
 }
 
 
-void LLViewerObject::updateTextures(LLAgent &agent)
+void LLViewerObject::updateTextures()
 {
 }
 
@@ -2909,14 +2924,14 @@ void LLViewerObject::boostTexturePriority(BOOL boost_children /* = TRUE */)
 	S32 tex_count = getNumTEs();
 	for (i = 0; i < tex_count; i++)
 	{
- 		getTEImage(i)->setBoostLevel(LLViewerImageBoostLevel::BOOST_SELECTED);
+ 		getTEImage(i)->setBoostLevel(LLViewerTexture::BOOST_SELECTED);
 	}
 
 	if (isSculpted())
 	{
 		LLSculptParams *sculpt_params = (LLSculptParams *)getParameterEntry(LLNetworkData::PARAMS_SCULPT);
 		LLUUID sculpt_id = sculpt_params->getSculptTexture();
-		gImageList.getImage(sculpt_id)->setBoostLevel(LLViewerImageBoostLevel::BOOST_SELECTED);
+		LLViewerTextureManager::getFetchedTexture(sculpt_id, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE)->setBoostLevel(LLViewerTexture::BOOST_SELECTED);
 	}
 	
 	if (boost_children)
@@ -3454,7 +3469,7 @@ U8 LLViewerObject::getMediaType() const
 	}
 	else
 	{
-		return LLViewerObject::MEDIA_TYPE_NONE;
+		return LLViewerObject::MEDIA_NONE;
 	}
 }
 
@@ -3544,8 +3559,8 @@ void LLViewerObject::setNumTEs(const U8 num_tes)
 	{
 		if (num_tes)
 		{
-			LLPointer<LLViewerImage> *new_images;
-			new_images = new LLPointer<LLViewerImage>[num_tes];
+			LLPointer<LLViewerTexture> *new_images;
+			new_images = new LLPointer<LLViewerTexture>[num_tes];
 			for (i = 0; i < num_tes; i++)
 			{
 				if (i < getNumTEs())
@@ -3679,11 +3694,11 @@ void LLViewerObject::setTE(const U8 te, const LLTextureEntry &texture_entry)
 //	if (mDrawable.notNull() && mDrawable->isVisible())
 //	{
 		const LLUUID& image_id = getTE(te)->getID();
-		mTEImages[te] = gImageList.getImage(image_id);
+		mTEImages[te] = LLViewerTextureManager::getFetchedTexture(image_id, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE);
 //	}
 }
 
-void LLViewerObject::setTEImage(const U8 te, LLViewerImage *imagep)
+void LLViewerObject::setTEImage(const U8 te, LLViewerTexture *imagep)
 {
 	if (mTEImages[te] != imagep)
 	{
@@ -3705,7 +3720,7 @@ S32 LLViewerObject::setTETextureCore(const U8 te, const LLUUID& uuid, LLHost hos
 		uuid == LLUUID::null)
 	{
 		retval = LLPrimitive::setTETexture(te, uuid);
-		mTEImages[te] = gImageList.getImageFromHost(uuid, host);
+		mTEImages[te] = LLViewerTextureManager::getFetchedTexture(uuid, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE, 0, 0, host);
 		setChanged(TEXTURE);
 		if (mDrawable.notNull())
 		{
@@ -3715,6 +3730,15 @@ S32 LLViewerObject::setTETextureCore(const U8 te, const LLUUID& uuid, LLHost hos
 	return retval;
 }
 
+
+void LLViewerObject::changeTEImage(S32 index, LLViewerTexture* new_image) 
+{
+	if(index < 0 || index >= getNumTEs())
+	{
+		return ;
+	}
+	mTEImages[index] = new_image ;
+}
 
 S32 LLViewerObject::setTETexture(const U8 te, const LLUUID& uuid)
 {
@@ -3739,7 +3763,6 @@ S32 LLViewerObject::setTEColor(const U8 te, const LLColor4& color)
 	else if (color != tep->getColor())
 	{
 		retval = LLPrimitive::setTEColor(te, color);
-		//setChanged(TEXTURE);
 		if (mDrawable.notNull() && retval)
 		{
 			// These should only happen on updates which are not the initial update.
@@ -3961,24 +3984,24 @@ S32 LLViewerObject::setTERotation(const U8 te, const F32 r)
 }
 
 
-LLViewerImage *LLViewerObject::getTEImage(const U8 face) const
+LLViewerTexture *LLViewerObject::getTEImage(const U8 face) const
 {
 //	llassert(mTEImages);
 
 	if (face < getNumTEs())
 	{
-		LLViewerImage* image = mTEImages[face];
+		LLViewerTexture* image = mTEImages[face];
 		if (image)
 		{
 			return image;
 		}
 		else
 		{
-			return (LLViewerImage*)((LLImageGL*)LLViewerImage::sDefaultImagep);
+			return (LLViewerTexture*)(LLViewerFetchedTexture::sDefaultImagep);
 		}
 	}
 
-	llwarns << llformat("Requested Image from invalid face: %d/%d",face,getNumTEs()) << llendl;
+	llerrs << llformat("Requested Image from invalid face: %d/%d",face,getNumTEs()) << llendl;
 
 	return NULL;
 }
@@ -3994,9 +4017,15 @@ LLBBox LLViewerObject::getBoundingBoxAgent() const
 {
 	LLVector3 position_agent;
 	LLQuaternion rot;
+	LLViewerObject* avatar_parent = NULL;
 	LLViewerObject* root_edit = (LLViewerObject*)getRootEdit();
-	LLViewerObject* avatar_parent = (LLViewerObject*)root_edit->getParent();
-	if (avatar_parent && avatar_parent->isAvatar() && root_edit->mDrawable.notNull())
+	if (root_edit)
+	{
+		avatar_parent = (LLViewerObject*)root_edit->getParent();
+	}
+	
+	if (avatar_parent && avatar_parent->isAvatar() &&
+		root_edit && root_edit->mDrawable.notNull() && root_edit->mDrawable->getXform()->getParent())
 	{
 		LLXform* parent_xform = root_edit->mDrawable->getXform()->getParent();
 		position_agent = (getPositionEdit() * parent_xform->getWorldRotation()) + parent_xform->getWorldPosition();
@@ -4095,7 +4124,7 @@ void LLViewerObject::setDebugText(const std::string &utf8text)
 	updateText();
 }
 
-void LLViewerObject::setIcon(LLViewerImage* icon_image)
+void LLViewerObject::setIcon(LLViewerTexture* icon_image)
 {
 	if (!mIcon)
 	{
@@ -4190,14 +4219,14 @@ void LLViewerObject::setParticleSource(const LLPartSysData& particle_parameters,
 
 		if (mPartSourcep->getImage()->getID() != mPartSourcep->mPartSysData.mPartImageID)
 		{
-			LLViewerImage* image;
+			LLViewerTexture* image;
 			if (mPartSourcep->mPartSysData.mPartImageID == LLUUID::null)
 			{
-				image = gImageList.getImageFromFile("pixiesmall.tga");
+				image = LLViewerTextureManager::getFetchedTextureFromFile("pixiesmall.tga");
 			}
 			else
 			{
-				image = gImageList.getImage(mPartSourcep->mPartSysData.mPartImageID);
+				image = LLViewerTextureManager::getFetchedTexture(mPartSourcep->mPartSysData.mPartImageID);
 			}
 			mPartSourcep->setImage(image);
 		}
@@ -4239,14 +4268,14 @@ void LLViewerObject::unpackParticleSource(const S32 block_num, const LLUUID& own
 	{
 		if (mPartSourcep->getImage()->getID() != mPartSourcep->mPartSysData.mPartImageID)
 		{
-			LLViewerImage* image;
+			LLViewerTexture* image;
 			if (mPartSourcep->mPartSysData.mPartImageID == LLUUID::null)
 			{
-				image = gImageList.getImageFromFile("pixiesmall.j2c");
+				image = LLViewerTextureManager::getFetchedTextureFromFile("pixiesmall.j2c");
 			}
 			else
 			{
-				image = gImageList.getImage(mPartSourcep->mPartSysData.mPartImageID);
+				image = LLViewerTextureManager::getFetchedTexture(mPartSourcep->mPartSysData.mPartImageID);
 			}
 			mPartSourcep->setImage(image);
 		}
@@ -4286,14 +4315,14 @@ void LLViewerObject::unpackParticleSource(LLDataPacker &dp, const LLUUID& owner_
 	{
 		if (mPartSourcep->getImage()->getID() != mPartSourcep->mPartSysData.mPartImageID)
 		{
-			LLViewerImage* image;
+			LLViewerTexture* image;
 			if (mPartSourcep->mPartSysData.mPartImageID == LLUUID::null)
 			{
-				image = gImageList.getImageFromFile("pixiesmall.j2c");
+				image = LLViewerTextureManager::getFetchedTextureFromFile("pixiesmall.j2c");
 			}
 			else
 			{
-				image = gImageList.getImage(mPartSourcep->mPartSysData.mPartImageID);
+				image = LLViewerTextureManager::getFetchedTexture(mPartSourcep->mPartSysData.mPartImageID);
 			}
 			mPartSourcep->setImage(image);
 		}
@@ -4383,14 +4412,14 @@ void LLViewerObject::setAttachedSound(const LLUUID &audio_uuid, const LLUUID& ow
 		gAudiop->cleanupAudioSource(mAudioSourcep);
 		mAudioSourcep = NULL;
 	}
-/*
+
 	if (mAudioSourcep && mAudioSourcep->isMuted() &&
 	    mAudioSourcep->getCurrentData() && mAudioSourcep->getCurrentData()->getID() == audio_uuid)
 	{
 		//llinfos << "Already having this sound as muted sound, ignoring" << llendl;
 		return;
 	}
-*/
+
 	getAudioSource(owner_id);
 
 	if (mAudioSourcep)

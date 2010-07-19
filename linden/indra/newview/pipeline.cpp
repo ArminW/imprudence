@@ -76,7 +76,7 @@
 #include "lltool.h"
 #include "lltoolmgr.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerobject.h"
 #include "llviewerobjectlist.h"
 #include "llviewerparcelmgr.h"
@@ -890,9 +890,9 @@ S32 LLPipeline::setLightingDetail(S32 level)
 class LLOctreeDirtyTexture : public LLOctreeTraveler<LLDrawable>
 {
 public:
-	const std::set<LLViewerImage*>& mTextures;
+	const std::set<LLViewerFetchedTexture*>& mTextures;
 
-	LLOctreeDirtyTexture(const std::set<LLViewerImage*>& textures) : mTextures(textures) { }
+	LLOctreeDirtyTexture(const std::set<LLViewerFetchedTexture*>& textures) : mTextures(textures) { }
 
 	virtual void visit(const LLOctreeNode<LLDrawable>* node)
 	{
@@ -904,8 +904,9 @@ public:
 			{
 				for (LLSpatialGroup::drawmap_elem_t::iterator j = i->second.begin(); j != i->second.end(); ++j) 
 				{
-					LLDrawInfo* params = *j;
-					if (mTextures.find(params->mViewerTexture) != mTextures.end())
+					LLDrawInfo* params = *j;	
+					LLViewerFetchedTexture* tex = LLViewerTextureManager::staticCastToFetchedTexture(params->mTexture);
+					if (tex && mTextures.find(tex) != mTextures.end())
 					{ 
 						group->setState(LLSpatialGroup::GEOM_DIRTY);
 					}
@@ -922,13 +923,14 @@ public:
 };
 
 // Called when a texture changes # of channels (causes faces to move to alpha pool)
-void LLPipeline::dirtyPoolObjectTextures(const std::set<LLViewerImage*>& textures)
+void LLPipeline::dirtyPoolObjectTextures(const std::set<LLViewerFetchedTexture*>& textures)
 {
 	assertInitialized();
 
 	// *TODO: This is inefficient and causes frame spikes; need a better way to do this
 	//        Most of the time is spent in dirty.traverse.
 
+	// linden/indra/newview/lldrawpool.h
 	for (pool_set_t::iterator iter = mPools.begin(); iter != mPools.end(); ++iter)
 	{
 		LLDrawPool *poolp = *iter;
@@ -954,7 +956,7 @@ void LLPipeline::dirtyPoolObjectTextures(const std::set<LLViewerImage*>& texture
 	}
 }
 
-LLDrawPool *LLPipeline::findPool(const U32 type, LLViewerImage *tex0)
+LLDrawPool *LLPipeline::findPool(const U32 type, LLViewerTexture *tex0)
 {
 	assertInitialized();
 
@@ -1026,7 +1028,7 @@ LLDrawPool *LLPipeline::findPool(const U32 type, LLViewerImage *tex0)
 }
 
 
-LLDrawPool *LLPipeline::getPool(const U32 type,	LLViewerImage *tex0)
+LLDrawPool *LLPipeline::getPool(const U32 type,	LLViewerTexture *tex0)
 {
 	LLMemType mt(LLMemType::MTYPE_PIPELINE);
 	LLDrawPool *poolp = findPool(type, tex0);
@@ -1043,7 +1045,7 @@ LLDrawPool *LLPipeline::getPool(const U32 type,	LLViewerImage *tex0)
 
 
 // static
-LLDrawPool* LLPipeline::getPoolFromTE(const LLTextureEntry* te, LLViewerImage* imagep)
+LLDrawPool* LLPipeline::getPoolFromTE(const LLTextureEntry* te, LLViewerTexture* imagep)
 {
 	LLMemType mt(LLMemType::MTYPE_PIPELINE);
 	U32 type = getPoolTypeFromTE(te, imagep);
@@ -1051,7 +1053,7 @@ LLDrawPool* LLPipeline::getPoolFromTE(const LLTextureEntry* te, LLViewerImage* i
 }
 
 //static 
-U32 LLPipeline::getPoolTypeFromTE(const LLTextureEntry* te, LLViewerImage* imagep)
+U32 LLPipeline::getPoolTypeFromTE(const LLTextureEntry* te, LLViewerTexture* imagep)
 {
 	LLMemType mt(LLMemType::MTYPE_PIPELINE);
 	
@@ -1063,7 +1065,7 @@ U32 LLPipeline::getPoolTypeFromTE(const LLTextureEntry* te, LLViewerImage* image
 	bool alpha = te->getColor().mV[3] < 0.999f;
 	if (imagep)
 	{
-		alpha = alpha || (imagep->getComponents() == 4 && ! imagep->mIsMediaTexture) || (imagep->getComponents() == 2);
+		alpha = alpha || (imagep->getComponents() == 4 && imagep->getType() != LLViewerTexture::MEDIA_TEXTURE) || (imagep->getComponents() == 2);
 	}
 
 	if (alpha)
@@ -1919,7 +1921,7 @@ void LLPipeline::markVisible(LLDrawable *drawablep, LLCamera& camera)
 		if (root && root->getParent() && root->getVObj() && root->getVObj()->isAttachment())
 		{
 			LLVOAvatar* av = root->getParent()->getVObj()->asAvatar();
-			if (av->isImpostor())
+			if (av && av->isImpostor())
 			{
 				return;
 			}
@@ -2865,7 +2867,7 @@ void LLPipeline::renderHighlights()
 		// Make sure the selection image gets downloaded and decoded
 		if (!mFaceSelectImagep)
 		{
-			mFaceSelectImagep = gImageList.getImage(IMG_FACE_SELECT);
+			mFaceSelectImagep = LLViewerTextureManager::getFetchedTexture(IMG_FACE_SELECT);
 		}
 		mFaceSelectImagep->addTextureStats((F32)MAX_IMAGE_AREA);
 
@@ -2895,7 +2897,7 @@ void LLPipeline::renderHighlights()
 		for (S32 i = 0; i < count; i++)
 		{
 			LLFace* facep = mHighlightFaces[i];
-			facep->renderSelected(LLViewerImage::sNullImagep, color);
+			facep->renderSelected(LLViewerTexture::sNullImagep, color);
 		}
 	}
 
@@ -2986,8 +2988,8 @@ void LLPipeline::renderGeom(LLCamera& camera, BOOL forceVBOUpdate)
 		sUnderWaterRender = FALSE;
 	}
 
-	gGL.getTexUnit(0)->bind(LLViewerImage::sDefaultImagep);
-	LLViewerImage::sDefaultImagep->setAddressMode(LLTexUnit::TAM_WRAP);
+	gGL.getTexUnit(0)->bind(LLViewerFetchedTexture::sDefaultImagep);
+	LLViewerFetchedTexture::sDefaultImagep->setAddressMode(LLTexUnit::TAM_WRAP);
 	
 	//////////////////////////////////////////////
 	//
@@ -3456,9 +3458,19 @@ void LLPipeline::renderGeomShadow(LLCamera& camera)
 }
 
 
-void LLPipeline::addTrianglesDrawn(S32 count)
+void LLPipeline::addTrianglesDrawn(S32 index_count, U32 render_type)
 {
 	assertInitialized();
+	S32 count = 0;
+	if (render_type == LLRender::TRIANGLE_STRIP)
+	{
+		count = index_count-2;
+	}
+	else
+	{
+		count = index_count/3;
+	}
+
 	mTrianglesDrawn += count;
 	mBatchCount++;
 	mMaxBatchSize = llmax(mMaxBatchSize, count);
@@ -3642,7 +3654,7 @@ void LLPipeline::renderDebug()
 
 		LLGLEnable blend(GL_BLEND);
 		LLGLDepthTest depth(GL_TRUE, GL_FALSE);
-		gGL.getTexUnit(0)->bind(LLViewerImage::sWhiteImagep);
+		gGL.getTexUnit(0)->bind(LLViewerFetchedTexture::sWhiteImagep);
 		
 		for (LLSpatialGroup::sg_vector_t::iterator iter = mGroupQ2.begin(); iter != mGroupQ2.end(); ++iter)
 		{
@@ -4219,7 +4231,7 @@ void LLPipeline::setupAvatarLights(BOOL for_edit)
 			}
 		}
 		F32 backlight_mag;
-		if (gSky.getSunDirection().mV[2] >= NIGHTTIME_ELEVATION_COS)
+		if (gSky.getSunDirection().mV[2] >= LLSky::NIGHTTIME_ELEVATION_COS)
 		{
 			backlight_mag = BACKLIGHT_DAY_MAGNITUDE_OBJECT;
 		}
@@ -4408,7 +4420,7 @@ void LLPipeline::setupHWLights(LLDrawPool* pool)
 
 	// Light 0 = Sun or Moon (All objects)
 	{
-		if (gSky.getSunDirection().mV[2] >= NIGHTTIME_ELEVATION_COS)
+		if (gSky.getSunDirection().mV[2] >= LLSky::NIGHTTIME_ELEVATION_COS)
 		{
 			mSunDir.setVec(gSky.getSunDirection());
 			mSunDiffuse.setVec(gSky.getSunDiffuseColor());
@@ -6924,7 +6936,7 @@ void LLPipeline::setupSpotLight(LLGLSLShader& shader, LLDrawable* drawablep)
 		}
 	}
 
-	LLViewerImage* img = volume->getLightTexture();
+	LLViewerTexture* img = volume->getLightTexture();
 
 	S32 channel = shader.enableTexture(LLViewerShaderMgr::DEFERRED_PROJECTION);
 
@@ -7678,7 +7690,7 @@ void LLPipeline::renderHighlight(const LLViewerObject* obj, F32 fade)
 				LLFace* face = drawable->getFace(i);
 				if (face)
 				{
-					face->renderSelected(LLViewerImage::sNullImagep, LLColor4(1,1,1,fade));
+					face->renderSelected(LLViewerTexture::sNullImagep, LLColor4(1,1,1,fade));
 				}
 			}
 		}
@@ -7709,7 +7721,7 @@ void LLPipeline::generateHighlight(LLCamera& camera)
 		gGL.setColorMask(true, true);
 		mHighlight.clear();
 
-		gGL.getTexUnit(0)->bind(LLViewerImage::sWhiteImagep);
+		gGL.getTexUnit(0)->bind(LLViewerFetchedTexture::sWhiteImagep);
 		for (std::set<HighlightItem>::iterator iter = mHighlightSet.begin(); iter != mHighlightSet.end(); )
 		{
 			std::set<HighlightItem>::iterator cur_iter = iter++;

@@ -46,8 +46,8 @@
 #include "llregionhandle.h"
 #include "llsurface.h"
 #include "llviewercamera.h"
-#include "llviewerimage.h"
-#include "llviewerimagelist.h"
+#include "llviewertexture.h"
+#include "llviewertexturelist.h"
 #include "llviewernetwork.h"
 #include "llviewerobjectlist.h"
 #include "llviewerparceloverlay.h"
@@ -110,7 +110,7 @@ LLWorld::LLWorld() :
 	*(default_texture++) = MAX_WATER_COLOR.mV[2];
 	*(default_texture++) = MAX_WATER_COLOR.mV[3];
 	
-	mDefaultWaterTexturep = new LLViewerImage(raw, FALSE);
+	mDefaultWaterTexturep = new LLViewerTexture(raw, FALSE);
 	gGL.getTexUnit(0)->bind(mDefaultWaterTexturep.get());
 	mDefaultWaterTexturep->setAddressMode(LLTexUnit::TAM_CLAMP);
 
@@ -967,7 +967,7 @@ void LLWorld::shiftRegions(const LLVector3& offset)
 	LLViewerPartSim::getInstance()->shift(offset);
 }
 
-LLViewerImage* LLWorld::getDefaultWaterTexture()
+LLViewerTexture* LLWorld::getDefaultWaterTexture()
 {
 	return mDefaultWaterTexturep;
 }

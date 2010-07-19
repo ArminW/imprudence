@@ -468,7 +468,7 @@ void LLParticlePartition::getGeometry(LLSpatialGroup* group)
 		BOOL fullbright = facep->isState(LLFace::FULLBRIGHT);
 		F32 vsize = facep->getVirtualSize();
 
-		if (idx >= 0 && draw_vec[idx]->mEnd == facep->getGeomIndex()-1 &&
+		if(idx >= 0 && draw_vec[idx]->mEnd == facep->getGeomIndex()-1 &&
 			draw_vec[idx]->mTexture == facep->getTexture() &&
 			(U16) (draw_vec[idx]->mEnd - draw_vec[idx]->mStart + facep->getGeomCount()) <= (U32) gGLManager.mGLMaxVertexRange &&
 			//draw_vec[idx]->mCount + facep->getIndicesCount() <= (U32) gGLManager.mGLMaxIndexRange &&

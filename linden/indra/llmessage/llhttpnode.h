@@ -32,7 +32,8 @@
 
 #ifndef LL_LLHTTPNODE_H
 #define LL_LLHTTPNODE_H
-
+//#include "llpointer.h"
+//#include "llrefcount.h"
 #include "llmemory.h"
 #include "llsd.h"
 

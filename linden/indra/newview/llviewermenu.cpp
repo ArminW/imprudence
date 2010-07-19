@@ -192,7 +192,7 @@
 #include "llviewercamera.h"
 #include "llviewergenericmessage.h"
 #include "llviewergesture.h"
-#include "llviewerimagelist.h"	// gImageList
+#include "llviewertexturelist.h"	// gTextureList
 #include "llviewerinventory.h"
 #include "llviewermenufile.h"	// init_menu_file()
 #include "llviewermessage.h"
@@ -1319,8 +1319,8 @@ void init_debug_rendering_menu(LLMenuGL* menu)
 	item = new LLMenuItemCheckGL("Animate Textures", menu_toggle_control, NULL, menu_check_control, (void*)"AnimateTextures");
 	menu->append(item);
 	
-	item = new LLMenuItemCheckGL("Disable Textures", menu_toggle_variable, NULL, menu_check_variable, (void*)&LLViewerImage::sDontLoadVolumeTextures);
-	menu->append(item);
+//impru  	item = new LLMenuItemCheckGL("Disable Textures", menu_toggle_variable, NULL, menu_check_variable, (void*)&LLViewerTexture::sDontLoadVolumeTextures);
+// 	menu->append(item);
 	
 #ifndef LL_RELEASE_FOR_DOWNLOAD
 	item = new LLMenuItemCheckGL("HTTP Get Textures", menu_toggle_control, NULL, menu_check_control, (void*)"ImagePipelineUseHTTP");
@@ -6963,7 +6963,7 @@ void handle_selected_texture_info(void*)
 		{
 			if (!node->isTESelected(i)) continue;
 
-			LLViewerImage* img = node->getObject()->getTEImage(i);
+			LLViewerTexture* img = node->getObject()->getTEImage(i);
 			LLUUID image_id = img->getID();
 			faces_per_texture[image_id].push_back(i);
 		}
@@ -6973,7 +6973,7 @@ void handle_selected_texture_info(void*)
 		{
 			LLUUID image_id = it->first;
 			U8 te = it->second[0];
-			LLViewerImage* img = node->getObject()->getTEImage(te);
+			LLViewerTexture* img = node->getObject()->getTEImage(te);
 			S32 height = img->getHeight();
 			S32 width = img->getWidth();
 			S32 components = img->getComponents();
@@ -6996,7 +6996,7 @@ void handle_selected_texture_info(void*)
 
 void handle_dump_image_list(void*)
 {
-	gImageList.dump();
+	gTextureList.dump();
 }
 
 void handle_test_male(void*)
@@ -9213,12 +9213,13 @@ class LLAdvancedCheckWireframe : public view_listener_t
 // DISABLE TEXTURES //
 //////////////////////
 
-
+//impru
+/*
 class LLAdvancedToggleDisableTextures : public view_listener_t
 {
 	bool handleEvent(LLPointer<LLEvent> event, const LLSD& userdata)
 	{
-		menu_toggle_variable((void*)&LLViewerImage::sDontLoadVolumeTextures);
+		menu_toggle_variable((void*)&LLViewerTexture::sDontLoadVolumeTextures);
 		return true;
 	}
 };
@@ -9227,13 +9228,13 @@ class LLAdvancedCheckDisableTextures : public view_listener_t
 {
 	bool handleEvent(LLPointer<LLEvent> event, const LLSD& userdata)
 	{
-		bool new_value = menu_check_variable((void*)&LLViewerImage::sDontLoadVolumeTextures);
+		bool new_value = menu_check_variable((void*)&LLViewerTexture::sDontLoadVolumeTextures);
 		std::string control_name = userdata["control"].asString();
 		gMenuHolder->findControl(control_name)->setValue(new_value);
 		return true;
 	}
 };
-
+*/
 
 
 ////////////////////////////////////////
@@ -11103,8 +11104,8 @@ void initialize_menus()
 	addMenu(new LLAdvancedSelectedTextureInfo(), "Advanced.SelectedTextureInfo");
 	addMenu(new LLAdvancedToggleWireframe(), "Advanced.ToggleWireframe");
 	addMenu(new LLAdvancedCheckWireframe(), "Advanced.CheckWireframe");
-	addMenu(new LLAdvancedToggleDisableTextures(), "Advanced.ToggleDisableTextures");
-	addMenu(new LLAdvancedCheckDisableTextures(), "Advanced.CheckDisableTextures");
+//impru	addMenu(new LLAdvancedToggleDisableTextures(), "Advanced.ToggleDisableTextures");
+//	addMenu(new LLAdvancedCheckDisableTextures(), "Advanced.CheckDisableTextures");
 
 	// Advanced > Render (top level menu)
 	addMenu(new LLToggleRenderAttachedLights(), "ToggleRenderAttachedLights");

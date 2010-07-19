@@ -39,7 +39,7 @@
 #include "llrect.h"
 #include "llstring.h"
 #include "lluuid.h"
-#include "llviewerimage.h"
+#include "llviewertexture.h"
 #include "llviewervisualparam.h"
 #include "llvoavatardefines.h"
 #include "llwearable.h"
@@ -184,6 +184,7 @@ protected:
 	LLColor4				mFixedColor;
 
 	S32						mLocalTexture;
+//impfixme	LLLocalTextureObject 	*mLocalTextureObject;//impfixme
 	std::string				mStaticImageFileName;
 	BOOL					mStaticImageIsMask;
 	BOOL					mUseLocalTextureAlphaOnly;	// Ignore RGB channels from the input texture.  Use alpha as a mask
@@ -509,31 +510,28 @@ protected:
 // LLTexStaticImageList
 //-----------------------------------------------------------------------------
 
-class LLTexStaticImageList
+class LLTexStaticImageList : public LLSingleton<LLTexStaticImageList>
 {
 public:
 	LLTexStaticImageList();
 	~LLTexStaticImageList();
 
-	LLImageRaw*	getImageRaw( const std::string& file_name );
-	LLImageGL*	getImageGL( const std::string& file_name, BOOL is_mask  );
+	LLViewerTexture*	getTexture(const std::string& file_name, BOOL is_mask);
 	LLImageTGA*	getImageTGA( const std::string& file_name );
 
 	void		deleteCachedImages();
 	void		dumpByteCount();
 
 private:
-	BOOL		loadImageRaw( const std::string& file_name, LLImageRaw* image_raw );
+	BOOL		loadImageRaw(const std::string& file_name, LLImageRaw* image_raw);
 
 private:
-	static LLStringTable sImageNames;
+	LLStringTable mImageNames;
+	typedef std::map< const char*, LLPointer<LLViewerTexture> > texture_map_t;
+	texture_map_t mStaticImageList;
+	typedef std::map< const char*, LLPointer<LLImageTGA> > image_tga_map_t;
+ 	image_tga_map_t mStaticImageListTGA;
 
-	typedef std::map< const char *, LLPointer<LLImageGL> > image_gl_map_t;
-	typedef std::map< const char *, LLPointer<LLImageTGA> > image_tga_map_t;
-	image_gl_map_t mStaticImageListGL;
-	image_tga_map_t mStaticImageListTGA;
-
-public:
 	S32 mGLBytes;
 	S32 mTGABytes;
 };

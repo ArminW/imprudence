@@ -48,7 +48,7 @@
 #include "lldrawable.h"
 #include "llface.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerobjectlist.h"
 #include "llviewerregion.h"
 #include "llworld.h"
@@ -319,11 +319,8 @@ U32 LLVOTree::processUpdateMessage(LLMessageSystem *mesgsys,
 	//
 	//  Load Species-Specific data 
 	//
-	mTreeImagep = gImageList.getImage(sSpeciesTable[mSpecies]->mTextureID);
-	if (mTreeImagep)
-	{
-		gGL.getTexUnit(0)->bind(mTreeImagep.get());
-	}
+	mTreeImagep = LLViewerTextureManager::getFetchedTexture(sSpeciesTable[mSpecies]->mTextureID);
+	mTreeImagep = LLViewerTextureManager::getFetchedTexture(sSpeciesTable[mSpecies]->mTextureID, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE);
 	mBranchLength = sSpeciesTable[mSpecies]->mBranchLength;
 	mTrunkLength = sSpeciesTable[mSpecies]->mTrunkLength;
 	mLeafScale = sSpeciesTable[mSpecies]->mLeafScale;
@@ -475,7 +472,7 @@ void LLVOTree::setPixelAreaAndAngle(LLAgent &agent)
 #endif
 }
 
-void LLVOTree::updateTextures(LLAgent &agent)
+void LLVOTree::updateTextures()
 {
 	if (mTreeImagep)
 	{
@@ -1151,7 +1148,7 @@ U32 LLVOTree::drawBranchPipeline(LLMatrix4& matrix, U16* indicesp, S32 trunk_LOD
 
 				glLoadMatrixf((F32*) scale_mat.mMatrix);
  				glDrawElements(GL_TRIANGLES, sLODIndexCount[trunk_LOD], GL_UNSIGNED_SHORT, indicesp + sLODIndexOffset[trunk_LOD]);
-				gPipeline.addTrianglesDrawn(LEAF_INDICES/3);
+				gPipeline.addTrianglesDrawn(LEAF_INDICES);
 				stop_glerror();
 				ret += sLODIndexCount[trunk_LOD];
 			}
@@ -1201,7 +1198,7 @@ U32 LLVOTree::drawBranchPipeline(LLMatrix4& matrix, U16* indicesp, S32 trunk_LOD
 			
 				glLoadMatrixf((F32*) scale_mat.mMatrix);
 				glDrawElements(GL_TRIANGLES, LEAF_INDICES, GL_UNSIGNED_SHORT, indicesp);
-				gPipeline.addTrianglesDrawn(LEAF_INDICES/3);							
+				gPipeline.addTrianglesDrawn(LEAF_INDICES);							
 				stop_glerror();
 				ret += LEAF_INDICES;
 			}
@@ -1226,7 +1223,7 @@ U32 LLVOTree::drawBranchPipeline(LLMatrix4& matrix, U16* indicesp, S32 trunk_LOD
 					
 		glLoadMatrixf((F32*) scale_mat.mMatrix);
 		glDrawElements(GL_TRIANGLES, LEAF_INDICES, GL_UNSIGNED_SHORT, indicesp);
-		gPipeline.addTrianglesDrawn(LEAF_INDICES/3);
+		gPipeline.addTrianglesDrawn(LEAF_INDICES);
 		stop_glerror();
 		ret += LEAF_INDICES;
 

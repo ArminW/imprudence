@@ -42,7 +42,7 @@
 #include "llstrider.h"
 #include "llviewervisualparam.h"
 #include "llframetimer.h"
-#include "llviewerimage.h"
+#include "llviewertexture.h"
 
 class LLViewerJointMesh;
 class LLPolyMesh;

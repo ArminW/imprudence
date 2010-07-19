@@ -666,9 +666,12 @@ BOOL LLToolPie::handleHover(S32 x, S32 y, MASK mask)
 	else
 	{
 		// We need to clear media hover flag
-		if (LLViewerMediaFocus::getInstance()->getMouseOverFlag())
+		gViewerWindow->setCursor(UI_CURSOR_ARROW);
+		//lldebugst(LLERR_USER_INPUT) << "hover handled by LLToolPie (inactive)" << llendl;
+
+		if(!object)
 		{
-			LLViewerMediaFocus::getInstance()->setMouseOverFlag(false);
+			LLViewerMediaFocus::getInstance()->clearHover();
 		}
 
 	}
@@ -889,15 +892,20 @@ static bool handle_media_click(const LLPickInfo& pick)
 		&& media_impl->hasMedia()
 		&& gSavedSettings.getBOOL("MediaOnAPrimUI"))
 	{
-		LLObjectSelectionHandle selection = LLViewerMediaFocus::getInstance()->getSelection(); 
-		if (! selection->contains(pick.getObject(), pick.mObjectFace))
+		if (!LLViewerMediaFocus::getInstance()->isFocusedOnFace(pick.getObject(), pick.mObjectFace) || media_impl.isNull())
+//impfixme:compile		if (! selection->contains(pick.getObject(), pick.mObjectFace))
 		{
-			LLViewerMediaFocus::getInstance()->setFocusFace(TRUE, pick.getObject(), pick.mObjectFace, media_impl);
+			// It's okay to give this a null impl
+			LLViewerMediaFocus::getInstance()->setFocusFace(pick.getObject(), pick.mObjectFace, media_impl, pick.mNormal);
 		}
 		else
 		{
-			media_impl->mouseDown(pick.mXYCoords.mX, pick.mXYCoords.mY);
-			media_impl->mouseCapture(); // the mouse-up will happen when capture is lost
+			// Make sure keyboard focus is set to the media focus object.
+			gFocusMgr.setKeyboardFocus(LLViewerMediaFocus::getInstance());
+			
+			media_impl->mouseDown(pick.mUVCoords, gKeyboard->currentMask(TRUE));
+//impfixme:compile			mMediaMouseCaptureID = mep->getMediaID();
+//impfixme:compile			setMouseCapture(TRUE);  // This object will send a mouse-up to the media when it loses capture.
 		}
 
 		return true;
@@ -923,7 +931,7 @@ static bool handle_media_hover(const LLPickInfo& pick)
 		pick.mObjectFace < 0 || 
 		pick.mObjectFace >= objectp->getNumTEs() )
 	{
-		LLViewerMediaFocus::getInstance()->setMouseOverFlag(false);
+//impfixme:compile		LLViewerMediaFocus::getInstance()->setMouseOverFlag(false);
 		return false;
 	}
 
@@ -942,20 +950,20 @@ static bool handle_media_hover(const LLPickInfo& pick)
 	{
 		if(LLViewerMediaFocus::getInstance()->getFocus())
 		{
-			media_impl->mouseMove(pick.mXYCoords.mX, pick.mXYCoords.mY);
+//impfixme:compile			media_impl->mouseMove(pick.mXYCoords.mX, pick.mXYCoords.mY);
 		}
 
 		// Set mouse over flag if unset
-		if (! LLViewerMediaFocus::getInstance()->getMouseOverFlag())
+//impfixme:compile		if (! LLViewerMediaFocus::getInstance()->getMouseOverFlag())
 		{
 			LLSelectMgr::getInstance()->setHoverObject(objectp, pick.mObjectFace);
-			LLViewerMediaFocus::getInstance()->setMouseOverFlag(true, media_impl);
-			LLViewerMediaFocus::getInstance()->setPickInfo(pick);
+//impfixme:compile			LLViewerMediaFocus::getInstance()->setMouseOverFlag(true, media_impl);
+//impfixme:compile			LLViewerMediaFocus::getInstance()->setPickInfo(pick);
 		}
 
 		return true;
 	}
-	LLViewerMediaFocus::getInstance()->setMouseOverFlag(false);
+//impfixme:compile	LLViewerMediaFocus::getInstance()->setMouseOverFlag(false);
 
 	return false;
 }

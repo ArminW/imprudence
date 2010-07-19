@@ -8,7 +8,7 @@
 #include "llfloaterassetbrowser.h"
 #include "llinventoryview.h"
 #include "llinventorymodel.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llbutton.h"
 #include "lltextbox.h"
 #include "llpreview.h"
@@ -129,9 +129,9 @@ void LLFloaterAssetBrowser::createThumbnails()
 	//Get Texturep
 	for(S32 i = 0; i < items.count(); i++)
 	{
-			mTextureAssets[i].mTexturep = gImageList.getImage(mTextureAssets[i].mAssetUUID, MIPMAP_YES, IMMEDIATE_NO);
-			mTextureAssets[i].mTexturep->setBoostLevel(LLViewerImageBoostLevel::BOOST_PREVIEW);
-			mTextureAssets[i].mTexturep->processTextureStats();
+			mTextureAssets[i].mTexturep = LLViewerTextureManager::getLocalTexture(mTextureAssets[i].mAssetUUID, MIPMAP_YES, IMMEDIATE_NO);
+			mTextureAssets[i].mTexturep->setBoostLevel(LLViewerTexture::BOOST_PREVIEW);
+//impfixme:compile			mTextureAssets[i].mTexturep->processTextureStats();
 	}
 
 	//Generate the asset info text
@@ -146,8 +146,8 @@ void LLFloaterAssetBrowser::createThumbnails()
 			//|| mTextureAssets[i].mTexturep->mFullHeight == 0)
 
 		dimensions = llformat("\n%d x %d",
-						mTextureAssets[i].mTexturep->mFullWidth,
-						mTextureAssets[i].mTexturep->mFullHeight);
+						mTextureAssets[i].mTexturep->getFullWidth(),
+						mTextureAssets[i].mTexturep->getFullHeight());
 		asset_info.append(dimensions);
 		
 		mTextureAssets[i].mAssetInfo = asset_info;
@@ -287,11 +287,11 @@ void LLFloaterAssetBrowser::draw()
 				
 				if(mImageAssetID.notNull())
 				{
-					mTexturep = gImageList.getImage(mImageAssetID, MIPMAP_YES, IMMEDIATE_NO);
-					mTexturep->setBoostLevel(LLViewerImageBoostLevel::BOOST_PREVIEW);
-					mTexturep->processTextureStats();
-					mTextureAssets[i].mWidth = mTexturep->mFullWidth;
-					mTextureAssets[i].mHeight = mTexturep->mFullHeight;
+					mTexturep = LLViewerTextureManager::getLocalTexture(mImageAssetID, MIPMAP_YES, IMMEDIATE_NO);
+					mTexturep->setBoostLevel(LLViewerTexture::BOOST_PREVIEW);
+//impfixme:compile					mTexturep->processTextureStats();
+					mTextureAssets[i].mWidth = mTexturep->getFullWidth();
+					mTextureAssets[i].mHeight = mTexturep->getFullHeight();
 				}
 
 				if(isMinimized())
@@ -330,7 +330,7 @@ void LLFloaterAssetBrowser::draw()
 						gl_rect_2d_checkerboard(interior);
 					}
 					
-					gl_draw_scaled_image(interior.mLeft, interior.mBottom, interior.getWidth(), interior.getHeight(), mTexturep);
+//impfixme:compile					gl_draw_scaled_image(interior.mLeft, interior.mBottom, interior.getWidth(), interior.getHeight(), mTexturep);
 					// Pump the priority
 					mTexturep->addTextureStats((F32)(interior.getWidth() * interior.getHeight()));
 					
@@ -338,8 +338,8 @@ void LLFloaterAssetBrowser::draw()
 					std::string asset_info;
 					asset_info.append(mTextureAssets[i].mName);
 					std::string dimensions = llformat("\n%d x %d",
-													mTexturep->mFullWidth /*mTextureAssets[i].mWidth*/,
-													mTexturep->mFullHeight /* mTextureAssets[i].mHeight*/);
+													mTexturep->getFullWidth() /*mTextureAssets[i].mWidth*/,
+													mTexturep->getFullHeight() /* mTextureAssets[i].mHeight*/);
 					asset_info.append(dimensions);
 					
 					// Draw material info below the asset

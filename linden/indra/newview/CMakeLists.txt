@@ -243,6 +243,7 @@ set(viewer_SOURCE_FILES
     llinventoryview.cpp
     lljoystickbutton.cpp
     lllandmarklist.cpp
+#     lllocaltextureobject.cpp
     lllogchat.cpp
     llloginhandler.cpp
     llmanip.cpp
@@ -250,9 +251,11 @@ set(viewer_SOURCE_FILES
     llmanipscale.cpp
     llmaniptranslate.cpp
     llmapresponders.cpp
+    llmediadataclient.cpp
     llmediaremotectrl.cpp
     llmemoryview.cpp
     llmenucommands.cpp
+    llmetricperformancetester.cpp
     llmimetypes.cpp
     llmorphview.cpp
     llmoveview.cpp
@@ -298,13 +301,13 @@ set(viewer_SOURCE_FILES
     llpanellandoptions.cpp
     llpanellogin.cpp
     llpanelmorph.cpp
-    llpanelmediahud.cpp
     llpanelmsgs.cpp
     llpanelnetwork.cpp
     llpanelobject.cpp
     llpanelpermissions.cpp
     llpanelpick.cpp
     llpanelplace.cpp
+#    llpanelprimmediacontrols.cpp
     llpanelskins.cpp
     llpanelvolume.cpp
     llpanelweb.cpp
@@ -313,7 +316,7 @@ set(viewer_SOURCE_FILES
     llpolymesh.cpp
     llpolymorph.cpp
     llprefsadvanced.cpp
-    llpostprocess.cpp
+#     llpostprocess.cpp
     llprefschat.cpp
     llprefsim.cpp
     llprefsvoice.cpp
@@ -344,6 +347,8 @@ set(viewer_SOURCE_FILES
     llsurface.cpp
     llsurfacepatch.cpp
     lltexlayer.cpp
+#     lltexlayerparams.cpp
+    lltextureatlas.cpp
     lltextureatlasmanager.cpp
     lltexturecache.cpp
     lltexturectrl.cpp
@@ -392,8 +397,8 @@ set(viewer_SOURCE_FILES
     llviewerdisplay.cpp
     llviewergenericmessage.cpp
     llviewergesture.cpp
-    llviewerimage.cpp
-    llviewerimagelist.cpp
+    llviewertexture.cpp
+    llviewertexturelist.cpp
     llviewerinventory.cpp
     llviewerjointattachment.cpp
     llviewerjoint.cpp
@@ -678,6 +683,7 @@ set(viewer_HEADER_FILES
     lljoystickbutton.h
     lllandmarklist.h
     lllightconstants.h
+#     lllocaltextureobject.h
     lllogchat.h
     llloginhandler.h
     llmanip.h
@@ -685,9 +691,11 @@ set(viewer_HEADER_FILES
     llmanipscale.h
     llmaniptranslate.h
     llmapresponders.h
+    llmediadataclient.h
     llmediaremotectrl.h
     llmemoryview.h
     llmenucommands.h
+    llmetricperformancetester.h
     llmimetypes.h
     llmorphview.h
     llmoveview.h
@@ -734,13 +742,13 @@ set(viewer_HEADER_FILES
     llpanelLCD.h
     llpanellogin.h
     llpanelmorph.h
-    llpanelmediahud.h
     llpanelmsgs.h
     llpanelnetwork.h
     llpanelobject.h
     llpanelpermissions.h
     llpanelpick.h
     llpanelplace.h
+#    llpanelprimmediacontrols.h
     llpanelskins.h
     llpanelvolume.h
     llpanelweb.h
@@ -749,7 +757,7 @@ set(viewer_HEADER_FILES
     llpolymesh.h
     llpolymorph.h
     llprefsadvanced.h
-    llpostprocess.h
+#     llpostprocess.h
     llprefschat.h
     llprefsim.h
     llprefsvoice.h
@@ -782,6 +790,8 @@ set(viewer_HEADER_FILES
     llsurfacepatch.h
     lltable.h
     lltexlayer.h
+#     lltexlayerparams.h
+    lltextureatlas.h
     lltextureatlasmanager.h
     lltexturecache.h
     lltexturectrl.h
@@ -832,8 +842,8 @@ set(viewer_HEADER_FILES
     llviewerdisplay.h
     llviewergenericmessage.h
     llviewergesture.h
-    llviewerimage.h
-    llviewerimagelist.h
+    llviewertexture.h
+    llviewertexturelist.h
     llviewerinventory.h
     llviewerjoint.h
     llviewerjointattachment.h

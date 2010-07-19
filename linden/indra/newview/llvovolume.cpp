@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 // A "volume" is a box, cylinder, sphere, or other primitive shape.
@@ -46,39 +47,131 @@
 #include "llvolumemessage.h"
 #include "material_codes.h"
 #include "message.h"
+#include "llpluginclassmedia.h" // for code in the mediaEvent handler
 #include "object_flags.h"
-#include "llagent.h"
+#include "llagentconstants.h"
 #include "lldrawable.h"
 #include "lldrawpoolbump.h"
 #include "llface.h"
 #include "llspatialpartition.h"
 #include "llhudmanager.h"
 #include "llflexibleobject.h"
-
 #include "llsky.h"
 #include "lltexturefetch.h"
 #include "llviewercamera.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewerregion.h"
 #include "llviewertextureanim.h"
 #include "llworld.h"
 #include "llselectmgr.h"
 #include "pipeline.h"
+#include "llsdutil.h"
+#include "llmediaentry.h"
+#include "llmediadataclient.h"
+#include "llagent.h"
+#include "llviewermediafocus.h"
 
 const S32 MIN_QUIET_FRAMES_COALESCE = 30;
 const F32 FORCE_SIMPLE_RENDER_AREA = 512.f;
 const F32 FORCE_CULL_AREA = 8.f;
 const F32 MAX_LOD_DISTANCE = 24.f;
-const S32 MAX_SCULPT_REZ = 128;
 
 
 BOOL gAnimateTextures = TRUE;
-extern BOOL gHideSelectedObjects;
+//extern BOOL gHideSelectedObjects;
 
 F32 LLVOVolume::sLODFactor = 1.f;
 F32	LLVOVolume::sLODSlopDistanceFactor = 0.5f; //Changing this to zero, effectively disables the LOD transition slop 
 F32 LLVOVolume::sDistanceFactor = 1.0f;
 S32 LLVOVolume::sNumLODChanges = 0;
+LLPointer<LLObjectMediaDataClient> LLVOVolume::sObjectMediaClient = NULL;
+LLPointer<LLObjectMediaNavigateClient> LLVOVolume::sObjectMediaNavigateClient = NULL;
+
+//static LLFastTimer::DeclareTimer FTM_GEN_TRIANGLES("Generate Triangles");
+//static LLFastTimer::DeclareTimer FTM_GEN_VOLUME("Generate Volumes");
+
+// Implementation class of LLMediaDataClientObject.  See llmediadataclient.h
+class LLMediaDataClientObjectImpl : public LLMediaDataClientObject
+{
+public:
+	LLMediaDataClientObjectImpl(LLVOVolume *obj, bool isNew) : mObject(obj), mNew(isNew) {}
+	LLMediaDataClientObjectImpl() { mObject = NULL; }
+	
+	virtual U8 getMediaDataCount() const 
+		{ return mObject->getNumTEs(); }
+
+	virtual LLSD getMediaDataLLSD(U8 index) const 
+		{
+			LLSD result;
+			LLTextureEntry *te = mObject->getTE(index); 
+			if (NULL != te)
+			{
+				llassert((te->getMediaData() != NULL) == te->hasMedia());
+				if (te->getMediaData() != NULL)
+				{
+					result = te->getMediaData()->asLLSD();
+					// XXX HACK: workaround bug in asLLSD() where whitelist is not set properly
+					// See DEV-41949
+					if (!result.has(LLMediaEntry::WHITELIST_KEY))
+					{
+						result[LLMediaEntry::WHITELIST_KEY] = LLSD::emptyArray();
+					}
+				}
+			}
+			return result;
+		}
+
+	virtual LLUUID getID() const
+		{ return mObject->getID(); }
+
+	virtual void mediaNavigateBounceBack(U8 index)
+		{ mObject->mediaNavigateBounceBack(index); }
+	
+	virtual bool hasMedia() const
+		{ return mObject->hasMedia(); }
+	
+	virtual void updateObjectMediaData(LLSD const &data, const std::string &version_string) 
+		{ mObject->updateObjectMediaData(data, version_string); }
+	
+	virtual F64 getMediaInterest() const 
+		{ 
+			F64 interest = mObject->getTotalMediaInterest();
+			if (interest < (F64)0.0)
+			{
+				// media interest not valid yet, try pixel area
+				interest = mObject->getPixelArea();
+				// HACK: force recalculation of pixel area if interest is the "magic default" of 1024.
+				if (interest == 1024.f)
+				{
+					const_cast<LLVOVolume*>(static_cast<LLVOVolume*>(mObject))->setPixelAreaAndAngle(gAgent);
+					interest = mObject->getPixelArea();
+				}
+			}
+			return interest; 
+		}
+	
+	virtual bool isInterestingEnough() const
+		{
+			return LLViewerMedia::isInterestingEnough(mObject, getMediaInterest());
+		}
+
+	virtual std::string getCapabilityUrl(const std::string &name) const
+		{ return mObject->getRegion()->getCapability(name); }
+	
+	virtual bool isDead() const
+		{ return mObject->isDead(); }
+	
+	virtual U32 getMediaVersion() const
+		{ return LLTextureEntry::getVersionFromMediaVersionString(mObject->getMediaURL()); }
+	
+	virtual bool isNew() const
+		{ return mNew; }
+
+private:
+	LLPointer<LLVOVolume> mObject;
+	bool mNew;
+};
+
 
 LLVOVolume::LLVOVolume(const LLUUID &id, const LLPCode pcode, LLViewerRegion *regionp)
 	: LLViewerObject(id, pcode, regionp),
@@ -88,14 +181,19 @@ LLVOVolume::LLVOVolume(const LLUUID &id, const LLPCode pcode, LLViewerRegion *re
 	mRelativeXform.setIdentity();
 	mRelativeXformInvTrans.setIdentity();
 
+	mFaceMappingChanged = FALSE;
 	mLOD = MIN_LOD;
-	mSculptLevel = -2;
 	mTextureAnimp = NULL;
+	mVolumeChanged = FALSE;
 	mVObjRadius = LLVector3(1,1,0.5f).length();
 	mNumFaces = 0;
 	mLODChanged = FALSE;
 	mSculptChanged = FALSE;
 	mSpotLightPriority = 0.f;
+
+	mMediaImplList.resize(getNumTEs());
+	mLastFetchedMediaVersion = -1;
+	mIndexInTex = 0;
 }
 
 LLVOVolume::~LLVOVolume()
@@ -104,14 +202,67 @@ LLVOVolume::~LLVOVolume()
 	mTextureAnimp = NULL;
 	delete mVolumeImpl;
 	mVolumeImpl = NULL;
+
+	if(!mMediaImplList.empty())
+	{
+		for(U32 i = 0 ; i < mMediaImplList.size() ; i++)
+		{
+			if(mMediaImplList[i].notNull())
+			{
+				mMediaImplList[i]->removeObject(this) ;
+			}
+		}
+	}
+}
+
+void LLVOVolume::markDead()
+{
+	if (!mDead)
+	{
+		LLMediaDataClientObject::ptr_t obj = new LLMediaDataClientObjectImpl(const_cast<LLVOVolume*>(this), false);
+		if (sObjectMediaClient) sObjectMediaClient->removeFromQueue(obj);
+		if (sObjectMediaNavigateClient) sObjectMediaNavigateClient->removeFromQueue(obj);
+		
+		// Detach all media impls from this object
+		for(U32 i = 0 ; i < mMediaImplList.size() ; i++)
+		{
+			removeMediaImpl(i);
+		}
+
+		if (mSculptTexture.notNull())
+		{
+			mSculptTexture->removeVolume(this);
+		}
+	}
+	
+	LLViewerObject::markDead();
 }
 
 
 // static
 void LLVOVolume::initClass()
 {
+	// gSavedSettings better be around
+	if (gSavedSettings.getBOOL("PrimMediaMasterEnabled"))
+	{
+		const F32 queue_timer_delay = gSavedSettings.getF32("PrimMediaRequestQueueDelay");
+		const F32 retry_timer_delay = gSavedSettings.getF32("PrimMediaRetryTimerDelay");
+		const U32 max_retries = gSavedSettings.getU32("PrimMediaMaxRetries");
+		const U32 max_sorted_queue_size = gSavedSettings.getU32("PrimMediaMaxSortedQueueSize");
+		const U32 max_round_robin_queue_size = gSavedSettings.getU32("PrimMediaMaxRoundRobinQueueSize");
+		sObjectMediaClient = new LLObjectMediaDataClient(queue_timer_delay, retry_timer_delay, max_retries, 
+														 max_sorted_queue_size, max_round_robin_queue_size);
+		sObjectMediaNavigateClient = new LLObjectMediaNavigateClient(queue_timer_delay, retry_timer_delay, 
+																	 max_retries, max_sorted_queue_size, max_round_robin_queue_size);
+	}
 }
 
+// static
+void LLVOVolume::cleanupClass()
+{
+    sObjectMediaClient = NULL;
+    sObjectMediaNavigateClient = NULL;
+}
 
 U32 LLVOVolume::processUpdateMessage(LLMessageSystem *mesgsys,
 										  void **user_data,
@@ -119,6 +270,7 @@ U32 LLVOVolume::processUpdateMessage(LLMessageSystem *mesgsys,
 										  LLDataPacker *dp)
 {
 	LLColor4U color;
+	const S32 teDirtyBits = (TEM_CHANGE_TEXTURE|TEM_CHANGE_COLOR|TEM_CHANGE_MEDIA);
 
 	// Do base class updates...
 	U32 retval = LLViewerObject::processUpdateMessage(mesgsys, user_data, block_num, update_type, dp);
@@ -186,9 +338,14 @@ U32 LLVOVolume::processUpdateMessage(LLMessageSystem *mesgsys,
 		//
 		// Unpack texture entry data
 		//
-		if (unpackTEMessage(mesgsys, _PREHASH_ObjectData, block_num) & (TEM_CHANGE_TEXTURE|TEM_CHANGE_COLOR))
+		S32 result = unpackTEMessage(mesgsys, _PREHASH_ObjectData, block_num);
+		if (result & teDirtyBits)
 		{
 			updateTEData();
+		}
+		if (result & TEM_CHANGE_MEDIA)
+		{
+			retval |= MEDIA_FLAGS_CHANGED;
 		}
 	}
 	else
@@ -222,9 +379,16 @@ U32 LLVOVolume::processUpdateMessage(LLMessageSystem *mesgsys,
 // 				llwarns << "Bogus TE data in " << getID() << ", crashing!" << llendl;
 				llwarns << "Bogus TE data in " << getID() << llendl;
 			}
-			else if (res2 & (TEM_CHANGE_TEXTURE|TEM_CHANGE_COLOR))
+			else 
 			{
-				updateTEData();
+				if (res2 & teDirtyBits) 
+				{
+					updateTEData();
+				}
+				if (res2 & TEM_CHANGE_MEDIA)
+				{
+					retval |= MEDIA_FLAGS_CHANGED;
+				}
 			}
 
 			U32 value = dp->getPassFlags();
@@ -262,14 +426,39 @@ U32 LLVOVolume::processUpdateMessage(LLMessageSystem *mesgsys,
 				U8							tdpbuffer[1024];
 				LLDataPackerBinaryBuffer	tdp(tdpbuffer, 1024);
 				mesgsys->getBinaryDataFast(_PREHASH_ObjectData, _PREHASH_TextureEntry, tdpbuffer, 0, block_num);
-				if ( unpackTEMessage(tdp) & (TEM_CHANGE_TEXTURE|TEM_CHANGE_COLOR))
+				S32 result = unpackTEMessage(tdp);
+				if (result & teDirtyBits)
 				{
 					updateTEData();
+				}
+				if (result & TEM_CHANGE_MEDIA)
+				{
+					retval |= MEDIA_FLAGS_CHANGED;
 				}
 			}
 		}
 	}
-	
+	if (retval & (MEDIA_URL_REMOVED | MEDIA_URL_ADDED | MEDIA_URL_UPDATED | MEDIA_FLAGS_CHANGED)) 
+	{
+		// If only the media URL changed, and it isn't a media version URL,
+		// ignore it
+		if ( ! ( retval & (MEDIA_URL_ADDED | MEDIA_URL_UPDATED) &&
+				 mMedia && ! mMedia->mMediaURL.empty() &&
+				 ! LLTextureEntry::isMediaVersionString(mMedia->mMediaURL) ) )
+		{
+			// If the media changed at all, request new media data
+			LL_DEBUGS("MediaOnAPrim") << "Media update: " << getID() << ": retval=" << retval << " Media URL: " <<
+                ((mMedia) ?  mMedia->mMediaURL : std::string("")) << LL_ENDL;
+			requestMediaDataUpdate(retval & MEDIA_FLAGS_CHANGED);
+		}
+        else {
+            LL_INFOS("MediaOnAPrim") << "Ignoring media update for: " << getID() << " Media URL: " <<
+                ((mMedia) ?  mMedia->mMediaURL : std::string("")) << LL_ENDL;
+        }
+	}
+	// ...and clean up any media impls
+	cleanUpMediaImpls();
+
 	return retval;
 }
 
@@ -415,6 +604,9 @@ BOOL LLVOVolume::idleUpdate(LLAgent &agent, LLWorld &world, const F64 &time)
 {
 	LLViewerObject::idleUpdate(agent, world, time);
 
+// 	static LLFastTimer::DeclareTimer ftm("Volume");
+// 	LLFastTimer t(ftm);
+
 	if (mDead || mDrawable.isNull())
 	{
 		return TRUE;
@@ -436,31 +628,47 @@ BOOL LLVOVolume::idleUpdate(LLAgent &agent, LLWorld &world, const F64 &time)
 		mVolumeImpl->doIdleUpdate(agent, world, time);
 	}
 
-	return TRUE;
-}
+	const S32 MAX_ACTIVE_OBJECT_QUIET_FRAMES = 40;
 
-void LLVOVolume::updateTextures(LLAgent &agent) // KL sd
-{
-	const F32 TEXTURE_AREA_REFRESH_TIME = 5.f; // seconds
-	if (mDrawable.notNull() && mTextureUpdateTimer.getElapsedTimeF32() > TEXTURE_AREA_REFRESH_TIME)
+	if (mDrawable->isActive())
 	{
-		if (mDrawable->isVisible())
+		if (mDrawable->isRoot() && 
+			mDrawable->mQuietCount++ > MAX_ACTIVE_OBJECT_QUIET_FRAMES && 
+			(!mDrawable->getParent() || !mDrawable->getParent()->isActive()))
 		{
-			updateTextures();
+			mDrawable->makeStatic();
 		}
 	}
+
+	return TRUE;
 }
 
 void LLVOVolume::updateTextures()
 {
+	const F32 TEXTURE_AREA_REFRESH_TIME = 5.f; // seconds
+	if (mTextureUpdateTimer.getElapsedTimeF32() > TEXTURE_AREA_REFRESH_TIME)
+	{
+		updateTextureVirtualSize();		
+	}
+}
+
+void LLVOVolume::updateTextureVirtualSize()
+{
 	// Update the pixel area of all faces
+
+	if(mDrawable.isNull() || !mDrawable->isVisible())
+	{
+		return ;
+	}
 
 	if (!gPipeline.hasRenderType(LLPipeline::RENDER_TYPE_SIMPLE))
 	{
 		return;
 	}
-	
-	if (LLViewerImage::sDontLoadVolumeTextures || mDrawable.isNull()) // || !mDrawable->isVisible())
+
+	bool dont_load_textures = (bool)gSavedSettings.getBOOL("TextureDisable");
+		
+	if (dont_load_textures || LLAppViewer::getTextureFetch()->mDebugPause) // || !mDrawable->isVisible())
 	{
 		return;
 	}
@@ -472,11 +680,12 @@ void LLVOVolume::updateTextures()
 
 	const S32 num_faces = mDrawable->getNumFaces();
 	F32 min_vsize=999999999.f, max_vsize=0.f;
+	LLViewerCamera* camera = LLViewerCamera::getInstance();
 	for (S32 i = 0; i < num_faces; i++)
 	{
 		LLFace* face = mDrawable->getFace(i);
 		const LLTextureEntry *te = face->getTextureEntry();
-		LLViewerImage *imagep = face->getTexture();
+		LLViewerTexture *imagep = face->getTexture();
 		if (!imagep || !te ||
 			face->mExtents[0] == face->mExtents[1])
 		{
@@ -484,46 +693,48 @@ void LLVOVolume::updateTextures()
 		}
 		
 		F32 vsize;
-		
+		F32 old_size = face->getVirtualSize();
+
 		if (isHUDAttachment())
 		{
-			F32 area = (F32) LLViewerCamera::getInstance()->getScreenPixelArea();
+			F32 area = (F32) camera->getScreenPixelArea();
 			vsize = area;
-			imagep->setBoostLevel(LLViewerImageBoostLevel::BOOST_HUD);
+			imagep->setBoostLevel(LLViewerTexture::BOOST_HUD);
  			face->setPixelArea(area); // treat as full screen
+			face->setVirtualSize(vsize);
 		}
 		else
 		{
-			vsize = getTextureVirtualSize(face);
+			vsize = face->getTextureVirtualSize();
 		}
 
 		mPixelArea = llmax(mPixelArea, face->getPixelArea());
 
-		F32 old_size = face->getVirtualSize();
-
 		if (face->mTextureMatrix != NULL)
 		{
-			if (vsize < MIN_TEX_ANIM_SIZE && old_size > MIN_TEX_ANIM_SIZE ||
-				vsize > MIN_TEX_ANIM_SIZE && old_size < MIN_TEX_ANIM_SIZE)
+			if ((vsize < MIN_TEX_ANIM_SIZE && old_size > MIN_TEX_ANIM_SIZE) ||
+				(vsize > MIN_TEX_ANIM_SIZE && old_size < MIN_TEX_ANIM_SIZE))
 			{
 				gPipeline.markRebuild(mDrawable, LLDrawable::REBUILD_TCOORD, FALSE);
 			}
 		}
-		
-		face->setVirtualSize(vsize);
-	//	imagep->addTextureStats(vsize);
+
 		if (gPipeline.hasRenderDebugMask(LLPipeline::RENDER_DEBUG_TEXTURE_AREA))
 		{
 			if (vsize < min_vsize) min_vsize = vsize;
 			if (vsize > max_vsize) max_vsize = vsize;
 		}
-// 		else if (gPipeline.hasRenderDebugMask(LLPipeline::RENDER_DEBUG_TEXTURE_PRIORITY))
-// 		{
-// 			F32 pri = imagep->getDecodePriority();
-// 			pri = llmax(pri, 0.0f);
-// 			if (pri < min_vsize) min_vsize = pri;
-// 			if (pri > max_vsize) max_vsize = pri;
-// 		}
+		else if (gPipeline.hasRenderDebugMask(LLPipeline::RENDER_DEBUG_TEXTURE_PRIORITY))
+		{
+			LLViewerFetchedTexture* img = LLViewerTextureManager::staticCastToFetchedTexture(imagep) ;
+			if(img)
+			{
+				F32 pri = img->getDecodePriority();
+				pri = llmax(pri, 0.0f);
+				if (pri < min_vsize) min_vsize = pri;
+				if (pri > max_vsize) max_vsize = pri;
+			}
+		}
 		else if (gPipeline.hasRenderDebugMask(LLPipeline::RENDER_DEBUG_FACE_AREA))
 		{
 			F32 pri = mPixelArea;
@@ -536,47 +747,62 @@ void LLVOVolume::updateTextures()
 	{
 		LLSculptParams *sculpt_params = (LLSculptParams *)getParameterEntry(LLNetworkData::PARAMS_SCULPT);
 		LLUUID id =  sculpt_params->getSculptTexture(); 
-		mSculptTexture = gImageList.getImage(id);
+		
+		updateSculptTexture();
+		
 		if (mSculptTexture.notNull())
 		{
-			S32 lod = llmin(mLOD, 3);
-			F32 lodf = ((F32)(lod + 1.0f)/4.f); 
-			F32 tex_size = lodf * MAX_SCULPT_REZ;
-			mSculptTexture->addTextureStats(2.f * tex_size * tex_size);
 			mSculptTexture->setBoostLevel(llmax((S32)mSculptTexture->getBoostLevel(),
-												(S32)LLViewerImageBoostLevel::BOOST_SCULPTED));
-		}
+												(S32)LLViewerTexture::BOOST_SCULPTED));
+			mSculptTexture->setForSculpt() ;
+			
+			if(!mSculptTexture->isCachedRawImageReady())
+			{
+				S32 lod = llmin(mLOD, 3);
+				F32 lodf = ((F32)(lod + 1.0f)/4.f);
+				F32 tex_size = lodf * LLViewerTexture::sMaxSculptRez ;
+				mSculptTexture->addTextureStats(2.f * tex_size * tex_size, FALSE);
+			
+				//if the sculpty very close to the view point, load first
+				{				
+					LLVector3 lookAt = getPositionAgent() - camera->getOrigin();
+					F32 dist = lookAt.normVec() ;
+					F32 cos_angle_to_view_dir = lookAt * camera->getXAxis() ;				
+					mSculptTexture->setAdditionalDecodePriority(0.8f * LLFace::calcImportanceToCamera(cos_angle_to_view_dir, dist)) ;
+				}
+			}
+	
+			S32 texture_discard = mSculptTexture->getDiscardLevel(); //try to match the texture
+			S32 current_discard = getVolume() ? getVolume()->getSculptLevel() : -2 ;
 
-		S32 texture_discard = mSculptTexture->getDiscardLevel(); //try to match the texture
-		S32 current_discard = mSculptLevel;
+			if (texture_discard >= 0 && //texture has some data available
+				(texture_discard < current_discard || //texture has more data than last rebuild
+				current_discard < 0)) //no previous rebuild
+			{
+				gPipeline.markRebuild(mDrawable, LLDrawable::REBUILD_VOLUME, FALSE);
+				mSculptChanged = TRUE;
+			}
 
-		if (texture_discard >= 0 && //texture has some data available
-			(texture_discard < current_discard || //texture has more data than last rebuild
-			current_discard < 0)) //no previous rebuild
-		{
-			gPipeline.markRebuild(mDrawable, LLDrawable::REBUILD_VOLUME, FALSE);
-			mSculptChanged = TRUE;
-		}
-
-		if (gPipeline.hasRenderDebugMask(LLPipeline::RENDER_DEBUG_SCULPTED))
+			if (gPipeline.hasRenderDebugMask(LLPipeline::RENDER_DEBUG_SCULPTED))
 			{
 				setDebugText(llformat("T%d C%d V%d\n%dx%d",
-									  texture_discard, current_discard, getVolume()->getSculptLevel(),
-									  mSculptTexture->getHeight(), mSculptTexture->getWidth()));
+										  texture_discard, current_discard, getVolume()->getSculptLevel(),
+										  mSculptTexture->getHeight(), mSculptTexture->getWidth()));
 			}
+		}
 	}
 
 	if (getLightTextureID().notNull())
 	{
 		LLLightImageParams* params = (LLLightImageParams*) getParameterEntry(LLNetworkData::PARAMS_LIGHT_IMAGE);
 		LLUUID id = params->getLightTexture();
-		mLightTexture = gImageList.getImage(id);
+		mLightTexture = LLViewerTextureManager::getFetchedTexture(id);
 		if (mLightTexture.notNull())
 		{
 			F32 rad = getLightRadius();
 			mLightTexture->addTextureStats(gPipeline.calcPixelArea(getPositionAgent(), 
 																	LLVector3(rad,rad,rad),
-																	*LLViewerCamera::getInstance()));
+																	*camera));
 		}	
 	}
 
@@ -584,10 +810,10 @@ void LLVOVolume::updateTextures()
 	{
 		setDebugText(llformat("%.0f:%.0f", fsqrtf(min_vsize),fsqrtf(max_vsize)));
 	}
-// 	else if (gPipeline.hasRenderDebugMask(LLPipeline::RENDER_DEBUG_TEXTURE_PRIORITY))
-// 	{
-// 		setDebugText(llformat("%.0f:%.0f", fsqrtf(min_vsize),fsqrtf(max_vsize)));
-// 	}
+ 	else if (gPipeline.hasRenderDebugMask(LLPipeline::RENDER_DEBUG_TEXTURE_PRIORITY))
+ 	{
+ 		setDebugText(llformat("%.0f:%.0f", fsqrtf(min_vsize),fsqrtf(max_vsize)));
+ 	}
 	else if (gPipeline.hasRenderDebugMask(LLPipeline::RENDER_DEBUG_FACE_AREA))
 	{
 		setDebugText(llformat("%.0f:%.0f", fsqrtf(min_vsize),fsqrtf(max_vsize)));
@@ -597,36 +823,6 @@ void LLVOVolume::updateTextures()
 	{ //flexi phasing issues make this happen
 		mPixelArea = old_area;
 	}
-}
-
-F32 LLVOVolume::getTextureVirtualSize(LLFace* face)
-{
-	//get area of circle around face
-	LLVector3 center = face->getPositionAgent();
-	LLVector3 size = (face->mExtents[1] - face->mExtents[0]) * 0.5f;
-	
-	F32 face_area = LLPipeline::calcPixelArea(center, size, *LLViewerCamera::getInstance());
-
-	face->setPixelArea(face_area);
-
-	if (face_area <= 0)
-	{
-		return 0.f;
-	}
-
-	//get area of circle in texture space
-	LLVector2 tdim = face->mTexExtents[1] - face->mTexExtents[0];
-	F32 texel_area = (tdim * 0.5f).lengthSquared()*3.14159f;
-	if (texel_area <= 0)
-	{
-		// Probably animated, use default
-		texel_area = 1.f;
-	}
-
-	//apply texel area to face area to get accurate ratio
-	face_area /= llclamp(texel_area, 1.f/64.f, 16.f);
-
-	return face_area;
 }
 
 BOOL LLVOVolume::isActive() const
@@ -670,7 +866,7 @@ void LLVOVolume::setScale(const LLVector3 &scale, BOOL damped)
 LLFace* LLVOVolume::addFace(S32 f)
 {
 	const LLTextureEntry* te = getTE(f);
-	LLViewerImage* imagep = getTEImage(f);
+	LLViewerTexture* imagep = getTEImage(f);
 	return mDrawable->addFace(te, imagep);
 }
 
@@ -704,7 +900,6 @@ LLDrawable *LLVOVolume::createDrawable(LLPipeline *pipeline)
 
 	return mDrawable;
 }
-
 
 BOOL LLVOVolume::setVolume(const LLVolumeParams &volume_params, const S32 detail, bool unique_volume)
 {
@@ -743,19 +938,17 @@ BOOL LLVOVolume::setVolume(const LLVolumeParams &volume_params, const S32 detail
 		{
 			mVolumeImpl->onSetVolume(volume_params, detail);
 		}
-		
+	
+		updateSculptTexture();
+
 		if (isSculpted())
 		{
-			mSculptTexture = gImageList.getImage(volume_params.getSculptID());
+			updateSculptTexture();
+
 			if (mSculptTexture.notNull())
 			{
 				sculpt();
-				mSculptLevel = getVolume()->getSculptLevel();
 			}
-		}
-		else
-		{
-			mSculptTexture = NULL;
 		}
 
 		return TRUE;
@@ -763,34 +956,56 @@ BOOL LLVOVolume::setVolume(const LLVolumeParams &volume_params, const S32 detail
 	return FALSE;
 }
 
+void LLVOVolume::updateSculptTexture()
+{
+	LLPointer<LLViewerFetchedTexture> old_sculpt = mSculptTexture;
+
+	if (isSculpted())
+	{
+		LLSculptParams *sculpt_params = (LLSculptParams *)getParameterEntry(LLNetworkData::PARAMS_SCULPT);
+		LLUUID id =  sculpt_params->getSculptTexture();
+		if (id.notNull())
+		{
+			mSculptTexture = LLViewerTextureManager::getFetchedTexture(id, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE);
+		}
+	}
+	else
+	{
+		mSculptTexture = NULL;
+	}
+
+	if (mSculptTexture != old_sculpt)
+	{
+		if (old_sculpt.notNull())
+		{
+			old_sculpt->removeVolume(this);
+		}
+		if (mSculptTexture.notNull())
+		{
+			mSculptTexture->addVolume(this);
+		}
+	}
+	
+}
+
 // sculpt replaces generate() for sculpted surfaces
 void LLVOVolume::sculpt()
-{
-	U16 sculpt_height = 0;
-	U16 sculpt_width = 0;
-	S8 sculpt_components = 0;
-	const U8* sculpt_data = NULL;
-
+{	
 	if (mSculptTexture.notNull())
-	{
-		S32 discard_level;
-		S32 desired_discard = 0; // lower discard levels have MUCH less resolution 
-
-		discard_level = desired_discard;
+	{				
+		U16 sculpt_height = 0;
+		U16 sculpt_width = 0;
+		S8 sculpt_components = 0;
+		const U8* sculpt_data = NULL;
+	
+		S32 discard_level = mSculptTexture->getDiscardLevel() ;
+		LLImageRaw* raw_image = mSculptTexture->getCachedRawImage() ;
 		
 		S32 max_discard = mSculptTexture->getMaxDiscardLevel();
 		if (discard_level > max_discard)
 			discard_level = max_discard;    // clamp to the best we can do
 
-		S32 best_discard = mSculptTexture->getDiscardLevel();
-		if (discard_level < best_discard)
-			discard_level = best_discard;   // clamp to what we have
-
-		if (best_discard == -1)
-			discard_level = -1;  // and if we have nothing, set to nothing
-
-		
-		S32 current_discard = getVolume()->getSculptLevel();
+		S32 current_discard = getVolume()->getSculptLevel() ;
 		if(current_discard < -2)
 		{
 			llwarns << "WARNING!!: Current discard of sculpty at " << current_discard 
@@ -811,32 +1026,43 @@ void LLVOVolume::sculpt()
 		if (current_discard == discard_level)  // no work to do here
 			return;
 		
-		LLPointer<LLImageRaw> raw_image = new LLImageRaw();
-		BOOL is_valid = mSculptTexture->readBackRaw(discard_level, raw_image, FALSE);
-
-		sculpt_height = raw_image->getHeight();
-		sculpt_width = raw_image->getWidth();
-		sculpt_components = raw_image->getComponents();		
-
-		if(is_valid)
+		if(!raw_image)
 		{
-			is_valid = mSculptTexture->isValidForSculpt(discard_level, sculpt_width, sculpt_height, sculpt_components) ;
-		}
-		if(!is_valid)
-		{
+			llassert(discard_level < 0) ;
+
 			sculpt_width = 0;
 			sculpt_height = 0;
 			sculpt_data = NULL ;
+
+			if(LLViewerTextureManager::sTesterp)
+			{
+				LLViewerTextureManager::sTesterp->updateGrayTextureBinding();
+			}
 		}
 		else
-		{
-			if (raw_image->getDataSize() < sculpt_height * sculpt_width * sculpt_components)
-				llwarns << "Sculpt: image data size = " << raw_image->getDataSize()
-					   << " < " << sculpt_height << " x " << sculpt_width << " x " <<sculpt_components << llendl;
+		{					
+			sculpt_height = raw_image->getHeight();
+			sculpt_width = raw_image->getWidth();
+			sculpt_components = raw_image->getComponents();		
 					   
 			sculpt_data = raw_image->getData();
+
+			if(LLViewerTextureManager::sTesterp)
+			{
+				mSculptTexture->updateBindStatsForTester() ;
+			}
 		}
 		getVolume()->sculpt(sculpt_width, sculpt_height, sculpt_components, sculpt_data, discard_level);
+
+		//notify rebuild any other VOVolumes that reference this sculpty volume
+		for (S32 i = 0; i < mSculptTexture->getNumVolumes(); ++i)
+		{
+			LLVOVolume* volume = (*(mSculptTexture->getVolumeList()))[i];
+			if (volume != this && volume->getVolume() == getVolume())
+			{
+				gPipeline.markRebuild(volume->mDrawable, LLDrawable::REBUILD_GEOMETRY, FALSE);
+			}
+		}
 	}
 }
 
@@ -863,13 +1089,10 @@ BOOL LLVOVolume::calcLOD()
 		return FALSE;
 	}
 
-	//update face texture sizes on lod calculation
-	// updateTextureVirtualSize();
-
 	S32 cur_detail = 0;
 	
 	F32 radius = getVolume()->mLODScaleBias.scaledVec(getScale()).length();
-	F32 distance = mDrawable->mDistanceWRTCamera;
+	F32 distance = mDrawable->mDistanceWRTCamera; //llmin(mDrawable->mDistanceWRTCamera, MAX_LOD_DISTANCE);
 	distance *= sDistanceFactor;
 			
 	F32 rampDist = LLVOVolume::sLODFactor * 2;
@@ -883,7 +1106,7 @@ BOOL LLVOVolume::calcLOD()
 	}
 	
 	// DON'T Compensate for field of view changing on FOV zoom.
-	distance *= 3.14159f/3.f;
+	distance *= F_PI/3.f;
 
 	cur_detail = computeLODDetail(llround(distance, 0.01f), 
 									llround(radius, 0.01f));
@@ -969,17 +1192,20 @@ void LLVOVolume::updateFaceFlags()
 	}
 }
 
-void LLVOVolume::setParent(LLViewerObject* parent)
+BOOL LLVOVolume::setParent(LLViewerObject* parent)
 {
+	BOOL ret = FALSE ;
 	if (parent != getParent())
 	{
-		LLViewerObject::setParent(parent);
-		if (mDrawable)
+		ret = LLViewerObject::setParent(parent);
+		if (ret && mDrawable)
 		{
 			gPipeline.markMoved(mDrawable);
 			gPipeline.markRebuild(mDrawable, LLDrawable::REBUILD_VOLUME, TRUE);
 		}
 	}
+
+	return ret ;
 }
 
 // NOTE: regenFaces() MUST be followed by genTriangles()!
@@ -1001,6 +1227,20 @@ void LLVOVolume::regenFaces()
 		facep->setTEOffset(i);
 		facep->setTexture(getTEImage(i));
 		facep->setViewerObject(this);
+		
+		// If the face had media on it, this will have broken the link between the LLViewerMediaTexture and the face.
+		// Re-establish the link.
+		if((int)mMediaImplList.size() > i)
+		{
+			if(mMediaImplList[i])
+			{
+				LLViewerMediaTexture* media_tex = LLViewerTextureManager::findMediaTexture(mMediaImplList[i]->getMediaTextureID()) ;
+				if(media_tex)
+				{
+					media_tex->addMediaToFace(facep) ;
+				}
+			}
+		}
 	}
 	
 	if (!count_changed)
@@ -1158,6 +1398,9 @@ void LLVOVolume::updateRelativeXform()
 	}
 }
 
+//static LLFastTimer::DeclareTimer FTM_GEN_FLEX("Generate Flexies");
+//static LLFastTimer::DeclareTimer FTM_UPDATE_PRIMITIVES("Update Primitives");
+
 BOOL LLVOVolume::updateGeometry(LLDrawable *drawable)
 {
 	LLFastTimer t(LLFastTimer::FTM_UPDATE_PRIMITIVES);
@@ -1173,7 +1416,7 @@ BOOL LLVOVolume::updateGeometry(LLDrawable *drawable)
 		return res;
 	}
 	
-	dirtySpatialGroup();
+	dirtySpatialGroup(drawable->isState(LLDrawable::IN_REBUILD_Q1));
 
 	BOOL compiled = FALSE;
 			
@@ -1276,7 +1519,16 @@ void LLVOVolume::updateFaceSize(S32 idx)
 	else
 	{
 		const LLVolumeFace& vol_face = getVolume()->getVolumeFace(idx);
-		facep->setSize(vol_face.mVertices.size(), vol_face.mIndices.size());
+//impfixme:compile
+/*		if (LLPipeline::sUseTriStrips)
+		{
+			facep->setSize(vol_face.mVertices.size(), vol_face.mTriStrip.size());
+		}
+		else
+*/
+		{
+			facep->setSize(vol_face.mVertices.size(), vol_face.mIndices.size());
+		}
 	}
 }
 
@@ -1289,7 +1541,47 @@ BOOL LLVOVolume::isRootEdit() const
 	return TRUE;
 }
 
-void LLVOVolume::setTEImage(const U8 te, LLViewerImage *imagep)
+//virtual
+void LLVOVolume::setNumTEs(const U8 num_tes)
+{
+	const U8 old_num_tes = getNumTEs() ;
+	
+	if(old_num_tes && old_num_tes < num_tes) //new faces added
+	{
+		LLViewerObject::setNumTEs(num_tes) ;
+
+		if(mMediaImplList.size() >= old_num_tes && mMediaImplList[old_num_tes -1].notNull())//duplicate the last media textures if exists.
+		{
+			mMediaImplList.resize(num_tes) ;
+			const LLTextureEntry* te = getTE(old_num_tes - 1) ;
+			for(U8 i = old_num_tes; i < num_tes ; i++)
+			{
+				setTE(i, *te) ;
+				mMediaImplList[i] = mMediaImplList[old_num_tes -1] ;
+			}
+			mMediaImplList[old_num_tes -1]->setUpdated(TRUE) ;
+		}
+	}
+	else if(old_num_tes > num_tes && mMediaImplList.size() > num_tes) //old faces removed
+	{
+		U8 end = mMediaImplList.size() ;
+		for(U8 i = num_tes; i < end ; i++)
+		{
+			removeMediaImpl(i) ;				
+		}
+		mMediaImplList.resize(num_tes) ;
+
+		LLViewerObject::setNumTEs(num_tes) ;
+	}
+	else
+	{
+		LLViewerObject::setNumTEs(num_tes) ;
+	}
+
+	return ;
+}
+
+void LLVOVolume::setTEImage(const U8 te, LLViewerTexture *imagep)
 {
 	BOOL changed = (mTEImages[te] != imagep);
 	LLViewerObject::setTEImage(te, imagep);
@@ -1318,15 +1610,28 @@ S32 LLVOVolume::setTEColor(const U8 te, const LLColor3& color)
 
 S32 LLVOVolume::setTEColor(const U8 te, const LLColor4& color)
 {
-	S32 res = LLViewerObject::setTEColor(te, color);
-	if (res && mDrawable.notNull())
+	S32 retval = 0;
+	const LLTextureEntry *tep = getTE(te);
+	if (!tep)
 	{
-		//gPipeline.markTextured(mDrawable);
-		mDrawable->setState(LLDrawable::REBUILD_COLOR);
-		dirtyMesh();
-		//mFaceMappingChanged = TRUE;
+		llwarns << "No texture entry for te " << (S32)te << ", object " << mID << llendl;
 	}
-	return  res;
+	else if (color != tep->getColor())
+	{
+		if (color.mV[3] != tep->getColor().mV[3])
+		{
+			gPipeline.markTextured(mDrawable);
+		}
+		retval = LLPrimitive::setTEColor(te, color);
+		if (mDrawable.notNull() && retval)
+		{
+			// These should only happen on updates which are not the initial update.
+			mDrawable->setState(LLDrawable::REBUILD_COLOR);
+			dirtyMesh();
+		}
+	}
+
+	return  retval;
 }
 
 S32 LLVOVolume::setTEBumpmap(const U8 te, const U8 bumpmap)
@@ -1392,7 +1697,7 @@ S32 LLVOVolume::setTEBumpShinyFullbright(const U8 te, const U8 bump)
 		gPipeline.markTextured(mDrawable);
 		mFaceMappingChanged = TRUE;
 	}
-	return  res;
+	return res;
 }
 
 S32 LLVOVolume::setTEMediaFlags(const U8 te, const U8 media_flags)
@@ -1459,6 +1764,475 @@ void LLVOVolume::updateTEData()
 	}*/
 }
 
+bool LLVOVolume::hasMedia() const
+{
+	bool result = false;
+	const U8 numTEs = getNumTEs();
+	for (U8 i = 0; i < numTEs; i++)
+	{
+		const LLTextureEntry* te = getTE(i);
+		if(te->hasMedia())
+		{
+			result = true;
+			break;
+		}
+	}
+	return result;
+}
+
+LLVector3 LLVOVolume::getApproximateFaceNormal(U8 face_id)
+{
+	LLVolume* volume = getVolume();
+	LLVector3 result;
+
+	if (volume && face_id < volume->getNumVolumeFaces())
+	{
+		const LLVolumeFace& face = volume->getVolumeFace(face_id);
+		for (S32 i = 0; i < (S32)face.mVertices.size(); ++i)
+		{
+			result += face.mVertices[i].mNormal;
+		}
+
+		result = volumeDirectionToAgent(result);
+		result.normVec();
+	}
+	
+	return result;
+}
+
+void LLVOVolume::requestMediaDataUpdate(bool isNew)
+{
+    if (sObjectMediaClient)
+		sObjectMediaClient->fetchMedia(new LLMediaDataClientObjectImpl(this, isNew));
+}
+
+bool LLVOVolume::isMediaDataBeingFetched() const
+{
+	// I know what I'm doing by const_casting this away: this is just 
+	// a wrapper class that is only going to do a lookup.
+	return (sObjectMediaClient) ? sObjectMediaClient->isInQueue(new LLMediaDataClientObjectImpl(const_cast<LLVOVolume*>(this), false)) : false;
+}
+
+void LLVOVolume::cleanUpMediaImpls()
+{
+	// Iterate through our TEs and remove any Impls that are no longer used
+	const U8 numTEs = getNumTEs();
+	for (U8 i = 0; i < numTEs; i++)
+	{
+		const LLTextureEntry* te = getTE(i);
+		if( ! te->hasMedia())
+		{
+			// Delete the media IMPL!
+			removeMediaImpl(i) ;
+		}
+	}
+}
+
+void LLVOVolume::updateObjectMediaData(const LLSD &media_data_array, const std::string &media_version)
+{
+	// media_data_array is an array of media entry maps
+	// media_version is the version string in the response.
+	U32 fetched_version = LLTextureEntry::getVersionFromMediaVersionString(media_version);
+
+	// Only update it if it is newer!
+	if ( (S32)fetched_version > mLastFetchedMediaVersion)
+	{
+		mLastFetchedMediaVersion = fetched_version;
+		//llinfos << "updating:" << this->getID() << " " << ll_pretty_print_sd(media_data_array) << llendl;
+		
+		LLSD::array_const_iterator iter = media_data_array.beginArray();
+		LLSD::array_const_iterator end = media_data_array.endArray();
+		U8 texture_index = 0;
+		for (; iter != end; ++iter, ++texture_index)
+		{
+			syncMediaData(texture_index, *iter, false/*merge*/, false/*ignore_agent*/);
+		}
+	}
+}
+
+void LLVOVolume::syncMediaData(S32 texture_index, const LLSD &media_data, bool merge, bool ignore_agent)
+{
+	if(mDead)
+	{
+		// If the object has been marked dead, don't process media updates.
+		return;
+	}
+	
+	LLTextureEntry *te = getTE(texture_index);
+	LL_DEBUGS("MediaOnAPrim") << "BEFORE: texture_index = " << texture_index
+		<< " hasMedia = " << te->hasMedia() << " : " 
+		<< ((NULL == te->getMediaData()) ? "NULL MEDIA DATA" : ll_pretty_print_sd(te->getMediaData()->asLLSD())) << llendl;
+
+	std::string previous_url;
+	LLMediaEntry* mep = te->getMediaData();
+	if(mep)
+	{
+		// Save the "current url" from before the update so we can tell if
+		// it changes. 
+		previous_url = mep->getCurrentURL();
+	}
+
+	if (merge)
+	{
+		te->mergeIntoMediaData(media_data);
+	}
+	else {
+		// XXX Question: what if the media data is undefined LLSD, but the
+		// update we got above said that we have media flags??	Here we clobber
+		// that, assuming the data from the service is more up-to-date. 
+		te->updateMediaData(media_data);
+	}
+
+	mep = te->getMediaData();
+	if(mep)
+	{
+		bool update_from_self = false;
+		if (!ignore_agent) 
+		{
+			LLUUID updating_agent = LLTextureEntry::getAgentIDFromMediaVersionString(getMediaURL());
+			update_from_self = (updating_agent == gAgent.getID());
+		}
+		viewer_media_t media_impl = LLViewerMedia::updateMediaImpl(mep, previous_url, update_from_self);
+			
+		addMediaImpl(media_impl, texture_index) ;
+	}
+	else
+	{
+		removeMediaImpl(texture_index);
+	}
+
+	LL_DEBUGS("MediaOnAPrim") << "AFTER: texture_index = " << texture_index
+		<< " hasMedia = " << te->hasMedia() << " : " 
+		<< ((NULL == te->getMediaData()) ? "NULL MEDIA DATA" : ll_pretty_print_sd(te->getMediaData()->asLLSD())) << llendl;
+}
+
+void LLVOVolume::mediaNavigateBounceBack(U8 texture_index)
+{
+	// Find the media entry for this navigate
+	const LLMediaEntry* mep = NULL;
+	viewer_media_t impl = getMediaImpl(texture_index);
+	LLTextureEntry *te = getTE(texture_index);
+	if(te)
+	{
+		mep = te->getMediaData();
+	}
+	
+	if (mep && impl)
+	{
+        std::string url = mep->getCurrentURL();
+		// Look for a ":", if not there, assume "http://"
+		if (!url.empty() && std::string::npos == url.find(':')) 
+		{
+			url = "http://" + url;
+		}
+		// If the url we're trying to "bounce back" to is either empty or not
+		// allowed by the whitelist, try the home url.  If *that* doesn't work,
+		// set the media as failed and unload it
+        if (url.empty() || !mep->checkCandidateUrl(url))
+        {
+            url = mep->getHomeURL();
+			// Look for a ":", if not there, assume "http://"
+			if (!url.empty() && std::string::npos == url.find(':')) 
+			{
+				url = "http://" + url;
+			}
+        }
+        if (url.empty() || !mep->checkCandidateUrl(url))
+		{
+			// The url to navigate back to is not good, and we have nowhere else
+			// to go.
+			LL_WARNS("MediaOnAPrim") << "FAILED to bounce back URL \"" << url << "\" -- unloading impl" << LL_ENDL;
+			impl->setMediaFailed(true);
+		}
+		else {
+			// Okay, navigate now
+            LL_INFOS("MediaOnAPrim") << "bouncing back to URL: " << url << LL_ENDL;
+            impl->navigateTo(url, "", false, true);
+        }
+    }
+}
+
+bool LLVOVolume::hasMediaPermission(const LLMediaEntry* media_entry, MediaPermType perm_type)
+{
+    // NOTE: This logic ALMOST duplicates the logic in the server (in particular, in llmediaservice.cpp).
+    if (NULL == media_entry ) return false; // XXX should we assert here?
+    
+    // The agent has permissions if:
+    // - world permissions are on, or
+    // - group permissions are on, and agent_id is in the group, or
+    // - agent permissions are on, and agent_id is the owner
+    
+	// *NOTE: We *used* to check for modify permissions here (i.e. permissions were
+	// granted if permModify() was true).  However, this doesn't make sense in the
+	// viewer: we don't want to show controls or allow interaction if the author
+	// has deemed it so.  See DEV-42115.
+	
+    U8 media_perms = (perm_type == MEDIA_PERM_INTERACT) ? media_entry->getPermsInteract() : media_entry->getPermsControl();
+    
+    // World permissions
+    if (0 != (media_perms & LLMediaEntry::PERM_ANYONE)) 
+    {
+        return true;
+    }
+    
+    // Group permissions
+    else if (0 != (media_perms & LLMediaEntry::PERM_GROUP) && permGroupOwner())
+    {
+        return true;
+    }
+    
+    // Owner permissions
+    else if (0 != (media_perms & LLMediaEntry::PERM_OWNER) && permYouOwner()) 
+    {
+        return true;
+    }
+    
+    return false;
+    
+}
+
+void LLVOVolume::mediaNavigated(LLViewerMediaImpl *impl, LLPluginClassMedia* plugin, std::string new_location)
+{
+	bool block_navigation = false;
+	// FIXME: if/when we allow the same media impl to be used by multiple faces, the logic here will need to be fixed
+	// to deal with multiple face indices.
+	int face_index = getFaceIndexWithMediaImpl(impl, -1);
+	
+	// Find the media entry for this navigate
+	LLMediaEntry* mep = NULL;
+	LLTextureEntry *te = getTE(face_index);
+	if(te)
+	{
+		mep = te->getMediaData();
+	}
+	
+	if(mep)
+	{
+		if(!mep->checkCandidateUrl(new_location))
+		{
+			block_navigation = true;
+		}
+		if (!block_navigation && !hasMediaPermission(mep, MEDIA_PERM_INTERACT))
+		{
+			block_navigation = true;
+		}
+	}
+	else
+	{
+		llwarns << "Couldn't find media entry!" << llendl;
+	}
+						
+	if(block_navigation)
+	{
+		llinfos << "blocking navigate to URI " << new_location << llendl;
+
+		// "bounce back" to the current URL from the media entry
+		mediaNavigateBounceBack(face_index);
+	}
+	else if (sObjectMediaNavigateClient)
+	{
+		
+		llinfos << "broadcasting navigate with URI " << new_location << llendl;
+
+		sObjectMediaNavigateClient->navigate(new LLMediaDataClientObjectImpl(this, false), face_index, new_location);
+	}
+}
+
+void LLVOVolume::mediaEvent(LLViewerMediaImpl *impl, LLPluginClassMedia* plugin, LLViewerMediaObserver::EMediaEvent event)
+{
+	switch(event)
+	{
+		
+		case LLViewerMediaObserver::MEDIA_EVENT_LOCATION_CHANGED:
+		{			
+			switch(impl->getNavState())
+			{
+				case LLViewerMediaImpl::MEDIANAVSTATE_FIRST_LOCATION_CHANGED:
+				{
+					// This is the first location changed event after the start of a non-server-directed nav.  It may need to be broadcast or bounced back.
+					mediaNavigated(impl, plugin, plugin->getLocation());
+				}
+				break;
+				
+				case LLViewerMediaImpl::MEDIANAVSTATE_SERVER_FIRST_LOCATION_CHANGED:
+					// This is the first location changed event after the start of a server-directed nav.  Don't broadcast it.
+					llinfos << "	NOT broadcasting navigate (server-directed)" << llendl;
+				break;
+				
+				default:
+					// This is a subsequent location-changed due to a redirect.	 Don't broadcast.
+					llinfos << "	NOT broadcasting navigate (redirect)" << llendl;
+				break;
+			}
+		}
+		break;
+		
+		case LLViewerMediaObserver::MEDIA_EVENT_NAVIGATE_COMPLETE:
+		{
+			switch(impl->getNavState())
+			{
+				case LLViewerMediaImpl::MEDIANAVSTATE_COMPLETE_BEFORE_LOCATION_CHANGED:
+				{
+					// This is the first location changed event after the start of a non-server-directed nav.  It may need to be broadcast or bounced back.
+					mediaNavigated(impl, plugin, plugin->getNavigateURI());
+				}
+				break;
+				
+				case LLViewerMediaImpl::MEDIANAVSTATE_SERVER_COMPLETE_BEFORE_LOCATION_CHANGED:
+					// This is the the navigate complete event from a server-directed nav.  Don't broadcast it.
+					llinfos << "	NOT broadcasting navigate (server-directed)" << llendl;
+				break;
+				
+				default:
+					// For all other states, the navigate should have been handled by LOCATION_CHANGED events already.
+				break;
+			}
+		}
+		break;
+		
+		default:
+		break;
+	}
+
+}
+
+void LLVOVolume::sendMediaDataUpdate()
+{
+    if (sObjectMediaClient)
+		sObjectMediaClient->updateMedia(new LLMediaDataClientObjectImpl(this, false));
+}
+
+void LLVOVolume::removeMediaImpl(S32 texture_index)
+{
+	if(mMediaImplList.size() <= (U32)texture_index || mMediaImplList[texture_index].isNull())
+	{
+		return ;
+	}
+
+	//make the face referencing to mMediaImplList[texture_index] to point back to the old texture.
+	if(mDrawable)
+	{
+		LLFace* facep = mDrawable->getFace(texture_index) ;
+		if(facep)
+		{
+			LLViewerMediaTexture* media_tex = LLViewerTextureManager::findMediaTexture(mMediaImplList[texture_index]->getMediaTextureID()) ;
+			if(media_tex)
+			{
+				media_tex->removeMediaFromFace(facep) ;
+			}
+		}
+	}		
+	
+	//check if some other face(s) of this object reference(s)to this media impl.
+	S32 i ;
+	S32 end = (S32)mMediaImplList.size() ;
+	for(i = 0; i < end ; i++)
+	{
+		if( i != texture_index && mMediaImplList[i] == mMediaImplList[texture_index])
+		{
+			break ;
+		}
+	}
+
+	if(i == end) //this object does not need this media impl.
+	{
+		mMediaImplList[texture_index]->removeObject(this) ;
+	}
+
+	mMediaImplList[texture_index] = NULL ;
+	return ;
+}
+
+void LLVOVolume::addMediaImpl(LLViewerMediaImpl* media_impl, S32 texture_index)
+{
+	if((S32)mMediaImplList.size() < texture_index + 1)
+	{
+		mMediaImplList.resize(texture_index + 1) ;
+	}
+	
+	if(mMediaImplList[texture_index].notNull())
+	{
+		if(mMediaImplList[texture_index] == media_impl)
+		{
+			return ;
+		}
+
+		removeMediaImpl(texture_index) ;
+	}
+
+	mMediaImplList[texture_index] = media_impl;
+	media_impl->addObject(this) ;	
+
+	//add the face to show the media if it is in playing
+	if(mDrawable)
+	{
+		LLFace* facep = mDrawable->getFace(texture_index) ;
+		if(facep)
+		{
+			LLViewerMediaTexture* media_tex = LLViewerTextureManager::findMediaTexture(mMediaImplList[texture_index]->getMediaTextureID()) ;
+			if(media_tex)
+			{
+				media_tex->addMediaToFace(facep) ;
+			}
+		}
+		else //the face is not available now, start media on this face later.
+		{
+			media_impl->setUpdated(TRUE) ;
+		}
+	}
+	return ;
+}
+
+viewer_media_t LLVOVolume::getMediaImpl(U8 face_id) const
+{
+	if(mMediaImplList.size() > face_id)
+	{
+		return mMediaImplList[face_id];
+	}
+	return NULL;
+}
+
+F64 LLVOVolume::getTotalMediaInterest() const
+{
+	// If this object is currently focused, this object has "high" interest
+	if (LLViewerMediaFocus::getInstance()->getFocusedObjectID() == getID())
+		return F64_MAX;
+	
+	F64 interest = (F64)-1.0;  // means not interested;
+    
+	// If this object is selected, this object has "high" interest, but since 
+	// there can be more than one, we still add in calculated impl interest
+	// XXX Sadly, 'contains()' doesn't take a const :(
+	if (LLSelectMgr::getInstance()->getSelection()->contains(const_cast<LLVOVolume*>(this)))
+		interest = F64_MAX / 2.0;
+	
+	int i = 0;
+	const int end = getNumTEs();
+	for ( ; i < end; ++i)
+	{
+		const viewer_media_t &impl = getMediaImpl(i);
+		if (!impl.isNull())
+		{
+			if (interest == (F64)-1.0) interest = (F64)0.0;
+			interest += impl->getInterest();
+		}
+	}
+	return interest;
+}
+
+S32 LLVOVolume::getFaceIndexWithMediaImpl(const LLViewerMediaImpl* media_impl, S32 start_face_id)
+{
+	S32 end = (S32)mMediaImplList.size() ;
+	for(S32 face_id = start_face_id + 1; face_id < end; face_id++)
+	{
+		if(mMediaImplList[face_id] == media_impl)
+		{
+			return face_id ;
+		}
+	}
+	return -1 ;
+}
+
 //----------------------------------------------------------------------------
 
 void LLVOVolume::setLightTextureID(LLUUID id)
@@ -1481,6 +2255,7 @@ void LLVOVolume::setLightTextureID(LLUUID id)
 		if (hasLightTexture())
 		{
 			setParameterEntryInUse(LLNetworkData::PARAMS_LIGHT_IMAGE, FALSE, true);
+			mLightTexture = NULL;
 		}
 	}		
 }
@@ -1623,10 +2398,13 @@ LLColor3 LLVOVolume::getLightColor() const
 
 LLUUID LLVOVolume::getLightTextureID() const
 {
-	const LLLightImageParams *param_block = (const LLLightImageParams *)getParameterEntry(LLNetworkData::PARAMS_LIGHT_IMAGE);
-	if (param_block)
+	if (getParameterEntryInUse(LLNetworkData::PARAMS_LIGHT_IMAGE))
 	{
-		return param_block->getLightTexture();
+		const LLLightImageParams *param_block = (const LLLightImageParams *)getParameterEntry(LLNetworkData::PARAMS_LIGHT_IMAGE);
+		if (param_block)
+		{
+			return param_block->getLightTexture();
+		}
 	}
 	
 	return LLUUID::null;
@@ -1635,10 +2413,13 @@ LLUUID LLVOVolume::getLightTextureID() const
 
 LLVector3 LLVOVolume::getSpotLightParams() const
 {
-	const LLLightImageParams *param_block = (const LLLightImageParams *)getParameterEntry(LLNetworkData::PARAMS_LIGHT_IMAGE);
-	if (param_block)
+	if (getParameterEntryInUse(LLNetworkData::PARAMS_LIGHT_IMAGE))
 	{
-		return param_block->getParams();
+		const LLLightImageParams *param_block = (const LLLightImageParams *)getParameterEntry(LLNetworkData::PARAMS_LIGHT_IMAGE);
+		if (param_block)
+		{
+			return param_block->getParams();
+		}
 	}
 	
 	return LLVector3();
@@ -1664,16 +2445,16 @@ void LLVOVolume::updateSpotLightPriority()
 	pos -= at * r;
 	
 	mSpotLightPriority = gPipeline.calcPixelArea(pos, LLVector3(r,r,r), *LLViewerCamera::getInstance());
- // KL needed for S19?
+
 	if (mLightTexture.notNull())
 	{
 		mLightTexture->addTextureStats(mSpotLightPriority);
-		mLightTexture->setBoostLevel(LLViewerImageBoostLevel::BOOST_CLOUDS);
+		mLightTexture->setBoostLevel(LLViewerTexture::BOOST_CLOUDS);
 	}
 }
 
 
-LLViewerImage* LLVOVolume::getLightTexture()
+LLViewerTexture* LLVOVolume::getLightTexture()
 {
 	LLUUID id = getLightTextureID();
 
@@ -1681,7 +2462,7 @@ LLViewerImage* LLVOVolume::getLightTexture()
 	{
 		if (mLightTexture.isNull() || id != mLightTexture->getID())
 		{
-			mLightTexture = gImageList.getImage(id);
+			mLightTexture = LLViewerTextureManager::getFetchedTexture(id);
 		}
 	}
 	else
@@ -1943,6 +2724,139 @@ const LLMatrix4 LLVOVolume::getRenderMatrix() const
 	return mDrawable->getWorldMatrix();
 }
 
+// Returns a base cost and adds textures to passed in set.
+// total cost is returned value + 5 * size of the resulting set.
+// Cannot include cost of textures, as they may be re-used in linked
+// children, and cost should only be increased for unique textures  -Nyx
+U32 LLVOVolume::getRenderCost(std::set<LLUUID> &textures) const
+{
+	// base cost of each prim should be 10 points
+	static const U32 ARC_PRIM_COST = 10;
+	// per-prim costs
+	static const U32 ARC_INVISI_COST = 1;
+	static const U32 ARC_SHINY_COST = 1;
+	static const U32 ARC_GLOW_COST = 1;
+	static const U32 ARC_FLEXI_COST = 8;
+	static const U32 ARC_PARTICLE_COST = 16;
+	static const U32 ARC_BUMP_COST = 4;
+
+	// per-face costs
+	static const U32 ARC_PLANAR_COST = 1;
+	static const U32 ARC_ANIM_TEX_COST = 4;
+	static const U32 ARC_ALPHA_COST = 4;
+
+	U32 shame = ARC_PRIM_COST;
+
+	U32 invisi = 0;
+	U32 shiny = 0;
+	U32 glow = 0;
+	U32 alpha = 0;
+	U32 flexi = 0;
+	U32 animtex = 0;
+	U32 particles = 0;
+	U32 scale = 0;
+	U32 bump = 0;
+	U32 planar = 0;
+
+	if (isFlexible())
+	{
+		flexi = 1;
+	}
+	if (isParticleSource())
+	{
+		particles = 1;
+	}
+
+	const LLVector3& sc = getScale();
+	scale += (U32) sc.mV[0] + (U32) sc.mV[1] + (U32) sc.mV[2];
+
+	const LLDrawable* drawablep = mDrawable;
+
+	if (isSculpted())
+	{
+		const LLSculptParams *sculpt_params = (LLSculptParams *) getParameterEntry(LLNetworkData::PARAMS_SCULPT);
+		LLUUID sculpt_id = sculpt_params->getSculptTexture();
+		textures.insert(sculpt_id);
+	}
+
+	for (S32 i = 0; i < drawablep->getNumFaces(); ++i)
+	{
+		const LLFace* face = drawablep->getFace(i);
+		const LLTextureEntry* te = face->getTextureEntry();
+		const LLViewerTexture* img = face->getTexture();
+
+		if (img)
+		{
+			textures.insert(img->getID());
+		}
+
+		if (face->getPoolType() == LLDrawPool::POOL_ALPHA)
+		{
+			alpha++;
+		}
+		else if (img && img->getPrimaryFormat() == GL_ALPHA)
+		{
+			invisi = 1;
+		}
+
+		if (te)
+		{
+			if (te->getBumpmap())
+			{
+				bump = 1;
+			}
+			if (te->getShiny())
+			{
+				shiny = 1;
+			}
+			if (te->getGlow() > 0.f)
+			{
+				glow = 1;
+			}
+			if (face->mTextureMatrix != NULL)
+			{
+				animtex++;
+			}
+			if (te->getTexGen())
+			{
+				planar++;
+			}
+		}
+	}
+
+
+	shame += invisi * ARC_INVISI_COST;
+	shame += shiny * ARC_SHINY_COST;
+	shame += glow * ARC_GLOW_COST;
+	shame += alpha * ARC_ALPHA_COST;
+	shame += flexi * ARC_FLEXI_COST;
+	shame += animtex * ARC_ANIM_TEX_COST;
+	shame += particles * ARC_PARTICLE_COST;
+	shame += bump * ARC_BUMP_COST;
+	shame += planar * ARC_PLANAR_COST;
+	shame += scale;
+
+	LLViewerObject::const_child_list_t& child_list = getChildren();
+	for (LLViewerObject::child_list_t::const_iterator iter = child_list.begin();
+		 iter != child_list.end(); 
+		 ++iter)
+	{
+		const LLViewerObject* child_objectp = *iter;
+		const LLDrawable* child_drawablep = child_objectp->mDrawable;
+		if (child_drawablep)
+		{
+			const LLVOVolume* child_volumep = child_drawablep->getVOVolume();
+			if (child_volumep)
+			{
+				shame += child_volumep->getRenderCost(textures);
+			}
+		}
+	}
+
+	return shame;
+
+}
+
 //static
 void LLVOVolume::preUpdateGeom()
 {
@@ -2125,14 +3039,9 @@ BOOL LLVOVolume::lineSegmentIntersect(const LLVector3& start, const LLVector3& e
 									  LLVector3* intersection,LLVector2* tex_coord, LLVector3* normal, LLVector3* bi_normal)
 	
 {
-	if (!mbCanSelect ||
-//		(gHideSelectedObjects && isSelected()) ||
-// [RLVa:KB] - Checked: 2009-10-10 (RLVa-1.0.5a) | Modified: RLVa-1.0.5a
-		( (gHideSelectedObjects && isSelected()) && 
-		  ((!rlv_handler_t::isEnabled()) || (!isHUDAttachment()) || (!gRlvHandler.isLockedAttachment(this, RLV_LOCK_REMOVE))) ) ||
-// [/RLVa:KB]
-			mDrawable->isDead() || 
-			!gPipeline.hasRenderType(mDrawable->getRenderType()))
+	if (!mbCanSelect 
+		|| mDrawable->isDead() 
+		|| !gPipeline.hasRenderType(mDrawable->getRenderType()))
 	{
 		return FALSE;
 	}
@@ -2178,7 +3087,7 @@ BOOL LLVOVolume::lineSegmentIntersect(const LLVector3& start, const LLVector3& e
 		if (face == -1)
 		{
 			start_face = 0;
-			end_face = volume->getNumFaces();
+			end_face = volume->getNumVolumeFaces();
 		}
 		else
 		{
@@ -2193,9 +3102,9 @@ BOOL LLVOVolume::lineSegmentIntersect(const LLVector3& start, const LLVector3& e
 			
 			if (face_hit >= 0 && mDrawable->getNumFaces() > face_hit)
 			{
-				LLFace* face = mDrawable->getFace(face_hit);
-			
-				if (pick_transparent || !face->getTexture() || face->getTexture()->getMask(face->surfaceToTexture(tc, p, n)))
+				LLFace* face = mDrawable->getFace(face_hit);				
+
+				if (pick_transparent || !face->getTexture() || !face->getTexture()->hasGLTexture() || face->getTexture()->getMask(face->surfaceToTexture(tc, p, n)))
 				{
 					v_end = p;
 					if (face_hitp != NULL)
@@ -2245,9 +3154,9 @@ U32 LLVOVolume::getPartitionType() const
 }
 
 LLVolumePartition::LLVolumePartition()
-: LLSpatialPartition(LLVOVolume::VERTEX_DATA_MASK, TRUE, GL_DYNAMIC_DRAW_ARB) // KL
+: LLSpatialPartition(LLVOVolume::VERTEX_DATA_MASK, TRUE, GL_DYNAMIC_DRAW_ARB)
 {
-	mLODPeriod = 32; // KL 32 in SD
+	mLODPeriod = 32;
 	mDepthMask = FALSE;
 	mDrawableType = LLPipeline::RENDER_TYPE_VOLUME;
 	mPartitionType = LLViewerRegion::PARTITION_VOLUME;
@@ -2256,10 +3165,10 @@ LLVolumePartition::LLVolumePartition()
 }
 
 LLVolumeBridge::LLVolumeBridge(LLDrawable* drawablep)
-: LLSpatialBridge(drawablep, TRUE, LLVOVolume::VERTEX_DATA_MASK) // KL SD
+: LLSpatialBridge(drawablep, TRUE, LLVOVolume::VERTEX_DATA_MASK)
 {
 	mDepthMask = FALSE;
-	mLODPeriod = 32;  // KL 32 in SD
+	mLODPeriod = 32;
 	mDrawableType = LLPipeline::RENDER_TYPE_VOLUME;
 	mPartitionType = LLViewerRegion::PARTITION_BRIDGE;
 	
@@ -2272,18 +3181,11 @@ void LLVolumeGeometryManager::registerFace(LLSpatialGroup* group, LLFace* facep,
 {
 	LLMemType mt(LLMemType::MTYPE_SPACE_PARTITION);
 
-//	if (facep->getViewerObject()->isSelected() && gHideSelectedObjects)
-//	{
-//		return;
-//	}
-// [RLVa:KB] - Checked: 2009-10-10 (RLVa-1.0.5a) | Modified: RLVa-1.0.5a
-	LLViewerObject* pObj = facep->getViewerObject();
-	if ( (pObj->isSelected() && gHideSelectedObjects) && 
-		 ((!rlv_handler_t::isEnabled()) || (!pObj->isHUDAttachment()) || (!gRlvHandler.isLockedAttachment(pObj, RLV_LOCK_REMOVE))) )
-	{
-		return;
-	}
-// [/RVLa:KB]
+//impfixme:compile
+// 	if (facep->getViewerObject()->isSelected() && gHideSelectedObjects)
+// 	{
+// 		return;
+// 	}
 
 	//add face to drawmap
 	LLSpatialGroup::drawmap_elem_t& draw_vec = group->mDrawMap[type];	
@@ -2291,8 +3193,15 @@ void LLVolumeGeometryManager::registerFace(LLSpatialGroup* group, LLFace* facep,
 	S32 idx = draw_vec.size()-1;
 
 
-	BOOL fullbright = (type == LLRenderPass::PASS_FULLBRIGHT ||
-					  type == LLRenderPass::PASS_ALPHA) ? facep->isState(LLFace::FULLBRIGHT) : FALSE;
+	BOOL fullbright = (type == LLRenderPass::PASS_FULLBRIGHT) ||
+					  (type == LLRenderPass::PASS_INVISIBLE) ||
+					  (type == LLRenderPass::PASS_ALPHA ? facep->isState(LLFace::FULLBRIGHT) : FALSE);
+
+	if (!fullbright && type != LLRenderPass::PASS_GLOW && !facep->mVertexBuffer->hasDataType(LLVertexBuffer::TYPE_NORMAL))
+	{
+		llwarns << "Non fullbright face has no normals!" << llendl;
+		return;
+	}
 
 	const LLMatrix4* tex_mat = NULL;
 	if (facep->isState(LLFace::TEXTURE_ANIM) && facep->getVirtualSize() > MIN_TEX_ANIM_SIZE)
@@ -2314,7 +3223,7 @@ void LLVolumeGeometryManager::registerFace(LLSpatialGroup* group, LLFace* facep,
 
 	U8 bump = (type == LLRenderPass::PASS_BUMP ? facep->getTextureEntry()->getBumpmap() : 0);
 	
-     LLImageGL* tex = facep->getGLTexture(); //	LLViewerImage* tex = facep->getTexture(); // KL SD
+	LLViewerTexture* tex = facep->getTexture();
 
 	U8 glow = 0;
 		
@@ -2354,16 +3263,18 @@ void LLVolumeGeometryManager::registerFace(LLSpatialGroup* group, LLFace* facep,
 		U32 start = facep->getGeomIndex();
 		U32 end = start + facep->getGeomCount()-1;
 		U32 offset = facep->getIndicesStart();
-		U32 count = facep->getIndicesCount();
-		LLPointer<LLDrawInfo> draw_info = new LLDrawInfo(start,end,count,offset,tex, 
-			(LLImageGL*)facep->getTexture() == tex ? facep->getTexture() : NULL,
-			facep->mVertexBuffer, fullbright, bump); 
+		U32 count ;//impfixme:compile = facep->getIndicesCount();
+//impfixme:compile
+/*
+		LLPointer<LLDrawInfo> draw_info = new LLDrawInfo(start,end,count,offset, tex, 
+									facep->mVertexBuffer, fullbright, bump);
 		draw_info->mGroup = group;
 		draw_info->mVSize = facep->getVirtualSize();
 		draw_vec.push_back(draw_info);
 		draw_info->mTextureMatrix = tex_mat;
 		draw_info->mModelMatrix = model_mat;
 		draw_info->mGlowColor.setVec(0,0,0,glow);
+
 		if (type == LLRenderPass::PASS_ALPHA)
 		{ //for alpha sorting
 			facep->setDrawInfo(draw_info);
@@ -2371,6 +3282,12 @@ void LLVolumeGeometryManager::registerFace(LLSpatialGroup* group, LLFace* facep,
 		draw_info->mExtents[0] = facep->mExtents[0];
 		draw_info->mExtents[1] = facep->mExtents[1];
 		validate_draw_info(*draw_info);
+
+		if (LLPipeline::sUseTriStrips)
+		{
+			draw_info->mDrawMode = LLRender::TRIANGLE_STRIP;
+		}
+*/
 	}
 }
 
@@ -2379,13 +3296,11 @@ void LLVolumeGeometryManager::getGeometry(LLSpatialGroup* group)
 
 }
 
+// static LLFastTimer::DeclareTimer FTM_REBUILD_VOLUME_VB("Volume");
+// static LLFastTimer::DeclareTimer FTM_REBUILD_VBO("VBO Rebuilt");
+
 void LLVolumeGeometryManager::rebuildGeom(LLSpatialGroup* group)
 {
-	if (LLPipeline::sSkipUpdate)
-	{
-		return;
-	}
-
 	if (group->changeLOD())
 	{
 		group->mLastUpdateDistance = group->mDistance;
@@ -2444,10 +3359,10 @@ void LLVolumeGeometryManager::rebuildGeom(LLSpatialGroup* group)
 
 		LLVOVolume* vobj = drawablep->getVOVolume();
 		llassert_always(vobj);
-		vobj->updateTextures();
+		vobj->updateTextureVirtualSize();
 		vobj->preRebuild();
 
-		drawablep->clearState(LLDrawable::HAS_ALPHA); // KL SD
+		drawablep->clearState(LLDrawable::HAS_ALPHA);
 
 		//for each face
 		for (S32 i = 0; i < drawablep->getNumFaces(); i++)
@@ -2456,7 +3371,7 @@ void LLVolumeGeometryManager::rebuildGeom(LLSpatialGroup* group)
 			drawablep->updateFaceSize(i);
 			LLFace* facep = drawablep->getFace(i);
 
-			if (cur_total > max_total)
+			if (cur_total > max_total || facep->getIndicesCount() <= 0 || facep->getGeomCount() <= 0)
 			{
 				facep->mVertexBuffer = NULL;
 				facep->mLastVertexBuffer = NULL;
@@ -2468,7 +3383,7 @@ void LLVolumeGeometryManager::rebuildGeom(LLSpatialGroup* group)
 			if (facep->hasGeometry() && facep->mPixelArea > FORCE_CULL_AREA)
 			{
 				const LLTextureEntry* te = facep->getTextureEntry();
-				LLViewerImage* tex = facep->getTexture();
+				LLViewerTexture* tex = facep->getTexture();
 
 				if (facep->isState(LLFace::TEXTURE_ANIM))
 				{
@@ -2510,14 +3425,15 @@ void LLVolumeGeometryManager::rebuildGeom(LLSpatialGroup* group)
 				if (type == LLDrawPool::POOL_ALPHA)
 				{
 					if (LLPipeline::sFastAlpha &&
-						(te->getColor().mV[VW] == 1.0f) &&
-						facep->getTexture()->getIsAlphaMask())
+					    (te->getColor().mV[VW] == 1.0f) &&
+					    (!te->getFullbright()) && // hack: alpha masking renders fullbright faces invisible, need to figure out why - for now, avoid
+					    facep->getTexture()->getIsAlphaMask())
 					{ //can be treated as alpha mask
 						simple_faces.push_back(facep);
 					}
 					else
 					{
-						drawablep->setState(LLDrawable::HAS_ALPHA); // KL SD
+						drawablep->setState(LLDrawable::HAS_ALPHA);
 						alpha_faces.push_back(facep);
 					}
 				}
@@ -2541,7 +3457,7 @@ void LLVolumeGeometryManager::rebuildGeom(LLSpatialGroup* group)
 						}
 						else 
 						{ //doesn't need normal
-							//facep->setState(LLFace::FULLBRIGHT);
+							facep->setState(LLFace::FULLBRIGHT);
 							fullbright_faces.push_back(facep);
 						}
 					}
@@ -2551,14 +3467,14 @@ void LLVolumeGeometryManager::rebuildGeom(LLSpatialGroup* group)
 						{ //needs normal + binormal
 							bump_faces.push_back(facep);
 						}
-						else if (te->getShiny() && LLPipeline::sRenderBump ||
+						else if ((te->getShiny() && LLPipeline::sRenderBump) ||
 							!te->getFullbright())
 						{ //needs normal
 							simple_faces.push_back(facep);
 						}
 						else 
 						{ //doesn't need normal
-						//	facep->setState(LLFace::FULLBRIGHT);
+							facep->setState(LLFace::FULLBRIGHT);
 							fullbright_faces.push_back(facep);
 						}
 					}
@@ -2606,16 +3522,19 @@ void LLVolumeGeometryManager::rebuildGeom(LLSpatialGroup* group)
 
 	if (LLPipeline::sDelayVBUpdate)
 	{
-		group->setState(LLSpatialGroup::MESH_DIRTY | LLSpatialGroup::NEW_DRAWINFO); // KL SD
+		group->setState(LLSpatialGroup::MESH_DIRTY | LLSpatialGroup::NEW_DRAWINFO);
 	}
 
 	mFaceList.clear();
 }
 
+// static LLFastTimer::DeclareTimer FTM_VOLUME_GEOM("Volume Geometry");
 void LLVolumeGeometryManager::rebuildMesh(LLSpatialGroup* group)
 {
-	if (group->isState(LLSpatialGroup::MESH_DIRTY) && !group->isState(LLSpatialGroup::GEOM_DIRTY)) // KL SD
+	llassert(group);
+	if (group && group->isState(LLSpatialGroup::MESH_DIRTY) && !group->isState(LLSpatialGroup::GEOM_DIRTY))
 	{
+//impfixme:compile		LLFastTimer tm(LLFastTimer::FTM_VOLUME_GEOM);
 		S32 num_mapped_veretx_buffer = LLVertexBuffer::sMappedCount ;
 
 		group->mBuilt = 1.f;
@@ -2667,9 +3586,9 @@ void LLVolumeGeometryManager::rebuildMesh(LLSpatialGroup* group)
 		}
 		
 		// don't forget alpha
-		if(	group != NULL && 
-			!group->mVertexBuffer.isNull() && 
-			group->mVertexBuffer->isLocked())
+		if(group != NULL && 
+		   !group->mVertexBuffer.isNull() && 
+		   group->mVertexBuffer->isLocked())
 		{
 			group->mVertexBuffer->setBuffer(0);
 		}
@@ -2692,7 +3611,12 @@ void LLVolumeGeometryManager::rebuildMesh(LLSpatialGroup* group)
 			} 
 		}
 
-		group->clearState(LLSpatialGroup::MESH_DIRTY | LLSpatialGroup::NEW_DRAWINFO); // KL SD
+		group->clearState(LLSpatialGroup::MESH_DIRTY | LLSpatialGroup::NEW_DRAWINFO);
+	}
+
+	if (group && group->isState(LLSpatialGroup::NEW_DRAWINFO))
+	{
+		llwarns << "WTF?" << llendl;
 	}
 }
 
@@ -2717,7 +3641,7 @@ void LLVolumeGeometryManager::genDrawInfo(LLSpatialGroup* group, U32 mask, std::
 	
 	LLSpatialGroup::buffer_map_t buffer_map;
 
-    LLImageGL* last_tex = NULL;//	LLViewerImage* last_tex = NULL;  // KL SD
+	LLViewerTexture* last_tex = NULL;
 	S32 buffer_index = 0;
 
 	if (distance_sort)
@@ -2729,7 +3653,7 @@ void LLVolumeGeometryManager::genDrawInfo(LLSpatialGroup* group, U32 mask, std::
 	{
 		//pull off next face
 		LLFace* facep = *face_iter;
-		LLImageGL* tex = facep->getGLTexture();	// LLViewerImage* tex = facep->getTexture();  // KL SD
+		LLViewerTexture* tex = facep->getTexture();
 
 		if (distance_sort)
 		{
@@ -2754,7 +3678,7 @@ void LLVolumeGeometryManager::genDrawInfo(LLSpatialGroup* group, U32 mask, std::
 		++i;
 		
 		while (i != faces.end() && 
-			(LLPipeline::sTextureBindTest || (distance_sort || (*i)->getGLTexture() == tex))) // KL SD getTexture
+			(LLPipeline::sTextureBindTest || (distance_sort || (*i)->getTexture() == tex)))
 		{
 			facep = *i;
 			
@@ -2837,7 +3761,7 @@ void LLVolumeGeometryManager::genDrawInfo(LLSpatialGroup* group, U32 mask, std::
 
 			BOOL force_simple = facep->mPixelArea < FORCE_SIMPLE_RENDER_AREA;
 			BOOL fullbright = facep->isState(LLFace::FULLBRIGHT);
-			if ((mask & LLVertexBuffer::MAP_NORMAL) == 0) // KL SD
+			if ((mask & LLVertexBuffer::MAP_NORMAL) == 0)
 			{ //paranoia check to make sure GL doesn't try to read non-existant normals
 				fullbright = TRUE;
 			}
@@ -2851,6 +3775,7 @@ void LLVolumeGeometryManager::genDrawInfo(LLSpatialGroup* group, U32 mask, std::
 				// can we safely treat this as an alpha mask?
 				if (LLPipeline::sFastAlpha &&
 				    (te->getColor().mV[VW] == 1.0f) &&
+				    (!te->getFullbright()) && // hack: alpha masking renders fullbright faces invisible, need to figure out why - for now, avoid
 				    facep->getTexture()->getIsAlphaMask())
 				{
 					if (te->getFullbright())
@@ -2873,6 +3798,7 @@ void LLVolumeGeometryManager::genDrawInfo(LLSpatialGroup* group, U32 mask, std::
 				}
 			}
 			else if (gPipeline.canUseVertexShaders()
+				&& group->mSpatialPartition->mPartitionType != LLViewerRegion::PARTITION_HUD 
 				&& LLPipeline::sRenderBump 
 				&& te->getShiny())
 			{
@@ -2893,7 +3819,7 @@ void LLVolumeGeometryManager::genDrawInfo(LLSpatialGroup* group, U32 mask, std::
 					}
 					else
 					{
-					//	llassert(mask & LLVertexBuffer::MAP_NORMAL);
+						llassert(mask & LLVertexBuffer::MAP_NORMAL);
 						registerFace(group, facep, LLRenderPass::PASS_SIMPLE);
 					}
 				}
@@ -2924,12 +3850,12 @@ void LLVolumeGeometryManager::genDrawInfo(LLSpatialGroup* group, U32 mask, std::
 					}
 					else
 					{
-					//	llassert(mask & LLVertexBuffer::MAP_NORMAL);
+						llassert(mask & LLVertexBuffer::MAP_NORMAL);
 						registerFace(group, facep, LLRenderPass::PASS_SIMPLE);
 					}
 				}
 				
-				if (!is_alpha && te->getShiny())
+				if (!is_alpha && te->getShiny() && LLPipeline::sRenderBump)
 				{
 					registerFace(group, facep, LLRenderPass::PASS_SHINY);
 				}
@@ -2937,10 +3863,10 @@ void LLVolumeGeometryManager::genDrawInfo(LLSpatialGroup* group, U32 mask, std::
 			
 			if (!is_alpha && !LLPipeline::sRenderDeferred)
 			{
-			//	llassert((mask & LLVertexBuffer::MAP_NORMAL) || fullbright);
-	       	facep->setPoolType(LLDrawPool::POOL_SIMPLE);	//	facep->setPoolType((fullbright) ? LLDrawPool::POOL_FULLBRIGHT : LLDrawPool::POOL_SIMPLE);
+				llassert((mask & LLVertexBuffer::MAP_NORMAL) || fullbright);
+				facep->setPoolType((fullbright) ? LLDrawPool::POOL_FULLBRIGHT : LLDrawPool::POOL_SIMPLE);
 				
-				if (!force_simple && te->getBumpmap())
+				if (!force_simple && te->getBumpmap() && LLPipeline::sRenderBump)
 				{
 					registerFace(group, facep, LLRenderPass::PASS_BUMP);
 				}
@@ -3017,7 +3943,7 @@ LLHUDPartition::LLHUDPartition()
 	mPartitionType = LLViewerRegion::PARTITION_HUD;
 	mDrawableType = LLPipeline::RENDER_TYPE_HUD;
 	mSlopRatio = 0.f;
-	mLODPeriod = 32;  // KL 32 in SD
+	mLODPeriod = 1;
 }
 
 void LLHUDPartition::shift(const LLVector3 &offset)

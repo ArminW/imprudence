@@ -74,7 +74,7 @@
 #include "llui.h"
 #include "llviewercamera.h"
 #include "llviewercontrol.h"
-#include "llviewerimagelist.h"
+#include "llviewertexturelist.h"
 #include "llviewermedia.h"
 #include "llviewermediafocus.h"
 #include "llviewermenu.h"
@@ -1425,7 +1425,7 @@ void LLSelectMgr::selectionSetImage(const LLUUID& imageid)
 				// Texture picker defaults aren't inventory items
 				// * Don't need to worry about permissions for them
 				// * Can just apply the texture and be done with it.
-				objectp->setTEImage(te, gImageList.getImage(mImageID, TRUE, FALSE));
+				objectp->setTEImage(te, LLViewerTextureManager::getLocalTexture(mImageID, TRUE, FALSE));
 			}
 			return true;
 		}
@@ -1581,7 +1581,7 @@ BOOL LLSelectMgr::selectionRevertTextures()
 					}
 					else
 					{
-						object->setTEImage(te, gImageList.getImage(id));
+						object->setTEImage(te, LLViewerTextureManager::getFetchedTexture(id));
 					}
 				}
 			}
@@ -4549,7 +4549,7 @@ void LLSelectMgr::updateSilhouettes()
 
 	if (!mSilhouetteImagep)
 	{
-		mSilhouetteImagep = gImageList.getImageFromFile("silhouette.j2c", TRUE, TRUE);
+//impfixme:compile		mSilhouetteImagep = gTextureList.getImageFromFile("silhouette.j2c", TRUE, TRUE);
 	}
 
 	mHighlightedObjects->cleanupNodes();
@@ -4852,7 +4852,7 @@ void LLSelectMgr::renderSilhouettes(BOOL for_hud)
 	if (mSelectedObjects->getNumNodes())
 	{
 		LLUUID inspect_item_id = LLFloaterInspect::getSelectedUUID();
-		LLUUID focus_item_id = LLViewerMediaFocus::getInstance()->getSelectedUUID();
+		LLUUID focus_item_id = LLViewerMediaFocus::getInstance()->getFocusedObjectID();
 		for (S32 pass = 0; pass < 2; pass++)
 		{
 			for (LLObjectSelection::iterator iter = mSelectedObjects->begin();
@@ -4866,6 +4866,7 @@ void LLSelectMgr::renderSilhouettes(BOOL for_hud)
 				{
 					continue;
 				}
+//impfixme:compile
 				if (objectp->getID() == focus_item_id)
 				{
 					node->renderOneSilhouette(gFocusMgr.getFocusColor());

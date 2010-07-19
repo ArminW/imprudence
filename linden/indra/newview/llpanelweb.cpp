@@ -50,7 +50,7 @@
 viewer_media_t get_web_media()
 {
 
-	viewer_media_t media_source = LLViewerMedia::newMediaImpl("", LLUUID::null, 0, 0, 0, 0, "text/html");
+	viewer_media_t media_source = LLViewerMedia::newMediaImpl(LLUUID::null, 0, 0, false,false);
 
 	return media_source;
 }

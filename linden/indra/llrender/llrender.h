@@ -9,7 +9,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -17,13 +17,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -33,6 +33,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #ifndef LL_LLGLRENDER_H
@@ -44,6 +45,7 @@
 #include "v3math.h"
 #include "v4coloru.h"
 #include "llstrider.h"
+//#include "llpointer.h"
 #include "llmemory.h"
 #include "llglheaders.h"
 
@@ -51,6 +53,7 @@ class LLVertexBuffer;
 class LLCubeMap;
 class LLImageGL;
 class LLRenderTarget;
+class LLTexture ;
 
 class LLTexUnit
 {
@@ -149,6 +152,7 @@ public:
 	// Binds the LLImageGL to this texture unit 
 	// (automatically enables the unit for the LLImageGL's texture type)
 	bool bind(LLImageGL* texture, bool for_rendering = false, bool forceBind = false);
+	bool bind(LLTexture* texture, bool for_rendering = false, bool forceBind = false);
 
 	// Binds a cubemap to this texture unit 
 	// (automatically enables the texture unit for cubemaps)
@@ -268,7 +272,9 @@ public:
 		BF_DEST_ALPHA,
 		BF_SOURCE_ALPHA,
 		BF_ONE_MINUS_DEST_ALPHA,
-		BF_ONE_MINUS_SOURCE_ALPHA
+		BF_ONE_MINUS_SOURCE_ALPHA,
+
+		BF_UNDEF
 	} eBlendFactor;
 
 	LLRender();
@@ -283,6 +289,14 @@ public:
 	void scalef(const GLfloat& x, const GLfloat& y, const GLfloat& z);
 	void pushMatrix();
 	void popMatrix();
+
+	void translateUI(F32 x, F32 y, F32 z);
+	void scaleUI(F32 x, F32 y, F32 z);
+	void pushUIMatrix();
+	void popUIMatrix();
+	void loadUIIdentity();
+	LLVector3 getUITranslation();
+	LLVector3 getUIScale();
 
 	void flush();
 
@@ -331,7 +345,9 @@ public:
 	};
 
 public:
-
+	static U32 sUICalls;
+	static U32 sUIVerts;
+	
 private:
 	bool				mDirty;
 	U32				mCount;
@@ -348,11 +364,19 @@ private:
 	std::vector<LLTexUnit*>		mTexUnits;
 	LLTexUnit*			mDummyTexUnit;
 
+	eBlendFactor mCurrBlendSFactor;
+	eBlendFactor mCurrBlendDFactor;
+
 	F32				mMaxAnisotropy;
+
+	std::list<LLVector3> mUIOffset;
+	std::list<LLVector3> mUIScale;
+
 };
 
 extern F64 gGLModelView[16];
 extern F64 gGLLastModelView[16];
+extern F64 gGLLastProjection[16];
 extern F64 gGLProjection[16];
 extern S32 gGLViewport[4];
 

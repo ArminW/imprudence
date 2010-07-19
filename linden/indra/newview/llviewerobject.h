@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #ifndef LL_LLVIEWEROBJECT_H
@@ -67,7 +68,7 @@ class LLMessageSystem;
 class LLPrimitive;
 class LLPipeline;
 class LLTextureEntry;
-class LLViewerImage;
+class LLViewerTexture;
 class LLViewerInventoryItem;
 class LLViewerObject;
 class LLViewerPartSourceScript;
@@ -157,10 +158,16 @@ public:
 	virtual BOOL	idleUpdate(LLAgent &agent, LLWorld &world, const F64 &time);
 
 	// Types of media we can associate
-	enum { MEDIA_TYPE_NONE = 0, MEDIA_TYPE_WEB_PAGE = 1 };
+	enum { MEDIA_NONE = 0, MEDIA_SET = 1 };
 
 	// Return codes for processUpdateMessage
-	enum { MEDIA_URL_REMOVED = 0x1, MEDIA_URL_ADDED = 0x2, MEDIA_URL_UPDATED = 0x4, INVALID_UPDATE = 0x80000000 };
+	enum { 
+        MEDIA_URL_REMOVED = 0x1, 
+        MEDIA_URL_ADDED = 0x2, 
+        MEDIA_URL_UPDATED = 0x4, 
+        MEDIA_FLAGS_CHANGED = 0x8,
+        INVALID_UPDATE = 0x80000000
+    };
 
 	virtual U32		processUpdateMessage(LLMessageSystem *mesgsys,
 										void **user_data,
@@ -192,7 +199,7 @@ public:
 	S32 getNumFaces() const { return mNumFaces; }
 
 	// Graphical stuff for objects - maybe broken out into render class later?
-	virtual void updateTextures(LLAgent &agent);
+	virtual void updateTextures();
 	virtual void boostTexturePriority(BOOL boost_children = TRUE);	// When you just want to boost priority of this object
 	
 	virtual LLDrawable* createDrawable(LLPipeline *pipeline);
@@ -241,13 +248,13 @@ public:
 	BOOL isProbablyModifiable() const;
 	*/
 
-	virtual void setParent(LLViewerObject* parent);
+	virtual BOOL setParent(LLViewerObject* parent);
 	virtual void addChild(LLViewerObject *childp);
 	virtual void removeChild(LLViewerObject *childp);
 	const_child_list_t& getChildren() const { 	return mChildList; }
 	S32 numChildren() const { return mChildList.size(); }
-	void addThisAndAllChildren(LLDynamicArray<LLViewerObject*>& objects);
-	void addThisAndNonJointChildren(LLDynamicArray<LLViewerObject*>& objects);
+	void addThisAndAllChildren(std::vector<LLViewerObject*>& objects);
+	void addThisAndNonJointChildren(std::vector<LLViewerObject*>& objects);
 	BOOL isChild(LLViewerObject *childp) const;
 	BOOL isSeat() const;
 	
@@ -316,8 +323,9 @@ public:
 	/*virtual*/	S32		setTEMediaFlags(const U8 te, const U8 media_flags );
 	/*virtual*/ S32     setTEGlow(const U8 te, const F32 glow);
 	/*virtual*/	BOOL	setMaterial(const U8 material);
-	virtual		void	setTEImage(const U8 te, LLViewerImage *imagep); // Not derived from LLPrimitive
-	LLViewerImage		*getTEImage(const U8 te) const;
+	virtual		void	setTEImage(const U8 te, LLViewerTexture *imagep); // Not derived from LLPrimitive
+	void                changeTEImage(S32 index, LLViewerTexture* new_image)  ;
+	LLViewerTexture		*getTEImage(const U8 te) const;
 	
 	void fitFaceTexture(const U8 face);
 	void sendTEUpdate() const;			// Sends packed representation of all texture entry information
@@ -358,7 +366,7 @@ public:
 	void setCanSelect(BOOL canSelect);
 
 	void setDebugText(const std::string &utf8text);
-	void setIcon(LLViewerImage* icon_image);
+	void setIcon(LLViewerTexture* icon_image);
 	void clearIcon();
 
 	void markForUpdate(BOOL priority);
@@ -449,6 +457,7 @@ public:
 	inline BOOL		flagAnimSource() const			{ return ((mFlags & FLAGS_ANIM_SOURCE) != 0); }
 	inline BOOL		flagCameraSource() const		{ return ((mFlags & FLAGS_CAMERA_SOURCE) != 0); }
 	inline BOOL		flagCameraDecoupled() const		{ return ((mFlags & FLAGS_CAMERA_DECOUPLED) != 0); }
+	inline BOOL		flagObjectMove() const			{ return ((mFlags & FLAGS_OBJECT_MOVE) != 0); }
 
 	bool getIncludeInSearch() const;
 	void setIncludeInSearch(bool include_in_search);
@@ -502,6 +511,10 @@ private:
 	ExtraParameter* getExtraParameterEntry(U16 param_type) const;
 	ExtraParameter* getExtraParameterEntryCreate(U16 param_type);
 	bool unpackParameterEntry(U16 param_type, LLDataPacker *dp);
+
+    // This function checks to see if the given media URL has changed its version
+    // and the update wasn't due to this agent's last action.
+    U32 checkMediaURL(const std::string &media_url);
 	
 public:
 	//
@@ -531,7 +544,7 @@ public:
 	// Last total CRC received from sim, used for caching
 	U32				mTotalCRC;
 
-	LLPointer<LLViewerImage> *mTEImages;
+	LLPointer<LLViewerTexture> *mTEImages;
 
 	// Selection, picking and rendering variables
 	U32				mGLName;			// GL "name" used by selection code
@@ -664,6 +677,12 @@ protected:
 
 private:	
 	static S32 sNumObjects;
+
+public:
+	const LLUUID &getItemID() const { return mAttachmentItemID; }
+	void setItemID(const LLUUID &id) { mAttachmentItemID = id; }
+private:
+	LLUUID mAttachmentItemID; // ItemID when item is in user inventory.
 };
 
 ///////////////////

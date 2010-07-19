@@ -41,7 +41,7 @@
 #include "llfontgl.h"
 #include "llui.h"
 #include "llstring.h"
-#include "llimagegl.h"
+#include "lltexture.h"
 #include "lleditmenuhandler.h"
 #include "llframetimer.h"
 #include "llcheckboxctrl.h"

@@ -1,5 +1,5 @@
 /** 
- * @file llviewerimagelist.h
+ * @file llviewertexturelist.h
  * @brief Object for managing the list of images within a region
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
@@ -37,7 +37,7 @@
 //#include "message.h"
 #include "llgl.h"
 #include "llstat.h"
-#include "llviewerimage.h"
+#include "llviewertexture.h"
 #include "llui.h"
 #include <list>
 #include <set>
@@ -54,20 +54,20 @@ const BOOL IMMEDIATE_YES = TRUE;
 const BOOL IMMEDIATE_NO = FALSE;
 
 class LLMessageSystem;
-class LLViewerImage;
+class LLViewerTexture;
 class LLTextureView;
 
 typedef	void (*LLImageCallback)(BOOL success,
-								LLViewerImage *src_vi,
+								LLViewerTexture *src_vi,
 								LLImageRaw* src,
 								LLImageRaw* src_aux,
 								S32 discard_level,
 								BOOL final,
 								void* userdata);
 
-class LLViewerImageList
+class LLViewerTextureList
 {
-        LOG_CLASS(LLViewerImageList);
+        LOG_CLASS(LLViewerTextureList);
 
 	friend class LLTextureView;
 	
@@ -80,8 +80,8 @@ public:
 	static void receiveImagePacket(LLMessageSystem *msg, void **user_data);
 
 public:
-	LLViewerImageList();
-	~LLViewerImageList();
+	LLViewerTextureList();
+	~LLViewerTextureList();
 
 	void init();
 	void shutdown();
@@ -89,7 +89,7 @@ public:
 	void destroyGL(BOOL save_state = TRUE);
 	void restoreGL();
 
-	LLViewerImage * getImage(const LLUUID &image_id,
+	LLViewerTexture * getImage(const LLUUID &image_id,
 									 BOOL usemipmap = TRUE,
 									 BOOL level_immediate = FALSE,		// Get the requested level immediately upon creation.
 									 LLGLint internal_format = 0,
@@ -97,7 +97,7 @@ public:
 									 LLHost request_from_host = LLHost()
 									 );
 	
-	LLViewerImage * getImageFromUrl(const std::string& url,
+	LLViewerTexture * getImageFromUrl(const std::string& url,
 									 BOOL usemipmap = TRUE,
 									 BOOL level_immediate = FALSE,		// Get the requested level immediately upon creation.
 									 LLGLint internal_format = 0,
@@ -105,7 +105,7 @@ public:
 									 const LLUUID& force_id = LLUUID::null
 									 );
 
-	LLViewerImage * getImageFromFile(const std::string& filename,
+	LLViewerTexture * getImageFromFile(const std::string& filename,
 									 BOOL usemipmap = TRUE,
 									 BOOL level_immediate = FALSE,		// Get the requested level immediately upon creation.
 									 LLGLint internal_format = 0,
@@ -115,21 +115,21 @@ public:
 
 	// Request image from a specific host, used for baked avatar textures.
 	// Implemented in header in case someone changes default params above. JC
-	LLViewerImage* getImageFromHost(const LLUUID& image_id, LLHost host)
+	LLViewerTexture* getImageFromHost(const LLUUID& image_id, LLHost host)
 		{ return getImage(image_id, TRUE, FALSE, 0, 0, host); }
 
-	LLViewerImage *hasImage(const LLUUID &image_id);
-	void addImage(LLViewerImage *image);
-	void deleteImage(LLViewerImage *image);
+	LLViewerTexture *hasImage(const LLUUID &image_id);
+	void addImage(LLViewerTexture *image);
+	void deleteImage(LLViewerTexture *image);
 
-	void addImageToList(LLViewerImage *image);
-	void removeImageFromList(LLViewerImage *image);
+	void addImageToList(LLViewerTexture *image);
+	void removeImageFromList(LLViewerTexture *image);
 
-	void dirtyImage(LLViewerImage *image);
+	void dirtyImage(LLViewerTexture *image);
 	
 	// Using image stats, determine what images are necessary, and perform image updates.
 	void updateImages(F32 max_time);
-	void forceImmediateUpdate(LLViewerImage* imagep) ;
+	void forceImmediateUpdate(LLViewerTexture* imagep) ;
 
 	// Decode and create textures for all images currently in list.
 	void decodeAllImages(F32 max_decode_time); 
@@ -157,27 +157,27 @@ private:
 	void updateImagesUpdateStats();
 	
 public:
-	typedef std::set<LLPointer<LLViewerImage> > image_list_t;	
+	typedef std::set<LLPointer<LLViewerTexture> > image_list_t;	
 	image_list_t mLoadingStreamList;
 	image_list_t mCreateTextureList;
 	image_list_t mCallbackList;
 
 	// Note: just raw pointers because they are never referenced, just compared against
-	std::set<LLViewerImage*> mDirtyTextureList;
+	std::set<LLViewerTexture*> mDirtyTextureList;
 	
 	BOOL mForceResetTextureStats;
     
 private:
-	typedef std::map< LLUUID, LLPointer<LLViewerImage> > uuid_map_t;
+	typedef std::map< LLUUID, LLPointer<LLViewerTexture> > uuid_map_t;
 	uuid_map_t mUUIDMap;
 	LLUUID mLastUpdateUUID;
 	LLUUID mLastFetchUUID;
 	
-	typedef std::set<LLPointer<LLViewerImage>, LLViewerImage::Compare> image_priority_list_t;	
+	typedef std::set<LLPointer<LLViewerTexture>, LLViewerTexture::Compare> image_priority_list_t;	
 	image_priority_list_t mImageList;
 
-	// simply holds on to LLViewerImage references to stop them from being purged too soon
-	std::set<LLPointer<LLViewerImage> > mImagePreloads;
+	// simply holds on to LLViewerTexture references to stop them from being purged too soon
+	std::set<LLPointer<LLViewerTexture> > mImagePreloads;
 
 	BOOL mUpdateStats;
 	S32	mMaxResidentTexMemInMegaBytes;
@@ -212,12 +212,12 @@ public:
 
 	LLUIImagePtr preloadUIImage(const std::string& name, const std::string& filename, BOOL use_mips, const LLRect& scale_rect);
 	
-	static void onUIImageLoaded( BOOL success, LLViewerImage *src_vi, LLImageRaw* src, LLImageRaw* src_aux, S32 discard_level, BOOL final, void* userdata );
+	static void onUIImageLoaded( BOOL success, LLViewerTexture *src_vi, LLImageRaw* src, LLImageRaw* src_aux, S32 discard_level, BOOL final, void* userdata );
 private:
 	LLUIImagePtr loadUIImageByName(const std::string& name, const std::string& filename, BOOL use_mips = FALSE, const LLRect& scale_rect = LLRect::null);
 	LLUIImagePtr loadUIImageByID(const LLUUID& id, BOOL use_mips = FALSE, const LLRect& scale_rect = LLRect::null);
 
-	LLUIImagePtr loadUIImage(LLViewerImage* imagep, const std::string& name, BOOL use_mips = FALSE, const LLRect& scale_rect = LLRect::null);
+	LLUIImagePtr loadUIImage(LLViewerTexture* imagep, const std::string& name, BOOL use_mips = FALSE, const LLRect& scale_rect = LLRect::null);
 
 
 	struct LLUIImageLoadData
@@ -235,6 +235,6 @@ const BOOL GLTEXTURE_FALSE = FALSE;
 const BOOL MIPMAP_TRUE = TRUE;
 const BOOL MIPMAP_FALSE = FALSE;
 
-extern LLViewerImageList gImageList;
+extern LLViewerTextureList gTextureList;
 
 #endif

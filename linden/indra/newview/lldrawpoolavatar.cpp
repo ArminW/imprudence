@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -89,18 +90,17 @@ S32 AVATAR_OFFSET_TEX0 = 32;
 S32 AVATAR_OFFSET_TEX1 = 40;
 S32 AVATAR_VERTEX_BYTES = 48;
 
-
 BOOL gAvatarEmbossBumpMap = FALSE;
 static BOOL sRenderingSkinned = FALSE;
 S32 normal_channel = -1;
 S32 specular_channel = -1;
 S32 diffuse_channel = -1;
 
-LLDrawPoolAvatar::LLDrawPoolAvatar() :
-LLFacePool(POOL_AVATAR)
+//static LLFastTimer::DeclareTimer FTM_SHADOW_AVATAR("Avatar Shadow");
+
+LLDrawPoolAvatar::LLDrawPoolAvatar() : 
+	LLFacePool(POOL_AVATAR)	
 {
-	//LLDebugVarMessageBox::show("acceleration", &CLOTHING_ACCEL_FORCE_FACTOR, 10.f, 0.1f);
-	//LLDebugVarMessageBox::show("gravity", &CLOTHING_GRAVITY_EFFECT, 10.f, 0.1f);	
 }
 
 //-----------------------------------------------------------------------------
@@ -111,7 +111,6 @@ LLDrawPool *LLDrawPoolAvatar::instancePool()
 	return new LLDrawPoolAvatar();
 }
 
-BOOL gRenderAvatar = TRUE;
 
 S32 LLDrawPoolAvatar::getVertexShaderLevel() const
 {
@@ -289,10 +288,6 @@ void LLDrawPoolAvatar::endShadowPass(S32 pass)
 void LLDrawPoolAvatar::renderShadow(S32 pass)
 {
 	LLFastTimer t(LLFastTimer::FTM_SHADOW_AVATAR);
-	if (!gRenderAvatar)
-	{
-		return;
-	}
 
 	if (mDrawFace.empty())
 	{
@@ -396,6 +391,7 @@ void LLDrawPoolAvatar::beginFootShadow()
 	}
 
 	gPipeline.enableLightsFullbright(LLColor4(1,1,1,1));
+	diffuse_channel = 0;
 }
 
 void LLDrawPoolAvatar::endFootShadow()
@@ -448,7 +444,7 @@ void LLDrawPoolAvatar::beginDeferredImpostor()
 
 	normal_channel = sVertexProgram->enableTexture(LLViewerShaderMgr::DEFERRED_NORMAL);
 	specular_channel = sVertexProgram->enableTexture(LLViewerShaderMgr::SPECULAR_MAP);
-	diffuse_channel = sVertexProgram->enableTexture(LLViewerShaderMgr::DIFFUSE_MAP); // KL SD
+	diffuse_channel = sVertexProgram->enableTexture(LLViewerShaderMgr::DIFFUSE_MAP);
 
 	sVertexProgram->bind();
 }
@@ -458,7 +454,7 @@ void LLDrawPoolAvatar::endDeferredImpostor()
 	sShaderLevel = mVertexShaderLevel;
 	sVertexProgram->disableTexture(LLViewerShaderMgr::DEFERRED_NORMAL);
 	sVertexProgram->disableTexture(LLViewerShaderMgr::SPECULAR_MAP);
-	sVertexProgram->disableTexture(LLViewerShaderMgr::DIFFUSE_MAP); // KL SD
+	sVertexProgram->disableTexture(LLViewerShaderMgr::DIFFUSE_MAP);
 	sVertexProgram->unbind();
 	gGL.getTexUnit(0)->activate();
 }
@@ -612,13 +608,6 @@ void LLDrawPoolAvatar::renderAvatars(LLVOAvatar* single_avatar, S32 pass)
 		return;
 	}
 
-	
-
-	if (!gRenderAvatar)
-	{
-		return;
-	}
-
 	if (mDrawFace.empty() && !single_avatar)
 	{
 		return;
@@ -650,7 +639,7 @@ void LLDrawPoolAvatar::renderAvatars(LLVOAvatar* single_avatar, S32 pass)
 		if (pass==1 && (!gPipeline.hasRenderType(LLPipeline::RENDER_TYPE_PARTICLES) || LLViewerPartSim::getMaxPartCount() <= 0))
 		{
 			// debug code to draw a sphere in place of avatar
-			gGL.getTexUnit(0)->bind(LLViewerImage::sWhiteImagep.get());
+			gGL.getTexUnit(0)->bind(LLViewerFetchedTexture::sWhiteImagep);
 			gGL.setColorMask(true, true);
 			LLVector3 pos = avatarp->getPositionAgent();
 			gGL.color4f(1.0f, 1.0f, 1.0f, 0.7f);
@@ -702,8 +691,7 @@ void LLDrawPoolAvatar::renderAvatars(LLVOAvatar* single_avatar, S32 pass)
 					avatarp->mImpostor.bindTexture(1, specular_channel);
 				}
 			}
-		//	avatarp->renderImpostor(LLColor4U(255,255,255,255), diffuse_channel); // KL SD
-		avatarp->renderImpostor();
+			avatarp->renderImpostor(LLColor4U(255,255,255,255), diffuse_channel);
 		}
 		else if (gPipeline.hasRenderDebugFeatureMask(LLPipeline::RENDER_DEBUG_FEATURE_FOOT_SHADOWS) && !LLPipeline::sRenderDeferred)
 		{
@@ -756,67 +744,6 @@ void LLDrawPoolAvatar::renderAvatars(LLVOAvatar* single_avatar, S32 pass)
 
 	if( !single_avatar || (avatarp == single_avatar) )
 	{
-		if (LLVOAvatar::sShowCollisionVolumes)
-		{
-			gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-			avatarp->renderCollisionVolumes();
-		}
-
-		if (avatarp->isSelf() && LLAgent::sDebugDisplayTarget)
-		{
-			gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-			LLVector3 pos = avatarp->getPositionAgent();
-
-			gGL.color4f(1.0f, 0.0f, 0.0f, 0.8f);
-			gGL.begin(LLRender::LINES);
-			{
-				gGL.vertex3fv((pos - LLVector3(0.2f, 0.f, 0.f)).mV);
-				gGL.vertex3fv((pos + LLVector3(0.2f, 0.f, 0.f)).mV);
-				gGL.vertex3fv((pos - LLVector3(0.f, 0.2f, 0.f)).mV);
-				gGL.vertex3fv((pos + LLVector3(0.f, 0.2f, 0.f)).mV);
-				gGL.vertex3fv((pos - LLVector3(0.f, 0.f, 0.2f)).mV);
-				gGL.vertex3fv((pos + LLVector3(0.f, 0.f, 0.2f)).mV);
-			}gGL.end();
-
-			pos = avatarp->mDrawable->getPositionAgent();
-			gGL.color4f(1.0f, 0.0f, 0.0f, 0.8f);
-			gGL.begin(LLRender::LINES);
-			{
-				gGL.vertex3fv((pos - LLVector3(0.2f, 0.f, 0.f)).mV);
-				gGL.vertex3fv((pos + LLVector3(0.2f, 0.f, 0.f)).mV);
-				gGL.vertex3fv((pos - LLVector3(0.f, 0.2f, 0.f)).mV);
-				gGL.vertex3fv((pos + LLVector3(0.f, 0.2f, 0.f)).mV);
-				gGL.vertex3fv((pos - LLVector3(0.f, 0.f, 0.2f)).mV);
-				gGL.vertex3fv((pos + LLVector3(0.f, 0.f, 0.2f)).mV);
-			}gGL.end();
-
-			pos = avatarp->mRoot.getWorldPosition();
-			gGL.color4f(1.0f, 1.0f, 1.0f, 0.8f);
-			gGL.begin(LLRender::LINES);
-			{
-				gGL.vertex3fv((pos - LLVector3(0.2f, 0.f, 0.f)).mV);
-				gGL.vertex3fv((pos + LLVector3(0.2f, 0.f, 0.f)).mV);
-				gGL.vertex3fv((pos - LLVector3(0.f, 0.2f, 0.f)).mV);
-				gGL.vertex3fv((pos + LLVector3(0.f, 0.2f, 0.f)).mV);
-				gGL.vertex3fv((pos - LLVector3(0.f, 0.f, 0.2f)).mV);
-				gGL.vertex3fv((pos + LLVector3(0.f, 0.f, 0.2f)).mV);
-			}gGL.end();
-
-			pos = avatarp->mPelvisp->getWorldPosition();
-			gGL.color4f(0.0f, 0.0f, 1.0f, 0.8f);
-			gGL.begin(LLRender::LINES);
-			{
-				gGL.vertex3fv((pos - LLVector3(0.2f, 0.f, 0.f)).mV);
-				gGL.vertex3fv((pos + LLVector3(0.2f, 0.f, 0.f)).mV);
-				gGL.vertex3fv((pos - LLVector3(0.f, 0.2f, 0.f)).mV);
-				gGL.vertex3fv((pos + LLVector3(0.f, 0.2f, 0.f)).mV);
-				gGL.vertex3fv((pos - LLVector3(0.f, 0.f, 0.2f)).mV);
-				gGL.vertex3fv((pos + LLVector3(0.f, 0.f, 0.2f)).mV);
-			}gGL.end();	
-
-			color.setColor(1.0f, 1.0f, 1.0f, 1.0f);
-		}
-
 		avatarp->renderSkinned(AVATAR_RENDER_PASS_SINGLE);
 	}
 }
@@ -826,10 +753,7 @@ void LLDrawPoolAvatar::renderAvatars(LLVOAvatar* single_avatar, S32 pass)
 //-----------------------------------------------------------------------------
 void LLDrawPoolAvatar::renderForSelect()
 {
-	if (!gRenderAvatar)
-	{
-		return;
-	}
+
 
 	if (mDrawFace.empty())
 	{
@@ -901,7 +825,7 @@ void LLDrawPoolAvatar::renderForSelect()
 //-----------------------------------------------------------------------------
 // getDebugTexture()
 //-----------------------------------------------------------------------------
-LLViewerImage *LLDrawPoolAvatar::getDebugTexture()
+LLViewerTexture *LLDrawPoolAvatar::getDebugTexture()
 {
 	if (mReferences.empty())
 	{

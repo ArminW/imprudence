@@ -68,13 +68,13 @@ protected:
 	
 public:
 	LLDrawInfo(U16 start, U16 end, U32 count, U32 offset, 
-				LLImageGL* gl_image, LLViewerImage* image, LLVertexBuffer* buffer, 
+				LLViewerTexture* gl_image, LLViewerTexture* image, LLVertexBuffer* buffer, 
 				BOOL fullbright = FALSE, U8 bump = 0, BOOL particle = FALSE, F32 part_size = 0);
 	
 
 	LLPointer<LLVertexBuffer> mVertexBuffer;
-	LLPointer<LLImageGL>     mTexture;
-	LLPointer<LLViewerImage> mViewerTexture;
+	LLPointer<LLViewerTexture>     mTexture;
+	LLPointer<LLViewerTexture> mViewerTexture;
 	LLColor4U mGlowColor;
 	S32 mDebugColor;
 	const LLMatrix4* mTextureMatrix;
@@ -92,6 +92,7 @@ public:
 	LLFace* mFace; //associated face
 	F32 mDistance;
 	LLVector3 mExtents[2];
+	U32 mDrawMode;
 
 	struct CompareTexture
 	{
@@ -167,8 +168,7 @@ public:
 	typedef std::vector<LLPointer<LLDrawInfo> > drawmap_elem_t; 
 	typedef std::map<U32, drawmap_elem_t > draw_map_t;	
 	typedef std::vector<LLPointer<LLVertexBuffer> > buffer_list_t;
-	typedef std::map<LLPointer<LLImageGL>, buffer_list_t> buffer_texture_map_t; // KL render-pipeline
-//	typedef std::map<LLPointer<LLViewerImage>, buffer_list_t> buffer_texture_map_t; // KL standard
+	typedef std::map<LLPointer<LLViewerTexture>, buffer_list_t> buffer_texture_map_t;
 	typedef std::map<U32, buffer_texture_map_t> buffer_map_t;
 
 	typedef LLOctreeListener<LLDrawable>	BaseType;
@@ -297,10 +297,10 @@ public:
 	U32  getCurUpdatingTime() const { return mCurUpdatingTime ;}
 	
 	void setCurUpdatingSlot(LLTextureAtlasSlot* slotp) ;
-	LLTextureAtlasSlot* getCurUpdatingSlot(LLViewerImage* imagep, S8 recursive_level = 3) ;
+	LLTextureAtlasSlot* getCurUpdatingSlot(LLViewerTexture* imagep, S8 recursive_level = 3) ;
 
-	void setCurUpdatingTexture(LLViewerImage* tex){ mCurUpdatingTexture = tex ;}
-	LLViewerImage* getCurUpdatingTexture() const { return mCurUpdatingTexture ;}
+	void setCurUpdatingTexture(LLViewerTexture* tex){ mCurUpdatingTexture = tex ;}
+	LLViewerTexture* getCurUpdatingTexture() const { return mCurUpdatingTexture ;}
 	
 	BOOL hasAtlas(LLTextureAtlas* atlasp) ;
 	LLTextureAtlas* getAtlas(S8 ncomponents, S8 to_be_reserved, S8 recursive_level = 3) ;
@@ -312,7 +312,7 @@ private:
 	//do not make the below two to use LLPointer
 	//because mCurUpdatingTime invalidates them automatically.
 	LLTextureAtlasSlot* mCurUpdatingSlotp ;
-	LLViewerImage*          mCurUpdatingTexture ;
+	LLViewerTexture*          mCurUpdatingTexture ;
 
 	std::vector< std::list<LLTextureAtlas*> > mAtlasList ; 
 //-------------------
