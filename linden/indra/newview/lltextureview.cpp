@@ -125,8 +125,8 @@ public:
 			LLTextureBar* bar2p = (LLTextureBar*)i2;
 			LLViewerFetchedTexture *i1p = bar1p->mImagep;
 			LLViewerFetchedTexture *i2p = bar2p->mImagep;
-			U32 pri1 = i1p->mFetchPriority;
-			U32 pri2 = i2p->mFetchPriority;
+			U32 pri1 = i1p->getFetchPriority();
+			U32 pri2 = i2p->getFetchPriority();
 			if (pri1 > pri2)
 				return true;
 			else if (pri2 > pri1)
@@ -350,7 +350,7 @@ void LLTextureBar::draw()
 		// draw the image size at the end
 		{
 			std::string num_str = llformat("%3dx%3d (%d) %7d", mImagep->getWidth(), mImagep->getHeight(),
-										mImagep->getDiscardLevel(), mImagep->getTextureMemory());
+				mImagep->getDiscardLevel(), mImagep->hasGLTexture() ? mImagep->getTextureMemory() : 0);
 			LLFontGL::getFontMonospace()->renderUTF8(num_str, 0, title_x4, getRect().getHeight(), color,
 											LLFontGL::LEFT, LLFontGL::TOP);
 		}
@@ -492,7 +492,7 @@ void LLGLTexMemBar::draw()
 #endif
 	//----------------------------------------------------------------------------
 
-	text = llformat("Textures: %d Fetch: %d(%d) Pkts:%d(%d) Cache R/W: %d/%d LFS:%d IW:%d RAW:%d HTP:%d BW: %.0f/%.0f",
+	text = llformat("Textures: %d Fetch: %d(%d) Pkts:%d(%d) Cache R/W: %d/%d LFS:%d RAW:%d HTP:%d DEC:%d CRE:%d BW: %.0f/%.0f",
 					gTextureList.getNumImages(),
 					LLAppViewer::getTextureFetch()->getNumRequests(),
 					LLAppViewer::getTextureFetch()->getNumDeletes(),
@@ -501,9 +501,10 @@ void LLGLTexMemBar::draw()
 					LLAppViewer::getTextureCache()->getNumReads(),
 					LLAppViewer::getTextureCache()->getNumWrites(),
 					LLLFSThread::sLocal->getPending(),
-					LLAppViewer::getImageDecodeThread()->getPending(), 
 					LLImageRaw::sRawImageCount,
 					LLAppViewer::getTextureFetch()->getNumHTTPRequests(),
+					LLAppViewer::getImageDecodeThread()->getPending(), 
+					gTextureList.mCreateTextureList.size(),
 					LLAppViewer::getTextureFetch()->getTextureBandwidth(),
 					gSavedSettings.getF32("ThrottleBandwidthKBPS"));
 

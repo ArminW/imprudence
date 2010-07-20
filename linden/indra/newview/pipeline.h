@@ -426,7 +426,8 @@ public:
 	static BOOL				sFastAlpha;
 	static BOOL				sDisableShaders; // if TRUE, rendering will be done without shaders
 	static BOOL				sRenderBump;
-	static BOOL				sUseFBO;
+//impfixme:rm	static BOOL				sUseFBO;
+	static BOOL				sUseTriStrips;
 	static BOOL				sUseFarClip;
 	static BOOL				sShadowRender;
 	static BOOL				sSkipUpdate; //skip lod updates

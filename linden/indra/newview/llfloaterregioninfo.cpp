@@ -1136,7 +1136,7 @@ BOOL LLPanelRegionTextureInfo::validateTextureSizes()
 		if (!texture_ctrl) continue;
 
 		LLUUID image_asset_id = texture_ctrl->getImageAssetID();
-		LLViewerFetchedTexture* img =  LLViewerTextureManager::getFetchedTexture(image_asset_id);
+		LLViewerTexture* img =  LLViewerTextureManager::getFetchedTexture(image_asset_id);
 		S32 components = img->getComponents();
 		// Must ask for highest resolution version's width. JC
 		S32 width = img->getWidth(0);

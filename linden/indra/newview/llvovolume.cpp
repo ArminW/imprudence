@@ -1519,13 +1519,11 @@ void LLVOVolume::updateFaceSize(S32 idx)
 	else
 	{
 		const LLVolumeFace& vol_face = getVolume()->getVolumeFace(idx);
-//impfixme:compile
-/*		if (LLPipeline::sUseTriStrips)
+		if (LLPipeline::sUseTriStrips)
 		{
 			facep->setSize(vol_face.mVertices.size(), vol_face.mTriStrip.size());
 		}
 		else
-*/
 		{
 			facep->setSize(vol_face.mVertices.size(), vol_face.mIndices.size());
 		}
@@ -3182,10 +3180,12 @@ void LLVolumeGeometryManager::registerFace(LLSpatialGroup* group, LLFace* facep,
 	LLMemType mt(LLMemType::MTYPE_SPACE_PARTITION);
 
 //impfixme:compile
-// 	if (facep->getViewerObject()->isSelected() && gHideSelectedObjects)
-// 	{
-// 		return;
-// 	}
+/*
+	if (facep->getViewerObject()->isSelected() && gHideSelectedObjects)
+	{
+		return;
+	}
+*/
 
 	//add face to drawmap
 	LLSpatialGroup::drawmap_elem_t& draw_vec = group->mDrawMap[type];	
@@ -3263,9 +3263,7 @@ void LLVolumeGeometryManager::registerFace(LLSpatialGroup* group, LLFace* facep,
 		U32 start = facep->getGeomIndex();
 		U32 end = start + facep->getGeomCount()-1;
 		U32 offset = facep->getIndicesStart();
-		U32 count ;//impfixme:compile = facep->getIndicesCount();
-//impfixme:compile
-/*
+		U32 count = facep->getIndicesCount();
 		LLPointer<LLDrawInfo> draw_info = new LLDrawInfo(start,end,count,offset, tex, 
 									facep->mVertexBuffer, fullbright, bump);
 		draw_info->mGroup = group;
@@ -3287,7 +3285,6 @@ void LLVolumeGeometryManager::registerFace(LLSpatialGroup* group, LLFace* facep,
 		{
 			draw_info->mDrawMode = LLRender::TRIANGLE_STRIP;
 		}
-*/
 	}
 }
 

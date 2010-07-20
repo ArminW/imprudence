@@ -5197,7 +5197,7 @@ void LLPickInfo::updateXYCoords()
 	if (mObjectFace > -1)
 	{
 		const LLTextureEntry* tep = getObject()->getTE(mObjectFace);
-		LLPointer<LLViewerFetchedTexture> imagep = LLViewerTextureManager::getFetchedTexture(tep->getID());
+		LLPointer<LLViewerTexture> imagep = LLViewerTextureManager::getFetchedTexture(tep->getID());
 		if(mUVCoords.mV[VX] >= 0.f && mUVCoords.mV[VY] >= 0.f && imagep.notNull())
 		{
 			mXYCoords.mX = llround(mUVCoords.mV[VX] * (F32)imagep->getWidth());

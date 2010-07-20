@@ -3195,12 +3195,10 @@ LLDrawable* LLSpatialPartition::lineSegmentIntersect(const LLVector3& start, con
 }
 
 LLDrawInfo::LLDrawInfo(U16 start, U16 end, U32 count, U32 offset, 
-					   LLViewerTexture* gl_texture, LLViewerTexture* texture, LLVertexBuffer* buffer,
+					   LLViewerTexture* texture, LLVertexBuffer* buffer,
 					   BOOL fullbright, U8 bump, BOOL particle, F32 part_size)
 :
 	mVertexBuffer(buffer),
-	mTexture(gl_texture),
-	mViewerTexture(texture),
 	mTextureMatrix(NULL),
 	mModelMatrix(NULL),
 	mStart(start),

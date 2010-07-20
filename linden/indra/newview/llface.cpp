@@ -936,7 +936,7 @@ BOOL LLFace::getGeometryVolume(const LLVolume& volume,
 {
 	const LLVolumeFace &vf = volume.getVolumeFace(f);
 	S32 num_vertices = (S32)vf.mVertices.size();
-	S32 num_indices = (S32)vf.mIndices.size();
+	S32 num_indices = LLPipeline::sUseTriStrips ? (S32)vf.mTriStrip.size() : (S32) vf.mIndices.size();
 	
 	if (mVertexBuffer.notNull())
 	{
@@ -1118,9 +1118,19 @@ BOOL LLFace::getGeometryVolume(const LLVolume& volume,
 	if (full_rebuild)
 	{
 		mVertexBuffer->getIndexStrider(indicesp, mIndicesIndex);
-		for (U16 i = 0; i < num_indices; i++)
+		if (LLPipeline::sUseTriStrips)
 		{
-			*indicesp++ = vf.mIndices[i] + index_offset;
+			for (U32 i = 0; i < (U32) num_indices; i++)
+			{
+				*indicesp++ = vf.mTriStrip[i] + index_offset;
+			}
+		}
+		else
+		{
+			for (U32 i = 0; i < (U32) num_indices; i++)
+			{
+				*indicesp++ = vf.mIndices[i] + index_offset;
+			}
 		}
 	}
 	

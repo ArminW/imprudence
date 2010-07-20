@@ -1151,7 +1151,7 @@ void LLToolDragAndDrop::dropTextureAllFaces(LLViewerObject* hit_obj,
 	{
 		return;
 	}
-	LLViewerFetchedTexture* image = LLViewerTextureManager::getFetchedTexture(asset_id);
+	LLViewerTexture* image = LLViewerTextureManager::getFetchedTexture(asset_id);
 	LLViewerStats::getInstance()->incStat(LLViewerStats::ST_EDIT_TEXTURE_COUNT );
 	S32 num_faces = hit_obj->getNumTEs();
 	for( S32 face = 0; face < num_faces; face++ )
@@ -1169,7 +1169,7 @@ void LLToolDragAndDrop::dropTextureAllFaces(LLViewerObject* hit_obj,
 void LLToolDragAndDrop::dropTextureOneFaceAvatar(LLVOAvatar* avatar, S32 hit_face, LLInventoryItem* item)
 {
 	if (hit_face == -1) return;
-	LLViewerFetchedTexture* image = LLViewerTextureManager::getFetchedTexture(item->getAssetUUID());
+	LLViewerTexture* image = LLViewerTextureManager::getFetchedTexture(item->getAssetUUID());
 	
 	avatar->userSetOptionalTE( hit_face, image);
 }
@@ -1194,7 +1194,7 @@ void LLToolDragAndDrop::dropTextureOneFace(LLViewerObject* hit_obj,
 		return;
 	}
 	// update viewer side image in anticipation of update from simulator
-	LLViewerFetchedTexture* image = LLViewerTextureManager::getFetchedTexture(asset_id);
+	LLViewerTexture* image = LLViewerTextureManager::getFetchedTexture(asset_id);
 	LLViewerStats::getInstance()->incStat(LLViewerStats::ST_EDIT_TEXTURE_COUNT );
 	hit_obj->setTEImage(hit_face, image);
 	dialog_refresh_all();
