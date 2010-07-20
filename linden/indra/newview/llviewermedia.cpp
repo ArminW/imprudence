@@ -54,7 +54,7 @@
 #include "llvoavatar.h"
 // #include "llvoavatarself.h"
 #include "llviewerregion.h"
-
+#include "llnotify.h"
 #include "llevent.h"		// LLSimpleListener
 #include "lluuid.h"
 #include "llkeyboard.h"
@@ -260,7 +260,7 @@ static const F32 LLVIEWERMEDIA_CREATE_DELAY = 1.0f;
 static F32 sGlobalVolume = 1.0f;
 static F64 sLowestLoadableImplInterest = 0.0f;
 static bool sAnyMediaShowing = false;
-//impfixme:compile static boost::signals2::connection sTeleportFinishConnection;
+//impfixme:compile static boost::signals::connection sTeleportFinishConnection;
 
 //////////////////////////////////////////////////////////////////////////////////////////
 static void add_media_impl(LLViewerMediaImpl* media)
@@ -982,7 +982,7 @@ bool LLViewerMedia::isParcelMediaPlaying()
 // static
 bool LLViewerMedia::isParcelAudioPlaying()
 {
-	return (LLViewerMedia::hasParcelAudio() && gAudiop /*&& LLAudioEngine::AUDIO_PLAYING == gAudiop->isInternetStreamPlaying()*/);//impfixme:compile
+	return (LLViewerMedia::hasParcelAudio() && gAudiop && LLAudioEngine::AUDIO_PLAYING == gAudiop->isInternetStreamPlaying());//impfixme:compile
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -1107,7 +1107,7 @@ bool LLViewerMedia::hasInWorldMedia()
 	for (; iter != end; iter++)
 	{
 		LLViewerMediaImpl* pimpl = *iter;
-		if (!pimpl->getUsedInUI() /*&& !pimpl->isParcelMedia()*/)//impfixme:compile!
+		if (!pimpl->getUsedInUI() && !pimpl->isParcelMedia())//impfixme:compile!
 		{
 			// Found an in-world media impl
 			return true;
@@ -1143,8 +1143,10 @@ void LLViewerMedia::initClass()
 {
 	gIdleCallbacks.addFunction(LLViewerMedia::updateMedia, NULL);	
 //impfixme:compile
-/*	sTeleportFinishConnection = LLViewerParcelMgr::getInstance()->
-		setTeleportFinishedCallback(boost::bind(&LLViewerMedia::onTeleportFinished));*/
+/*
+	sTeleportFinishConnection = LLViewerParcelMgr::getInstance()->
+		setTeleportFinishedCallback(boost::bind(&LLViewerMedia::onTeleportFinished));
+*/
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1405,7 +1407,7 @@ LLPluginClassMedia* LLViewerMediaImpl::newSourceFromMediaType(std::string media_
 	LL_WARNS("Plugin") << "plugin intialization failed for mime type: " << media_type << LL_ENDL;
 	LLSD args;
 	args["MIME_TYPE"] = media_type;
-//impfixme:compile	LLNotificationsUtil::add("NoPlugin", args);
+	LLNotifications::instance().add("NoPlugin", args);
 
 	return NULL;
 }							
@@ -2509,7 +2511,7 @@ void LLViewerMediaImpl::handleMediaEvent(LLPluginClassMedia* plugin, LLPluginCla
 			// TODO: may want a different message for this case?
 			LLSD args;
 			args["PLUGIN"] = LLMIMETypes::implType(mCurrentMimeType);
-//impfixme:compile			LLNotificationsUtil::add("MediaPluginFailed", args);
+			LLNotifications::instance().add("MediaPluginFailed", args);
 		}
 		break;
 
@@ -2524,7 +2526,7 @@ void LLViewerMediaImpl::handleMediaEvent(LLPluginClassMedia* plugin, LLPluginCla
 			LLSD args;
 			args["PLUGIN"] = LLMIMETypes::implType(mCurrentMimeType);
 			// SJB: This is getting called every frame if the plugin fails to load, continuously respawining the alert!
-			//LLNotificationsUtil::add("MediaPluginFailed", args);
+			//LLNotificationsUtil::instance().add("MediaPluginFailed", args);
 		}
 		break;
 		

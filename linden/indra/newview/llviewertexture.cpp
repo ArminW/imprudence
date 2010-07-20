@@ -338,9 +338,9 @@ void LLViewerTextureManager::cleanup()
 // static
 void LLViewerTexture::initClass()
 {
-	LLImageGL::sDefaultGLTexture = LLViewerFetchedTexture::sDefaultImagep->getGLTexture();
+	LLImageGL::sDefaultGLTexture = LLViewerFetchedTexture::sDefaultImagep->getGLTexture() ;
 
-//impfixme: is gAuditTexture anything we use? otherwise get rid
+//imp fixme: is gAuditTexture anything we use? otherwise get rid
 // 	if(gAuditTexture)
 // 	{
 // 		LLImageGL::setHighlightTexture(LLViewerTexture::OTHER) ;	
@@ -2994,8 +2994,6 @@ BOOL LLViewerMediaTexture::findFaces()
 	}
 
 	//for media on a face.
-//impfixme
-/*
 	const std::list< LLVOVolume* >* obj_list = mMediaImplp->getObjectList() ;
 	std::list< LLVOVolume* >::const_iterator iter = obj_list->begin() ;
 	for(; iter != obj_list->end(); ++iter)
@@ -3022,7 +3020,7 @@ BOOL LLViewerMediaTexture::findFaces()
 			}
 		}
 	}
-*/
+
 	return ret ;
 }
 
@@ -3237,25 +3235,22 @@ void LLViewerMediaTexture::setPlaying(BOOL playing)
 	{
 		return ; //media is already off
 	}
-//impfixme
-/*
+
 	if(playing == mIsPlaying && !mMediaImplp->isUpdated())
 	{
 		return ; //nothing has changed since last time.
 	}
-*/
 
 	mIsPlaying = playing ;
 	if(mIsPlaying) //is about to play this media
 	{
-//impfixme
-/*
+
 		if(findFaces())
 		{
 			//about to update all faces.
 			mMediaImplp->setUpdated(FALSE) ;
 		}
-*/
+
 		if(mMediaFaceList.empty())//no face pointing to this media
 		{
 			stopPlaying() ;

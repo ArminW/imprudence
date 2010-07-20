@@ -39,7 +39,6 @@
 #include "llvoavatar.h"
 #include "m3math.h"
 
-#include "llagent.h"
 #include "lldrawable.h"
 #include "llface.h"
 #include "llsky.h"

@@ -51,7 +51,6 @@
 #include "llvosurfacepatch.h"
 #include "llviewercamera.h"
 
-#include "llviewertexture.h"
 #include "llviewertexturelist.h" // To get alpha gradients
 #include "llworld.h"
 #include "pipeline.h"

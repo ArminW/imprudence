@@ -39,7 +39,6 @@
 #include "llfasttimer.h"
 #include "llrender.h"
 
-#include "llagent.h"
 #include "llapr.h"
 #include "llbox.h"
 #include "lldrawable.h"
@@ -148,6 +147,7 @@ LLViewerJointMesh::LLViewerJointMesh()
 	mTexture( NULL ),
 	mLayerSet( NULL ),
 	mTestImageName( 0 ),
+	mFaceIndexCount(0),
 	mIsTransparent(FALSE)
 {
 
@@ -573,8 +573,12 @@ U32 LLViewerJointMesh::drawShape( F32 pixelArea, BOOL first_pass, BOOL is_dummy)
 	else
 	if ( !is_dummy && mTexture.notNull() )
 	{
-		old_mode = mTexture->getAddressMode();
-		gGL.getTexUnit(0)->bind(mTexture.get(), TRUE); // KL SD
+		if(mTexture->hasGLTexture())
+		{
+			old_mode = mTexture->getAddressMode();
+		}
+		gGL.getTexUnit(0)->bind(mTexture.get());
+		gGL.getTexUnit(0)->bind(mTexture);
 		gGL.getTexUnit(0)->setTextureAddressMode(LLTexUnit::TAM_CLAMP);
 	}
 	else
@@ -622,7 +626,7 @@ U32 LLViewerJointMesh::drawShape( F32 pixelArea, BOOL first_pass, BOOL is_dummy)
 		mFace->mVertexBuffer->drawRange(LLRender::TRIANGLES, start, end, count, offset);
 		glPopMatrix();
 	}
-	gPipeline.addTrianglesDrawn(count/3);
+	gPipeline.addTrianglesDrawn(count);
 
 	triangle_count += count;
 	
@@ -633,7 +637,7 @@ U32 LLViewerJointMesh::drawShape( F32 pixelArea, BOOL first_pass, BOOL is_dummy)
 
 	if (mTexture.notNull() && !is_dummy)
 	{
-		gGL.getTexUnit(0)->bind(mTexture.get());
+		gGL.getTexUnit(0)->bind(mTexture);
 		gGL.getTexUnit(0)->setTextureAddressMode(old_mode);
 	}
 

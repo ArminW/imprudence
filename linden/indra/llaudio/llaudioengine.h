@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2000&license=viewergpl$
  * 
- * Copyright (c) 2000-2009, Linden Research, Inc.
+ * Copyright (c) 2000-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 
@@ -89,6 +90,15 @@ public:
 		AUDIO_TYPE_UI      = 2,
 		AUDIO_TYPE_AMBIENT = 3,
 		AUDIO_TYPE_COUNT   = 4 // last
+	};
+	
+	enum LLAudioPlayState
+	{
+		// isInternetStreamPlaying() returns an *int*, with
+		// 0 = stopped, 1 = playing, 2 = paused.
+		AUDIO_STOPPED = 0,
+		AUDIO_PLAYING = 1,
+		AUDIO_PAUSED = 2
 	};
 	
 	LLAudioEngine();
@@ -156,7 +166,7 @@ public:
 	void stopInternetStream();
 	void pauseInternetStream(int pause);
 	void updateInternetStream(); // expected to be called often
-	int isInternetStreamPlaying();
+	LLAudioPlayState isInternetStreamPlaying();
 	// use a value from 0.0 to 1.0, inclusive
 	void setInternetStreamGain(F32 vol);
 	std::string getInternetStreamURL();
