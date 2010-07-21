@@ -43,7 +43,6 @@
 #include "llviewercamera.h"
 #include "llviewertexturelist.h"
 #include "llviewerregion.h"
-//impfixme:rm #include "llviewerwindow.h"
 #include "llvosky.h"
 #include "llworld.h" // To get water height
 #include "pipeline.h"

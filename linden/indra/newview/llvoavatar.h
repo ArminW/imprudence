@@ -321,7 +321,7 @@ public:
 	void			releaseUnnecessaryTextures();
 	void			requestLayerSetUploads();
 	bool			hasPendingBakedUploads();
-	static void		onLocalTextureLoaded( BOOL succcess, LLViewerTexture *src_vi, LLImageRaw* src, LLImageRaw* aux_src, S32 discard_level, BOOL final, void* userdata );
+	static void		onLocalTextureLoaded( BOOL succcess, LLViewerFetchedTexture *src_vi, LLImageRaw* src, LLImageRaw* aux_src, S32 discard_level, BOOL final, void* userdata );
 	static void		dumpArchetypeXML( void* );
 	static void		dumpScratchTextureByteCount();
 	static void		dumpBakedStatus();
@@ -740,7 +740,7 @@ protected:
 	void			deleteLayerSetCaches(bool clearAll = true);
 	static BOOL		areAllNearbyInstancesBaked(S32& grey_avatars);
 	static void		onBakedTextureMasksLoaded(BOOL success, LLViewerFetchedTexture *src_vi, LLImageRaw* src, LLImageRaw* aux_src, S32 discard_level, BOOL final, void* userdata);
-	void			setLocalTexture(LLVOAvatarDefines::ETextureIndex i, LLViewerFetchedTexture* tex, BOOL baked_version_exits);
+	void			setLocalTexture(LLVOAvatarDefines::ETextureIndex i, LLViewerTexture* src_tex, BOOL baked_version_exits);
 	void			requestLayerSetUpdate(LLVOAvatarDefines::ETextureIndex i);
 	void			addLocalTextureStats(LLVOAvatarDefines::ETextureIndex i, LLViewerFetchedTexture* imagep, F32 texel_area_ratio, BOOL rendered, BOOL covered_by_baked);
 	void			addBakedTextureStats( LLViewerFetchedTexture* imagep, F32 pixel_area, F32 texel_area_ratio, S32 boost_level);

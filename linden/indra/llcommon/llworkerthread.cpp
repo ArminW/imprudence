@@ -44,6 +44,11 @@ LLWorkerThread::LLWorkerThread(const std::string& name, bool threaded) :
 	LLQueuedThread(name, threaded)
 {
 	mDeleteMutex = new LLMutex(NULL);
+
+//SG2 	if(!mLocalAPRFilePoolp)
+// 	{
+// 		mLocalAPRFilePoolp = new LLVolatileAPRPool() ;
+// 	}
 }
 
 LLWorkerThread::~LLWorkerThread()
@@ -58,6 +63,27 @@ LLWorkerThread::~LLWorkerThread()
 	delete mDeleteMutex;
 	
 	// ~LLQueuedThread() will be called here
+}
+
+//called only in destructor.
+void LLWorkerThread::clearDeleteList()
+{
+	// Delete any workers in the delete queue (should be safe - had better be!)
+	if (!mDeleteList.empty())
+	{
+		llwarns << "Worker Thread: " << mName << " destroyed with " << mDeleteList.size()
+				<< " entries in delete list." << llendl;
+
+		mDeleteMutex->lock();
+		for (delete_list_t::iterator iter = mDeleteList.begin(); iter != mDeleteList.end(); ++iter)
+		{
+			(*iter)->mRequestHandle = LLWorkerThread::nullHandle();
+			(*iter)->clearFlags(LLWorkerClass::WCF_HAVE_WORK);
+			delete *iter ;
+		}
+		mDeleteList.clear() ;
+		mDeleteMutex->unlock() ;
+	}
 }
 
 // virtual
@@ -183,6 +209,7 @@ LLWorkerClass::LLWorkerClass(LLWorkerThread* workerthread, const std::string& na
 	: mWorkerThread(workerthread),
 	  mWorkerClassName(name),
 	  mRequestHandle(LLWorkerThread::nullHandle()),
+	  mRequestPriority(LLWorkerThread::PRIORITY_NORMAL),
 	  mMutex(NULL),
 	  mWorkFlags(0)
 {
@@ -314,7 +341,20 @@ bool LLWorkerClass::checkWork(bool aborting)
 	if (mRequestHandle != LLWorkerThread::nullHandle())
 	{
 		LLWorkerThread::WorkRequest* workreq = (LLWorkerThread::WorkRequest*)mWorkerThread->getRequest(mRequestHandle);
-		llassert_always(workreq);
+		if(!workreq)
+		{
+			if(mWorkerThread->isQuitting() || mWorkerThread->isStopped()) //the mWorkerThread is not running
+			{
+				mRequestHandle = LLWorkerThread::nullHandle();
+				clearFlags(WCF_HAVE_WORK);
+			}
+			else
+			{
+				llassert_always(workreq);
+			}
+			return true ;
+		}
+
 		LLQueuedThread::status_t status = workreq->getStatus();
 		if (status == LLWorkerThread::STATUS_ABORTED)
 		{

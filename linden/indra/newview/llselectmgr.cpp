@@ -4549,7 +4549,7 @@ void LLSelectMgr::updateSilhouettes()
 
 	if (!mSilhouetteImagep)
 	{
-//impfixme:compile		mSilhouetteImagep = gTextureList.getImageFromFile("silhouette.j2c", TRUE, TRUE);
+		mSilhouetteImagep = LLViewerTextureManager::getFetchedTextureFromFile("silhouette.j2c", TRUE, LLViewerTexture::BOOST_UI);
 	}
 
 	mHighlightedObjects->cleanupNodes();
@@ -4866,7 +4866,6 @@ void LLSelectMgr::renderSilhouettes(BOOL for_hud)
 				{
 					continue;
 				}
-//impfixme:compile
 				if (objectp->getID() == focus_item_id)
 				{
 					node->renderOneSilhouette(gFocusMgr.getFocusColor());

@@ -214,7 +214,7 @@ BOOL LLVLComposition::generateHeights(const F32 x, const F32 y,
 	return TRUE;
 }
 
-static const S32 BASE_SIZE = 128;
+static const U32 BASE_SIZE = 128;
 
 BOOL LLVLComposition::generateComposition()
 {
@@ -247,7 +247,7 @@ BOOL LLVLComposition::generateComposition()
 				min_dim /= 2;
 			}
 			mDetailTextures[i]->setBoostLevel(LLViewerTexture::BOOST_TERRAIN); // in case we are at low detail
-//impfixme:compile			mDetailTextures[i]->setMinDiscardLevel(ddiscard);
+			mDetailTextures[i]->setMinDiscardLevel(ddiscard);
 			return FALSE;
 		}
 	}
@@ -279,7 +279,6 @@ BOOL LLVLComposition::generateTexture(const F32 x, const F32 y,
 		if (mRawImages[i].isNull())
 		{
 			// Read back a raw image for this discard level, if it exists
-			mRawImages[i] = new LLImageRaw;
 			S32 min_dim = llmin(mDetailTextures[i]->getWidth(0), mDetailTextures[i]->getHeight(0));
 			S32 ddiscard = 0;
 			while (min_dim > BASE_SIZE && ddiscard < MAX_DISCARD_LEVEL)
@@ -287,11 +286,21 @@ BOOL LLVLComposition::generateTexture(const F32 x, const F32 y,
 				ddiscard++;
 				min_dim /= 2;
 			}
-//impfixme:compile			mRawImages[i] = mDetailTextures[i]->getCachedRawImage() ;
-			if (!mRawImages[i])
+			BOOL delete_raw = (mDetailTextures[i]->reloadRawImage(ddiscard) != NULL) ;
+			if(mDetailTextures[i]->getRawImageLevel() != ddiscard)//raw iamge is not ready, will enter here again later.
 			{
-				llwarns << "no cached raw data for terrain detail texture: " << mDetailTextures[i]->getID() << llendl;
+				if(delete_raw)
+				{
+					mDetailTextures[i]->destroyRawImage() ;
+				}
+				lldebugs << "cached raw data for terrain detail texture is not ready yet: " << mDetailTextures[i]->getID() << llendl;
 				return FALSE;
+			}
+
+			mRawImages[i] = mDetailTextures[i]->getRawImage() ;
+			if(delete_raw)
+			{
+				mDetailTextures[i]->destroyRawImage() ;
 			}
 			if (mDetailTextures[i]->getWidth(ddiscard) != BASE_SIZE ||
 				mDetailTextures[i]->getHeight(ddiscard) != BASE_SIZE ||
@@ -349,9 +358,9 @@ BOOL LLVLComposition::generateTexture(const F32 x, const F32 y,
 	tex_comps = texturep->getComponents();
 	tex_stride = tex_width * tex_comps;
 
-	S32 st_comps = 3;
-	S32 st_width = BASE_SIZE;
-	S32 st_height = BASE_SIZE;
+	U32 st_comps = 3;
+	U32 st_width = BASE_SIZE;
+	U32 st_height = BASE_SIZE;
 	
 	if (tex_comps != st_comps)
 	{

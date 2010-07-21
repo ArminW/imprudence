@@ -743,7 +743,7 @@ LLTextureCache::LLTextureCache(bool threaded)
 
 LLTextureCache::~LLTextureCache()
 {
-//impfixme	clearDeleteList() ;
+	clearDeleteList() ;
 	writeUpdatedEntries() ;
 }
 

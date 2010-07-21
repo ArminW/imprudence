@@ -416,7 +416,7 @@ public:
 	BOOL					getMultiplyBlend()	{ return getInfo()->mMultiplyBlend; }
 
 protected:
-	LLPointer<LLImageGL>	mCachedProcessedImageGL;
+	LLPointer<LLViewerTexture>	mCachedProcessedTexture;
 	LLTexLayer*				mTexLayer;
 	LLPointer<LLImageTGA>	mStaticImageTGA;
 	LLPointer<LLImageRaw>	mStaticImageRaw;

@@ -623,25 +623,26 @@ void LLJoystickCameraRotate::draw()
 	LLGLSUIDefault gls_ui;
 
 	getImageUnselected()->draw( 0, 0 );
+	LLPointer<LLUIImage> image = getImageSelected();
 
 	if( mInTop )
 	{
-//impfixme:compile		drawRotatedImage( getImageSelected()->getImage(), 0 );
+		drawRotatedImage( getImageSelected(), 0 );
 	}
 
 	if( mInRight )
 	{
-//impfixme:compile		drawRotatedImage( getImageSelected()->getImage(), 1 );
+		drawRotatedImage( getImageSelected(), 1 );
 	}
 
 	if( mInBottom )
 	{
-//impfixme:compile		drawRotatedImage( getImageSelected()->getImage(), 2 );
+		drawRotatedImage( getImageSelected(), 2 );
 	}
 
 	if( mInLeft )
 	{
-//impfixme:compile		drawRotatedImage( getImageSelected()->getImage(), 3 );
+		drawRotatedImage( getImageSelected(), 3 );
 	}
 
 	if (sDebugRects)
@@ -651,10 +652,11 @@ void LLJoystickCameraRotate::draw()
 }
 
 // Draws image rotated by multiples of 90 degrees
-void LLJoystickCameraRotate::drawRotatedImage( LLViewerTexture* image, S32 rotations )
+void LLJoystickCameraRotate::drawRotatedImage( LLPointer<LLUIImage> image, S32 rotations )
 {
 	S32 width = image->getWidth();
 	S32 height = image->getHeight();
+	LLTexture* texture = image->getImage();
 
 	F32 uv[][2] = 
 	{
@@ -664,7 +666,7 @@ void LLJoystickCameraRotate::drawRotatedImage( LLViewerTexture* image, S32 rotat
 		{ 1.f, 0.f }
 	};
 
-	gGL.getTexUnit(0)->bind(image);
+	gGL.getTexUnit(0)->bind(texture);
 
 	gGL.color4fv(UI_VERTEX_COLOR.mV);
 	

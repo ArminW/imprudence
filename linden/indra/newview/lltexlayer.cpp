@@ -1377,20 +1377,20 @@ BOOL LLTexLayer::render( S32 x, S32 y, S32 width, S32 height )
 	if( (getInfo()->mLocalTexture != -1) && !getInfo()->mUseLocalTextureAlphaOnly )
 	{
 		{
-			LLViewerTexture* image_gl = NULL;
-			if( mTexLayerSet->getAvatar()->getLocalTextureGL((ETextureIndex)getInfo()->mLocalTexture, &image_gl ) )
+			LLViewerTexture* tex = NULL;
+			if( mTexLayerSet->getAvatar()->getLocalTextureGL((ETextureIndex)getInfo()->mLocalTexture, &tex) )
 			{
 				if (mTexLayerSet->getAvatar()->getLocalTextureID((ETextureIndex)getInfo()->mLocalTexture) == IMG_DEFAULT_AVATAR)
 				{
-					image_gl = NULL;
+					tex = NULL;
 				}
-				if( image_gl )
+				if( tex )
 				{
 					LLGLDisable alpha_test(getInfo()->mWriteAllChannels ? GL_ALPHA_TEST : 0);
 
-					LLTexUnit::eTextureAddressMode old_mode = image_gl->getAddressMode();
+					LLTexUnit::eTextureAddressMode old_mode = tex->getAddressMode();
 					
-					gGL.getTexUnit(0)->bind(image_gl);
+					gGL.getTexUnit(0)->bind(tex, TRUE);
 					gGL.getTexUnit(0)->setTextureAddressMode(LLTexUnit::TAM_CLAMP);
 
 					gl_rect_2d_simple_tex( width, height );
@@ -1563,9 +1563,14 @@ BOOL LLTexLayer::blendAlphaTexture(S32 x, S32 y, S32 width, S32 height)
 	{
 		if (getInfo()->mLocalTexture >=0 && getInfo()->mLocalTexture < TEX_NUM_INDICES)
 		{
+// LLViewerFetchedTexture* getImage() const;
+// LLPointer<LLViewerFetchedTexture>  			mImage;
+
+
 			LLViewerTexture* tex = NULL;
-			if (mTexLayerSet->getAvatar()->getLocalTextureGL((ETextureIndex)getInfo()->mLocalTexture, &tex))
-//impfixme 			if (tex)
+ 			if (mTexLayerSet->getAvatar()->getLocalTextureGL((ETextureIndex)getInfo()->mLocalTexture, &tex))
+// 			LLViewerTexture* tex = mLocalTextureObject->getImage();
+// 			if (tex)
 			{
 				LLGLSNoAlphaTest gls_no_alpha_test;
 				gGL.getTexUnit(0)->bind(tex);
@@ -1621,24 +1626,22 @@ BOOL LLTexLayer::renderAlphaMasks( S32 x, S32 y, S32 width, S32 height, LLColor4
 	// Accumulate the alpha component of the texture
 	if( getInfo()->mLocalTexture != -1 )
 	{
+		LLViewerTexture* tex = NULL;
+		if( mTexLayerSet->getAvatar()->getLocalTextureGL((ETextureIndex)getInfo()->mLocalTexture, &tex ) )
 		{
-			LLViewerTexture* image_gl = NULL;
-			if( mTexLayerSet->getAvatar()->getLocalTextureGL((ETextureIndex)getInfo()->mLocalTexture, &image_gl ) )
+			if( tex && (tex->getComponents() == 4) )
 			{
-				if( image_gl && (image_gl->getComponents() == 4) )
-				{
-					LLGLSNoAlphaTest gls_no_alpha_test;
-
-					LLTexUnit::eTextureAddressMode old_mode = image_gl->getAddressMode();
-					
-					gGL.getTexUnit(0)->bind(image_gl);
-					gGL.getTexUnit(0)->setTextureAddressMode(LLTexUnit::TAM_CLAMP);
-
-					gl_rect_2d_simple_tex( width, height );
-
-					gGL.getTexUnit(0)->setTextureAddressMode(old_mode);
-					gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-				}
+				LLGLSNoAlphaTest gls_no_alpha_test;
+	
+				LLTexUnit::eTextureAddressMode old_mode = tex->getAddressMode();
+				
+				gGL.getTexUnit(0)->bind(tex, TRUE);
+				gGL.getTexUnit(0)->setTextureAddressMode(LLTexUnit::TAM_CLAMP);
+	
+				gl_rect_2d_simple_tex( width, height );
+	
+				gGL.getTexUnit(0)->setTextureAddressMode(old_mode);
+				gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 			}
 		}
 	}
@@ -1912,12 +1915,13 @@ void LLTexLayerParamAlpha::getCacheByteCount( S32* gl_bytes )
 		 iter != sInstances.end(); iter++ )
 	{
 		LLTexLayerParamAlpha* instance = *iter;
-		LLViewerTexture* image_gl ; //impfixme= instance->mCachedProcessedImageGL;
-		if( image_gl )
-		{
-			S32 bytes = (S32)image_gl->getWidth() * image_gl->getHeight() * image_gl->getComponents();
+		LLViewerTexture* tex = instance->mCachedProcessedTexture;
 
-			if( image_gl->hasGLTexture() )
+		if( tex )
+		{
+			S32 bytes = (S32)tex->getWidth() * tex->getHeight() * tex->getComponents();
+
+			if( tex->hasGLTexture() )
 			{
 				*gl_bytes += bytes;
 			}
@@ -1927,7 +1931,7 @@ void LLTexLayerParamAlpha::getCacheByteCount( S32* gl_bytes )
 
 LLTexLayerParamAlpha::LLTexLayerParamAlpha( LLTexLayer* layer )
 	:
-	mCachedProcessedImageGL( NULL ),
+	mCachedProcessedTexture( NULL ),
 	mTexLayer( layer ),
 	mNeedsCreateTexture( FALSE ),
 	mStaticImageInvalid( FALSE ),
@@ -1965,7 +1969,7 @@ BOOL LLTexLayerParamAlpha::setInfo(LLTexLayerParamAlphaInfo *info)
 void LLTexLayerParamAlpha::deleteCaches()
 {
 	mStaticImageTGA = NULL; // deletes image
-	mCachedProcessedImageGL = NULL;
+	mCachedProcessedTexture = NULL;
 	mStaticImageRaw = NULL;
 	mNeedsCreateTexture = FALSE;
 }
@@ -2041,7 +2045,7 @@ BOOL LLTexLayerParamAlpha::getSkip()
 }
 
 
-BOOL LLTexLayerParamAlpha::render( S32 x, S32 y, S32 width, S32 height )
+BOOL LLTexLayerParamAlpha::render( S32 x, S32 y, S32 width, S32 height )//impfixme:todo port texlayerparam
 {
 	BOOL success = TRUE;
 
@@ -2067,7 +2071,7 @@ BOOL LLTexLayerParamAlpha::render( S32 x, S32 y, S32 width, S32 height )
 		if( mStaticImageTGA.isNull() )
 		{
 			// Don't load the image file until we actually need it the first time.  Like now.
-//impfixme 			mStaticImageTGA = gTexStaticImageList.getImageTGA( getInfo()->mStaticImageFileName );  
+			mStaticImageTGA = LLTexStaticImageList::getInstance()->getImageTGA( getInfo()->mStaticImageFileName );
 			// We now have something in one of our caches
 			LLTexLayerSet::sHasCaches |= mStaticImageTGA.notNull() ? TRUE : FALSE;
 
@@ -2081,22 +2085,21 @@ BOOL LLTexLayerParamAlpha::render( S32 x, S32 y, S32 width, S32 height )
 
 		const S32 image_tga_width = mStaticImageTGA->getWidth();
 		const S32 image_tga_height = mStaticImageTGA->getHeight(); 
-		if(	!mCachedProcessedImageGL ||
-			(mCachedProcessedImageGL->getWidth() != image_tga_width) ||
-			(mCachedProcessedImageGL->getHeight() != image_tga_height) ||
+		if(	!mCachedProcessedTexture ||
+			(mCachedProcessedTexture->getWidth() != image_tga_width) ||
+			(mCachedProcessedTexture->getHeight() != image_tga_height) ||
 			(weight_changed) )
 		{
 //			llinfos << "Building Cached Alpha: " << mName << ": (" << mStaticImageRaw->getWidth() << ", " << mStaticImageRaw->getHeight() << ") " << effective_weight << llendl;
 			mCachedEffectiveWeight = effective_weight;
 
-			if( !mCachedProcessedImageGL )
+			if( !mCachedProcessedTexture )
 			{
-//impfixme				mCachedProcessedImageGL = new LLImageGL( image_tga_width, image_tga_height, 1, FALSE);
-
+				mCachedProcessedTexture = LLViewerTextureManager::getLocalTexture(image_tga_width, image_tga_height, 1, FALSE);
 				// We now have something in one of our caches
-				LLTexLayerSet::sHasCaches |= mCachedProcessedImageGL ? TRUE : FALSE;
+				LLTexLayerSet::sHasCaches |= mCachedProcessedTexture ? TRUE : FALSE;
 
-				mCachedProcessedImageGL->setExplicitFormat( GL_ALPHA8, GL_ALPHA );
+				mCachedProcessedTexture->setExplicitFormat( GL_ALPHA8, GL_ALPHA );
 			}
 
 			// Applies domain and effective weight to data as it is decoded. Also resizes the raw image if needed.
@@ -2106,20 +2109,20 @@ BOOL LLTexLayerParamAlpha::render( S32 x, S32 y, S32 width, S32 height )
 			mNeedsCreateTexture = TRUE;
 		}
 
-		if( mCachedProcessedImageGL )
+		if( mCachedProcessedTexture )
 		{
 			{
 				// Create the GL texture, and then hang onto it for future use.
 				if( mNeedsCreateTexture )
 				{
-					mCachedProcessedImageGL->createGLTexture(0, mStaticImageRaw);
+					mCachedProcessedTexture->createGLTexture(0, mStaticImageRaw);
 					mNeedsCreateTexture = FALSE;
-					gGL.getTexUnit(0)->bind(mCachedProcessedImageGL);
-					mCachedProcessedImageGL->setAddressMode(LLTexUnit::TAM_CLAMP);
+					gGL.getTexUnit(0)->bind(mCachedProcessedTexture);
+					mCachedProcessedTexture->setAddressMode(LLTexUnit::TAM_CLAMP);
 				}
 
 				LLGLSNoAlphaTest gls_no_alpha_test;
-				gGL.getTexUnit(0)->bind(mCachedProcessedImageGL);
+				gGL.getTexUnit(0)->bind(mCachedProcessedTexture);
 				gl_rect_2d_simple_tex( width, height );
 				gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 				stop_glerror();
@@ -2130,7 +2133,7 @@ BOOL LLTexLayerParamAlpha::render( S32 x, S32 y, S32 width, S32 height )
 		// (It's not really a "cache" in that case, but the logic is the same)
 		if( !mTexLayer->getTexLayerSet()->getAvatar()->isSelf() )
 		{
-			mCachedProcessedImageGL = NULL;
+			mCachedProcessedTexture = NULL;
 		}
 	}
 	else

@@ -33,7 +33,6 @@
 
 #ifndef LL_LLDRAWPOOLTERRAIN_H
 #define LL_LLDRAWPOOLTERRAIN_H
-//impfixme:rm #include "llviewertexture.h"
 #include "lldrawpool.h"
 
 class LLDrawPoolTerrain : public LLFacePool
