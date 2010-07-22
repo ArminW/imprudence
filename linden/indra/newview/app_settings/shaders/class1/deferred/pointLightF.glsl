@@ -11,7 +11,6 @@ uniform sampler2DRect diffuseRect;
 uniform sampler2DRect specularRect;
 uniform sampler2DRect normalMap;
 uniform samplerCube environmentMap;
-uniform sampler2DRect lightMap;
 uniform sampler2D noiseMap;
 uniform sampler2D lightFunc;
 uniform sampler2DRect depthMap;
@@ -92,11 +91,7 @@ void main()
 	{
 		discard;
 	}
-	
-	//attenuate point light contribution by SSAO component
-	col *= texture2DRect(lightMap, frag.xy).g;
-	
-
+		
 	gl_FragColor.rgb = col;	
 	gl_FragColor.a = 0.0;
 }

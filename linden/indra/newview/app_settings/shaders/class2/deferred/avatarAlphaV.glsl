@@ -17,10 +17,14 @@ vec3 atmosAffectDirectionalLight(float lightIntensity);
 vec3 scaleDownLight(vec3 light);
 vec3 scaleUpLight(vec3 light);
 
-varying vec4 vary_position;
+varying vec3 vary_position;
 varying vec3 vary_ambient;
 varying vec3 vary_directional;
 varying vec3 vary_normal;
+
+uniform float near_clip;
+uniform float shadow_offset;
+uniform float shadow_bias;
 
 void main()
 {
@@ -41,7 +45,9 @@ void main()
 	norm = normalize(norm);
 		
 	gl_Position = gl_ProjectionMatrix * pos;
-	vary_position = pos;
+	
+	float dp_directional_light = max(0.0, dot(norm, gl_LightSource[0].position.xyz));
+	vary_position = pos.xyz + gl_LightSource[0].position.xyz * (1.0-dp_directional_light)*shadow_offset;
 	vary_normal = norm;	
 	
 	calcAtmospherics(pos.xyz);

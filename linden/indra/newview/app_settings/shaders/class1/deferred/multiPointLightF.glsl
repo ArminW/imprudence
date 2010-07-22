@@ -12,7 +12,6 @@ uniform sampler2DRect diffuseRect;
 uniform sampler2DRect specularRect;
 uniform sampler2DRect normalMap;
 uniform samplerCube environmentMap;
-uniform sampler2DRect lightMap;
 uniform sampler2D noiseMap;
 uniform sampler2D lightFunc;
 
@@ -95,7 +94,7 @@ void main()
 			
 			float sa = dot(normalize(lv+npos),norm);
 			
-			if (sa > 0)
+			if (sa > 0.0)
 			{
 				sa = texture2D(lightFunc,vec2(sa, spec.a)).a * min(dist_atten*4.0, 1.0);
 				sa *= noise;
@@ -110,9 +109,6 @@ void main()
 	{
 		discard;
 	}
-	
-	//attenuate point light contribution by SSAO component
-	out_col *= texture2DRect(lightMap, frag.xy).g;
 	
 	gl_FragColor.rgb = out_col;
 	gl_FragColor.a = 0.0;

@@ -253,7 +253,7 @@ void main()
 	vec2 tc = vary_fragcoord.xy;
 	vec3 pos = getPosition(tc).xyz;
 	vec3 norm = texture2DRect(normalMap, tc).xyz*2.0-1.0;
-	vec3 nz = texture2D(noiseMap, vary_fragcoord.xy/128.0).xyz;
+	//vec3 nz = texture2D(noiseMap, vary_fragcoord.xy/128.0).xyz;
 	
 	float da = max(dot(norm.xyz, vary_light.xyz), 0.0);
 	

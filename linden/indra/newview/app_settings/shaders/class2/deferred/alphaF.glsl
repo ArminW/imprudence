@@ -18,6 +18,7 @@ uniform sampler2DRect depthMap;
 uniform mat4 shadow_matrix[6];
 uniform vec4 shadow_clip;
 uniform vec2 screen_res;
+uniform vec2 shadow_res;
 
 vec3 atmosLighting(vec3 light);
 vec3 scaleSoftClip(vec3 light);
@@ -30,6 +31,8 @@ varying vec3 vary_light;
 
 uniform float alpha_soften;
 
+uniform float shadow_bias;
+
 uniform mat4 inv_proj;
 
 vec4 getPosition(vec2 pos_screen)
@@ -40,10 +43,27 @@ vec4 getPosition(vec2 pos_screen)
 	sc -= vec2(1.0,1.0);
 	vec4 ndc = vec4(sc.x, sc.y, 2.0*depth-1.0, 1.0);
 	vec4 pos = inv_proj * ndc;
-	pos /= pos.w;
+	pos.xyz /= pos.w;
 	pos.w = 1.0;
 	return pos;
 }
+
+float pcfShadow(sampler2DRectShadow shadowMap, vec4 stc, float scl)
+{
+	stc.xyz /= stc.w;
+	stc.z += shadow_bias;
+	
+	float cs = shadow2DRect(shadowMap, stc.xyz).x;
+	float shadow = cs;
+
+	shadow += max(shadow2DRect(shadowMap, stc.xyz+vec3(scl, scl, 0.0)).x, cs);
+	shadow += max(shadow2DRect(shadowMap, stc.xyz+vec3(scl, -scl, 0.0)).x, cs);
+	shadow += max(shadow2DRect(shadowMap, stc.xyz+vec3(-scl, scl, 0.0)).x, cs);
+	shadow += max(shadow2DRect(shadowMap, stc.xyz+vec3(-scl, -scl, 0.0)).x, cs);
+			
+	return shadow/5.0;
+}
+
 
 void main() 
 {
@@ -56,7 +76,7 @@ void main()
 	vec4 pos = vec4(vary_position, 1.0);
 	
 	vec4 spos = pos;
-	
+		
 	if (spos.z > -shadow_clip.w)
 	{	
 		vec4 lpos;
@@ -64,27 +84,27 @@ void main()
 		if (spos.z < -shadow_clip.z)
 		{
 			lpos = shadow_matrix[3]*spos;
-			lpos.xy *= screen_res;
-			shadow = shadow2DRectProj(shadowMap3, lpos).x;
+			lpos.xy *= shadow_res;
+			shadow = pcfShadow(shadowMap3, lpos, 1.5);
 			shadow += max((pos.z+shadow_clip.z)/(shadow_clip.z-shadow_clip.w)*2.0-1.0, 0.0);
 		}
 		else if (spos.z < -shadow_clip.y)
 		{
 			lpos = shadow_matrix[2]*spos;
-			lpos.xy *= screen_res;
-			shadow = shadow2DRectProj(shadowMap2, lpos).x;
+			lpos.xy *= shadow_res;
+			shadow = pcfShadow(shadowMap2, lpos, 1.5);
 		}
 		else if (spos.z < -shadow_clip.x)
 		{
 			lpos = shadow_matrix[1]*spos;
-			lpos.xy *= screen_res;
-			shadow = shadow2DRectProj(shadowMap1, lpos).x;
+			lpos.xy *= shadow_res;
+			shadow = pcfShadow(shadowMap1, lpos, 1.5);
 		}
 		else
 		{
 			lpos = shadow_matrix[0]*spos;
-			lpos.xy *= screen_res;
-			shadow = shadow2DRectProj(shadowMap0, lpos).x;
+			lpos.xy *= shadow_res;
+			shadow = pcfShadow(shadowMap0, lpos, 1.5);
 		}
 	}
 	
@@ -95,7 +115,7 @@ void main()
 
 	color.rgb = scaleSoftClip(color.rgb);
 
-	if (samp_pos.z != 0.0)
+	if (samp_pos.z != 0.0 && gl_Color.a < 1.0)
 	{
 		float dist_factor = alpha_soften;
 		float a = gl_Color.a;

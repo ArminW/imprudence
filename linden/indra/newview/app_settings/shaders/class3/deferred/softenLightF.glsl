@@ -11,15 +11,10 @@ uniform sampler2DRect diffuseRect;
 uniform sampler2DRect specularRect;
 uniform sampler2DRect normalMap;
 uniform sampler2DRect lightMap;
-uniform sampler2DRect giLightMap;
 uniform sampler2D	  noiseMap;
 uniform samplerCube environmentMap;
 uniform sampler2D	  lightFunc;
-uniform sampler2D	  luminanceMap;
-
 uniform vec3 gi_quad;
-uniform vec3 lum_quad;
-uniform float lum_lod;
 
 uniform float blur_size;
 uniform float blur_fidelity;
@@ -59,6 +54,7 @@ vec3 vary_SunlitColor;
 vec3 vary_AmblitColor;
 vec3 vary_AdditiveColor;
 vec3 vary_AtmosAttenuation;
+uniform float gi_ambiance;
 
 vec4 getPosition(vec2 pos_screen)
 { //get position in screen space (world units) given window coordinate and depth map
@@ -183,7 +179,7 @@ void calcAtmospherics(vec3 inPositionEye, float ambFactor) {
 	temp2.x += .25;
 	
 	//increase ambient when there are more clouds
-	vec4 tmpAmbient = ambient + (vec4(1.) - ambient) * cloud_shadow.x * 0.5;
+	vec4 tmpAmbient = ambient*gi_ambiance + (vec4(1.) - ambient*gi_ambiance) * cloud_shadow.x * 0.5;
 	
 	/*  decrease value and saturation (that in HSV, not HSL) for occluded areas
 	 * // for HSV color/geometry used here, see http://gimp-savvy.com/BOOK/index.html?node52.html
@@ -258,20 +254,14 @@ void main()
 	vec2 tc = vary_fragcoord.xy;
 	vec3 pos = getPosition(tc).xyz;
 	vec3 norm = texture2DRect(normalMap, tc).xyz*2.0-1.0;
-	vec3 nz = texture2D(noiseMap, vary_fragcoord.xy/128.0).xyz;
+	//vec3 nz = texture2D(noiseMap, vary_fragcoord.xy/128.0).xyz;
 	
-	vec3 at = normalize(pos);
-	
-	vec4 spec = texture2DRect(specularRect, vary_fragcoord.xy);
-	
-	vec3 lum = texture2DLod(luminanceMap, tc/screen_res, lum_lod).rgb;
-	
-	vec3 ha = normalize(vary_light.xyz-at);
-	
-	float da = dot(ha, norm.xyz);
-	da = texture2D(lightFunc, vec2(da, spec.a)).a;
+	float da = max(dot(norm.xyz, vary_light.xyz), 0.0);
 	
 	vec4 diffuse = texture2DRect(diffuseRect, tc);
+	vec4 spec = texture2DRect(specularRect, vary_fragcoord.xy);
+	
+	da = texture2D(lightFunc, vec2(da, 0.0)).a;
 		
 	vec2 scol_ambocc = texture2DRect(lightMap, vary_fragcoord.xy).rg;
 	float scol = max(scol_ambocc.r, diffuse.a); 
@@ -279,29 +269,24 @@ void main()
 	
 	calcAtmospherics(pos.xyz, ambocc);
 	
-	vec3 col = vec3(0,0,0);
+	vec3 col = atmosAmbient(vec3(0));
+	col += atmosAffectDirectionalLight(max(min(da, scol), diffuse.a));
 	
-	col += atmosAffectDirectionalLight(max(min(da, scol), diffuse.a)*(1.0+spec.a));
-		
 	col *= diffuse.rgb;
 	
-	col += da*spec.rgb*spec.a*vary_SunlitColor*scol_ambocc.r;
-	
-	/*if (spec.a > 0.0)
+	if (spec.a > 0.0)
 	{
 		vec3 ref = normalize(reflect(pos.xyz, norm.xyz));
 		float sa = dot(ref, vary_light.xyz);
 		col.rgb += vary_SunlitColor*scol*spec.rgb*texture2D(lightFunc, vec2(sa, spec.a)).a;
-	}*/
-
+	}
+	
 	col = atmosLighting(col);
 	col = scaleSoftClip(col);
-
-	col = col*vec3(1.0+1.0/2.2);
-					
+		
 	gl_FragColor.rgb = col;
-	//gl_FragColor.rgb = lum;
 	
+	//gl_FragColor.rgb = gi_col.rgb;
 	gl_FragColor.a = 0.0;
 	
 	//gl_FragColor.rg = scol_ambocc.rg;

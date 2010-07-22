@@ -5,6 +5,8 @@
  * $License$
  */
 
+#extension GL_ARB_texture_rectangle : enable
+
 vec3 scaleSoftClip(vec3 inColor);
 vec3 atmosTransport(vec3 inColor);
 
@@ -119,7 +121,7 @@ void main()
 	float shadow = 1.0;
 	vec4 pos = vary_position;
 	
-	vec3 nz = texture2D(noiseMap, gl_FragCoord.xy/128.0).xyz;
+	//vec3 nz = texture2D(noiseMap, gl_FragCoord.xy/128.0).xyz;
 	vec4 spos = pos;
 		
 	//spec *= shadow;
@@ -135,5 +137,5 @@ void main()
 	
 	gl_FragData[0] = vec4(color.rgb, 0.75);
 	gl_FragData[1] = vec4(1,1,1, 0.8);
-	gl_FragData[2] = vec4(wavef*0.5+0.5, 0.f);
+	gl_FragData[2] = vec4(wavef*0.5+0.5, 0.0);
 }

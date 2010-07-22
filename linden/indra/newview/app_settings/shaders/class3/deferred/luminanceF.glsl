@@ -5,12 +5,15 @@
  * $License$
  */
 
-uniform sampler2DRect diffuseMap;
+#extension GL_ARB_texture_rectangle : enable
+
+uniform sampler2DRect lightMap;
+uniform sampler2DRect diffuseRect;
 
 varying vec2 vary_fragcoord;
-uniform float fade;
 void main() 
 {
-	gl_FragColor.rgb = texture2DRect(diffuseMap, vary_fragcoord.xy).rgb;
-	gl_FragColor.a = fade;
+	float i = texture2DRect(lightMap, vary_fragcoord.xy).r;
+	gl_FragColor.rgb = vec3(i);
+	gl_FragColor.a = 1.0;
 }

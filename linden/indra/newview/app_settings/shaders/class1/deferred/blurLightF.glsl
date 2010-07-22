@@ -10,6 +10,7 @@
 uniform sampler2DRect depthMap;
 uniform sampler2DRect normalMap;
 uniform sampler2DRect lightMap;
+uniform sampler2DRect giLightMap;
 
 uniform float dist_factor;
 uniform float blur_size;

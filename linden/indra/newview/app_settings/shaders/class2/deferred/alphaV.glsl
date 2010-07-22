@@ -36,7 +36,8 @@ void main()
 	vec4 pos = (gl_ModelViewMatrix * gl_Vertex);
 	vec3 norm = normalize(gl_NormalMatrix * gl_Normal);
 	
-	vary_position = vec4(pos.xyz + norm.xyz * (-pos.z/64.0*shadow_offset+shadow_bias), 1.0);
+	float dp_directional_light = max(0.0, dot(norm, gl_LightSource[0].position.xyz));
+	vary_position = pos.xyz + gl_LightSource[0].position.xyz * (1.0-dp_directional_light)*shadow_offset;
 		
 	calcAtmospherics(pos.xyz);
 
