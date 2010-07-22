@@ -68,7 +68,7 @@ void LLDrawPoolTree::prerender()
 void LLDrawPoolTree::beginRenderPass(S32 pass)
 {
 	LLFastTimer t(LLFastTimer::FTM_RENDER_TREES);
-	gGL.setAlphaRejectSettings(LLRender::CF_GREATER, 0.5f);
+	gGL.setAlphaRejectSettings(LLRender::CF_GREATER, 0.f);
 	
 	if (LLPipeline::sUnderWaterRender)
 	{

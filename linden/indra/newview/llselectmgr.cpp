@@ -176,8 +176,17 @@ LLObjectSelection *get_null_object_selection()
 //-----------------------------------------------------------------------------
 // LLSelectMgr()
 //-----------------------------------------------------------------------------
-LLSelectMgr::LLSelectMgr()
+LLSelectMgr::LLSelectMgr() 
+
 {
+//impfixme ->
+	mHideSelectedObjects =  gSavedSettings.getBOOL("HideSelectedObjects");
+	mRenderHighlightSelections = gSavedSettings.getBOOL("RenderHighlightSelections");
+	mAllowSelectAvatar = gSavedSettings.getBOOL("AllowSelectAvatar");
+	mDebugSelectMgr = gSavedSettings.getBOOL("DebugSelectMgr");
+// <- impfixme:port actually we need to port the selectmgr. This is like it is only to get the viewer
+//			compiled for fixing something completely different.
+
 	mTEMode = FALSE;
 	mLastCameraPos.clearVec();
 

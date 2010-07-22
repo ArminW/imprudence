@@ -37,7 +37,6 @@
 #include "imageids.h"
 #include "llviewercontrol.h"
 
-#include "llagent.h"
 #include "lldrawable.h"
 #include "lldrawpoolwater.h"
 #include "llface.h"
@@ -56,7 +55,6 @@ const BOOL gUseRoam = FALSE;
 
 ///////////////////////////////////
 
-#include "randgauss.h"
 
 template<class T> inline T LERP(T a, T b, F32 factor)
 {
@@ -101,7 +99,7 @@ void LLVOWater::setPixelAreaAndAngle(LLAgent &agent)
 
 
 // virtual
-void LLVOWater::updateTextures(LLAgent &agent)
+void LLVOWater::updateTextures()
 {
 }
 
@@ -278,7 +276,6 @@ U32 LLVOWater::getPartitionType() const
 LLWaterPartition::LLWaterPartition()
 : LLSpatialPartition(0, FALSE, 0)
 {
-	// mRenderByGroup = FALSE; // KL specified const SG branch not req here
 	mInfiniteFarClip = TRUE;
 	mDrawableType = LLPipeline::RENDER_TYPE_WATER;
 	mPartitionType = LLViewerRegion::PARTITION_WATER;

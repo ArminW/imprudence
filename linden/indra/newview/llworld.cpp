@@ -110,8 +110,8 @@ LLWorld::LLWorld() :
 	*(default_texture++) = MAX_WATER_COLOR.mV[2];
 	*(default_texture++) = MAX_WATER_COLOR.mV[3];
 	
-	mDefaultWaterTexturep = new LLViewerTexture(raw, FALSE);
-	gGL.getTexUnit(0)->bind(mDefaultWaterTexturep.get());
+	mDefaultWaterTexturep = LLViewerTextureManager::getLocalTexture(raw.get(), FALSE);
+	gGL.getTexUnit(0)->bind(mDefaultWaterTexturep);
 	mDefaultWaterTexturep->setAddressMode(LLTexUnit::TAM_CLAMP);
 
 }
@@ -638,6 +638,8 @@ void LLWorld::updateVisibilities()
 
 void LLWorld::updateRegions(F32 max_update_time)
 {
+	LLMemType mt_ur(LLMemType::MTYPE_IDLE_UPDATE_REGIONS);
+
 	LLTimer update_timer;
 	BOOL did_one = FALSE;
 	

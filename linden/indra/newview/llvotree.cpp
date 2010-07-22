@@ -319,7 +319,6 @@ U32 LLVOTree::processUpdateMessage(LLMessageSystem *mesgsys,
 	//
 	//  Load Species-Specific data 
 	//
-	mTreeImagep = LLViewerTextureManager::getFetchedTexture(sSpeciesTable[mSpecies]->mTextureID);
 	mTreeImagep = LLViewerTextureManager::getFetchedTexture(sSpeciesTable[mSpecies]->mTextureID, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE);
 	mBranchLength = sSpeciesTable[mSpecies]->mBranchLength;
 	mTrunkLength = sSpeciesTable[mSpecies]->mTrunkLength;
@@ -1310,7 +1309,6 @@ U32 LLVOTree::getPartitionType() const
 LLTreePartition::LLTreePartition()
 : LLSpatialPartition(0, FALSE, 0)
 {
-	// mRenderByGroup = FALSE; // SD hybrid
 	mDrawableType = LLPipeline::RENDER_TYPE_TREE;
 	mPartitionType = LLViewerRegion::PARTITION_TREE;
 	mSlopRatio = 0.f;

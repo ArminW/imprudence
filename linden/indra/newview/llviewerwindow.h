@@ -222,6 +222,7 @@ public:
 	const LLPickInfo&	getHoverPick() const { return mHoverPick; }
 
 	void			setupViewport(S32 x_offset = 0, S32 y_offset = 0);
+
 	void			setup3DRender();
 	void			setup2DRender();
 

@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,14 +28,16 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #ifndef LL_LLVIEWERCAMERA_H
 #define LL_LLVIEWERCAMERA_H
 
 #include "llcamera.h"
-#include "lltimer.h"
+// #include "llsingleton.h"
 #include "llstat.h"
+#include "lltimer.h"
 #include "m4math.h"
 
 class LLCoordGL;
@@ -51,9 +53,32 @@ const F32 OGL_TO_CFR_ROTATION[16] = {  0.f,  0.f, -1.f,  0.f, 	// -Z becomes X
 const BOOL FOR_SELECTION = TRUE;
 const BOOL NOT_FOR_SELECTION = FALSE;
 
+// Build time optimization, generate this once in .cpp file
+#ifndef LLVIEWERCAMERA_CPP
+extern template class LLViewerCamera* LLSingleton<class LLViewerCamera>::getInstance();
+#endif
+
 class LLViewerCamera : public LLCamera, public LLSingleton<LLViewerCamera>
 {
 public:
+
+	typedef enum
+	{
+		CAMERA_WORLD = 0,
+		CAMERA_SHADOW0,
+		CAMERA_SHADOW1,
+		CAMERA_SHADOW2,
+		CAMERA_SHADOW3,
+		CAMERA_SHADOW4,
+		CAMERA_SHADOW5,
+		CAMERA_WATER0,
+		CAMERA_WATER1,
+		CAMERA_GI_SOURCE,
+		NUM_CAMERAS
+	} eCameraID;
+
+	static U32 sCurCameraID;
+
 	LLViewerCamera();
 
 	void updateCameraLocation(const LLVector3 &center,
@@ -61,6 +86,7 @@ public:
 								const LLVector3 &point_of_interest);
 
 	static void updateFrustumPlanes(LLCamera& camera, BOOL ortho = FALSE, BOOL zflip = FALSE, BOOL no_hacks = FALSE);
+	static void updateCameraAngle(void* user_data, const LLSD& value);
 	void setPerspective(BOOL for_selection, S32 x, S32 y_from_bot, S32 width, S32 height, BOOL limit_select_distance, F32 z_near = 0, F32 z_far = 0);
 
 	const LLMatrix4 &getProjection() const;

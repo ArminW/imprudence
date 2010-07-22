@@ -1,6 +1,39 @@
 <?xml version="1.0" ?>
 <llsd>
 <map>
+    <key>AllowSelectAvatar</key>
+    <map>
+      <key>Comment</key>
+      <string>AllowSelectAvatar</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>Boolean</string>
+      <key>Value</key>
+      <integer>0</integer>
+    </map>
+    <key>DebugSelectMgr</key>
+    <map>
+      <key>Comment</key>
+      <string>DebugSelectMgr</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>Boolean</string>
+      <key>Value</key>
+      <integer>0</integer>
+    </map>
+    <key>HideSelectedObjects</key>
+    <map>
+      <key>Comment</key>
+      <string>Hide Selected Objects</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>Boolean</string>
+      <key>Value</key>
+      <integer>0</integer>
+    </map>
     <key>PluginAttachDebuggerToPlugins</key>
     <map>
       <key>Comment</key>

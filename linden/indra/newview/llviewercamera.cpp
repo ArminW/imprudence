@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2002&license=viewergpl$
  * 
- * Copyright (c) 2002-2009, Linden Research, Inc.
+ * Copyright (c) 2002-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,21 +28,17 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
+
+#define LLVIEWERCAMERA_CPP
 #include "llviewercamera.h"
 
-#include <iomanip> // for setprecision
-
-#include "llquaternion.h"
-
+// Viewer includes
 #include "llagent.h"
 #include "llviewercontrol.h"
-#include "lldrawable.h"
-#include "llface.h"
-#include "llgl.h"
-#include "llglheaders.h"
 #include "llviewerobjectlist.h"
 #include "llviewerregion.h"
 #include "llviewerwindow.h"
@@ -50,6 +46,19 @@
 #include "llworld.h"
 #include "lltoolmgr.h"
 #include "llviewerjoystick.h"
+
+// Linden library includes
+#include "lldrawable.h"
+#include "llface.h"
+#include "llgl.h"
+#include "llglheaders.h"
+#include "llquaternion.h"
+#include "llwindow.h"			// getPixelAspectRatio()
+
+// System includes
+#include <iomanip> // for setprecision
+
+U32 LLViewerCamera::sCurCameraID = LLViewerCamera::CAMERA_WORLD;
 
 //glu pick matrix implementation borrowed from Mesa3D
 glh::matrix4f gl_pick_matrix(GLfloat x, GLfloat y, GLfloat width, GLfloat height, GLint* viewport)
@@ -98,6 +107,9 @@ glh::matrix4f gl_lookat(LLVector3 eye, LLVector3 center, LLVector3 up)
 	
 }
 
+// Build time optimization, generate this once in .cpp file
+template class LLViewerCamera* LLSingleton<class LLViewerCamera>::getInstance();
+
 LLViewerCamera::LLViewerCamera() : LLCamera()
 {
 	calcProjection(getFar());
@@ -109,15 +121,15 @@ LLViewerCamera::LLViewerCamera() : LLCamera()
 	mZoomSubregion = 1;
 	mAverageSpeed = 0.f;
 	mAverageAngularSpeed = 0.f;
+//impfixme:boost 	gSavedSettings.getControl("CameraAngle")->getCommitSignal()->connect(boost::bind(&LLViewerCamera::updateCameraAngle, this, _2));
 }
 
 void LLViewerCamera::updateCameraLocation(const LLVector3 &center,
 											const LLVector3 &up_direction,
 											const LLVector3 &point_of_interest)
 {
-	// do not update if we are in build mode AND avatar didn't move
-	if (LLToolMgr::getInstance()->inBuildMode() 
-		&& !LLViewerJoystick::getInstance()->getCameraNeedsUpdate())
+	// do not update if avatar didn't move
+	if (!LLViewerJoystick::getInstance()->getCameraNeedsUpdate())
 	{
 		return;
 	}
@@ -327,7 +339,12 @@ void LLViewerCamera::setPerspective(BOOL for_selection,
 	{
 		// make a tiny little viewport
 		// anything drawn into this viewport will be "selected"
-		GLint*		viewport = (GLint*) gGLViewport;
+
+		GLint viewport[4];
+		viewport[0] = gViewerWindow->getWindowRect().mLeft;
+		viewport[1] = gViewerWindow->getWindowRect().mBottom;
+		viewport[2] = gViewerWindow->getWindowRect().getWidth();
+		viewport[3] = gViewerWindow->getWindowRect().getHeight();
 		
 		proj_mat = gl_pick_matrix(x+width/2.f, y_from_bot+height/2.f, (GLfloat) width, (GLfloat) height, viewport);
 
@@ -394,6 +411,9 @@ void LLViewerCamera::setPerspective(BOOL for_selection,
 	
 	if (for_selection && (width > 1 || height > 1))
 	{
+		// NB: as of this writing, i believe the code below is broken (doesn't take into account the world view, assumes entire window)
+		// however, it is also unused (the GL matricies are used for selection, (see LLCamera::sphereInFrustum())) and so i'm not
+		// comfortable hacking on it.
 		calculateFrustumPlanesFromWindow((F32)(x - width / 2) / (F32)gViewerWindow->getWindowWidth() - 0.5f,
 								(F32)(y_from_bot - height / 2) / (F32)gViewerWindow->getWindowHeight() - 0.5f,
 								(F32)(x + width / 2) / (F32)gViewerWindow->getWindowWidth() - 0.5f,
@@ -462,8 +482,15 @@ BOOL LLViewerCamera::projectPosAgentToScreen(const LLVector3 &pos_agent, LLCoord
 		}
 	}
 
+	LLRect world_view_rect = gViewerWindow->getWindowRect();//getWorldViewRectRaw();
+	S32	viewport[4];
+	viewport[0] = world_view_rect.mLeft;
+	viewport[1] = world_view_rect.mBottom;
+	viewport[2] = world_view_rect.getWidth();
+	viewport[3] = world_view_rect.getHeight();
+
 	if (GL_TRUE == gluProject(pos_agent.mV[VX], pos_agent.mV[VY], pos_agent.mV[VZ],
-								gGLModelView, gGLProjection, (GLint*)gGLViewport,
+								gGLModelView, gGLProjection, (GLint*)viewport,
 								&x, &y, &z))
 	{
 		// convert screen coordinates to virtual UI coordinates
@@ -471,9 +498,9 @@ BOOL LLViewerCamera::projectPosAgentToScreen(const LLVector3 &pos_agent, LLCoord
 		y /= gViewerWindow->getDisplayScale().mV[VY];
 
 		// should now have the x,y coords of grab_point in screen space
-		const LLRect& window_rect = gViewerWindow->getWindowRect();
+		LLRect world_rect = gViewerWindow->getVirtualWindowRect();//getWorldViewRectScaled();
 
-		// ...sanity check
+		// convert to pixel coordinates
 		S32 int_x = lltrunc(x);
 		S32 int_y = lltrunc(y);
 
@@ -481,14 +508,14 @@ BOOL LLViewerCamera::projectPosAgentToScreen(const LLVector3 &pos_agent, LLCoord
 
 		if (clamp)
 		{
-			if (int_x < window_rect.mLeft)
+			if (int_x < world_rect.mLeft)
 			{
-				out_point.mX = window_rect.mLeft;
+				out_point.mX = world_rect.mLeft;
 				valid = FALSE;
 			}
-			else if (int_x > window_rect.mRight)
+			else if (int_x > world_rect.mRight)
 			{
-				out_point.mX = window_rect.mRight;
+				out_point.mX = world_rect.mRight;
 				valid = FALSE;
 			}
 			else
@@ -496,14 +523,14 @@ BOOL LLViewerCamera::projectPosAgentToScreen(const LLVector3 &pos_agent, LLCoord
 				out_point.mX = int_x;
 			}
 
-			if (int_y < window_rect.mBottom)
+			if (int_y < world_rect.mBottom)
 			{
-				out_point.mY = window_rect.mBottom;
+				out_point.mY = world_rect.mBottom;
 				valid = FALSE;
 			}
-			else if (int_y > window_rect.mTop)
+			else if (int_y > world_rect.mTop)
 			{
-				out_point.mY = window_rect.mTop;
+				out_point.mY = world_rect.mTop;
 				valid = FALSE;
 			}
 			else
@@ -517,19 +544,19 @@ BOOL LLViewerCamera::projectPosAgentToScreen(const LLVector3 &pos_agent, LLCoord
 			out_point.mX = int_x;
 			out_point.mY = int_y;
 
-			if (int_x < window_rect.mLeft)
+			if (int_x < world_rect.mLeft)
 			{
 				valid = FALSE;
 			}
-			else if (int_x > window_rect.mRight)
+			else if (int_x > world_rect.mRight)
 			{
 				valid = FALSE;
 			}
-			if (int_y < window_rect.mBottom)
+			if (int_y < world_rect.mBottom)
 			{
 				valid = FALSE;
 			}
-			else if (int_y > window_rect.mTop)
+			else if (int_y > world_rect.mTop)
 			{
 				valid = FALSE;
 			}
@@ -558,24 +585,30 @@ BOOL LLViewerCamera::projectPosAgentToScreenEdge(const LLVector3 &pos_agent,
 		in_front = FALSE;
 	}
 
+	LLRect world_view_rect = gViewerWindow->getWindowRect();
+	S32	viewport[4];
+	viewport[0] = world_view_rect.mLeft;
+	viewport[1] = world_view_rect.mBottom;
+	viewport[2] = world_view_rect.getWidth();
+	viewport[3] = world_view_rect.getHeight();
 	GLdouble	x, y, z;			// object's window coords, GL-style
 	if (GL_TRUE == gluProject(pos_agent.mV[VX], pos_agent.mV[VY],
 							  pos_agent.mV[VZ], gGLModelView,
-							  gGLProjection, (GLint*)gGLViewport,
+							  gGLProjection, (GLint*)viewport,
 							  &x, &y, &z))
 	{
 		x /= gViewerWindow->getDisplayScale().mV[VX];
 		y /= gViewerWindow->getDisplayScale().mV[VY];
 		// should now have the x,y coords of grab_point in screen space
-		const LLRect& window_rect = gViewerWindow->getVirtualWindowRect();
+		const LLRect& world_rect = gViewerWindow->getVirtualWindowRect();//getWorldViewRectScaled();
 
 		// ...sanity check
 		S32 int_x = lltrunc(x);
 		S32 int_y = lltrunc(y);
 
 		// find the center
-		GLdouble center_x = (GLdouble)(0.5f * (window_rect.mLeft + window_rect.mRight));
-		GLdouble center_y = (GLdouble)(0.5f * (window_rect.mBottom + window_rect.mTop));
+		GLdouble center_x = (GLdouble)world_rect.getCenterX();
+		GLdouble center_y = (GLdouble)world_rect.getCenterY();
 
 		if (x == center_x  &&  y == center_y)
 		{
@@ -596,41 +629,41 @@ BOOL LLViewerCamera::projectPosAgentToScreenEdge(const LLVector3 &pos_agent,
 			// the slope of the line is undefined
 			if (line_y > 0.f)
 			{
-				int_y = window_rect.mTop;
+				int_y = world_rect.mTop;
 			}
 			else
 			{
-				int_y = window_rect.mBottom;
+				int_y = world_rect.mBottom;
 			}
 		}
-		else if (0 == window_rect.getWidth())
+		else if (0 == world_rect.getWidth())
 		{
 			// the diagonal slope of the view is undefined
-			if (y < window_rect.mBottom)
+			if (y < world_rect.mBottom)
 			{
-				int_y = window_rect.mBottom;
+				int_y = world_rect.mBottom;
 			}
-			else if ( y > window_rect.mTop)
+			else if ( y > world_rect.mTop)
 			{
-				int_y = window_rect.mTop;
+				int_y = world_rect.mTop;
 			}
 		}
 		else
 		{
 			F32 line_slope = (F32)(line_y / line_x);
-			F32 rect_slope = ((F32)window_rect.getHeight()) / ((F32)window_rect.getWidth());
+			F32 rect_slope = ((F32)world_rect.getHeight()) / ((F32)world_rect.getWidth());
 
 			if (fabs(line_slope) > rect_slope)
 			{
 				if (line_y < 0.f)
 				{
 					// bottom
-					int_y = window_rect.mBottom;
+					int_y = world_rect.mBottom;
 				}
 				else
 				{
 					// top
-					int_y = window_rect.mTop;
+					int_y = world_rect.mTop;
 				}
 				int_x = lltrunc(((GLdouble)int_y - center_y) / line_slope + center_x);
 			}
@@ -639,12 +672,12 @@ BOOL LLViewerCamera::projectPosAgentToScreenEdge(const LLVector3 &pos_agent,
 				if (line_x < 0.f)
 				{
 					// left
-					int_x = window_rect.mLeft;
+					int_x = world_rect.mLeft;
 				}
 				else
 				{
 					// right
-					int_x = window_rect.mRight;
+					int_x = world_rect.mRight;
 				}
 				int_y = lltrunc(((GLdouble)int_x - center_x) * line_slope + center_y);
 			}
@@ -653,29 +686,30 @@ BOOL LLViewerCamera::projectPosAgentToScreenEdge(const LLVector3 &pos_agent,
 				// exactly parallel ==> push to the corners
 				if (line_x > 0.f)
 				{
-					int_x = window_rect.mRight;
+					int_x = world_rect.mRight;
 				}
 				else
 				{
-					int_x = window_rect.mLeft;
+					int_x = world_rect.mLeft;
 				}
 				if (line_y > 0.0f)
 				{
-					int_y = window_rect.mTop;
+					int_y = world_rect.mTop;
 				}
 				else
 				{
-					int_y = window_rect.mBottom;
+					int_y = world_rect.mBottom;
 				}
 			}
 		}
 		if (!in_front)
 		{
-			int_x = window_rect.mLeft + window_rect.mRight - int_x;
-			int_y = window_rect.mBottom + window_rect.mTop - int_y;
+			int_x = world_rect.mLeft + world_rect.mRight - int_x;
+			int_y = world_rect.mBottom + world_rect.mTop - int_y;
 		}
-		out_point.mX = int_x;
-		out_point.mY = int_y;
+
+		out_point.mX = int_x + world_rect.mLeft;
+		out_point.mY = int_y + world_rect.mBottom;
 		return TRUE;
 	}
 	return FALSE;
@@ -769,8 +803,8 @@ BOOL LLViewerCamera::areVertsVisible(LLViewerObject* volumep, BOOL all_verts)
 
 			BOOL in_frustum = pointInFrustum(LLVector3(vec)) > 0;
 
-			if ( !in_frustum && all_verts ||
-				 in_frustum && !all_verts)
+			if (( !in_frustum && all_verts) ||
+				 (in_frustum && !all_verts))
 			{
 				return !all_verts;
 			}
@@ -813,5 +847,13 @@ void LLViewerCamera::setDefaultFOV(F32 vertical_fov_rads)
 	setView(vertical_fov_rads);
 	mCameraFOVDefault = vertical_fov_rads; 
 	mCosHalfCameraFOV = cosf(mCameraFOVDefault * 0.5f);
+}
+
+
+// static
+void LLViewerCamera::updateCameraAngle( void* user_data, const LLSD& value)
+{
+	LLViewerCamera* self=(LLViewerCamera*)user_data;
+	self->setDefaultFOV(value.asReal());	
 }
 

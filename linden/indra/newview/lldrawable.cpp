@@ -102,7 +102,7 @@ void LLDrawable::init()
 	mVObjp   = NULL;
 	// mFaces
 	mSpatialGroupp = NULL;
-	mVisible = 0;
+	mVisible = sCurVisible - 2;//invisible for the current frame and the last frame.
 	mRadius = 0.f;
 	
 	mGeneration = -1;
@@ -383,8 +383,6 @@ void LLDrawable::makeActive()
 			mParent->makeActive();
 		}
 
-		gPipeline.setActive(this, TRUE);
-
 		//all child objects must also be active
 		llassert_always(mVObjp);
 		
@@ -431,7 +429,6 @@ void LLDrawable::makeStatic(BOOL warning_enabled)
 	if (isState(ACTIVE))
 	{
 		clearState(ACTIVE);
-		gPipeline.setActive(this, FALSE);
 
 		if (mParent.notNull() && mParent->isActive() && warning_enabled)
 		{
@@ -675,6 +672,11 @@ BOOL LLDrawable::updateMoveDamped()
 
 void LLDrawable::updateDistance(LLCamera& camera, bool force_update)
 {
+	if (LLViewerCamera::sCurCameraID != LLViewerCamera::CAMERA_WORLD)
+	{
+		llwarns << "sCurCameraID != LLViewerCamera::CAMERA_WORLD" << llendl;
+	}
+
 	//switch LOD with the spatial group to avoid artifacts
 	//LLSpatialGroup* sg = getSpatialGroup();
 
@@ -697,7 +699,7 @@ void LLDrawable::updateDistance(LLCamera& camera, bool force_update)
 				for (S32 i = 0; i < getNumFaces(); i++)
 				{
 					LLFace* facep = getFace(i);
-					if (facep->getPoolType() == LLDrawPool::POOL_ALPHA)
+					if (force_update || facep->getPoolType() == LLDrawPool::POOL_ALPHA)
 					{
 						LLVector3 box = (facep->mExtents[1] - facep->mExtents[0]) * 0.25f;
 						LLVector3 v = (facep->mCenterLocal-camera.getOrigin());
@@ -739,11 +741,7 @@ void LLDrawable::updateTexture()
 
 	if (getVOVolume())
 	{
-		if (!isActive())
-		{
-			//gPipeline.markMoved(this);
-		}
-		else
+		if (isActive())
 		{
 			if (isRoot())
 			{
@@ -955,12 +953,32 @@ LLSpatialPartition* LLDrawable::getSpatialPartition()
 	
 	return retval;
 }
+ 
+const S32 MIN_VIS_FRAME_RANGE = 2 ; //two frames:the current one and the last one.
+//static 
+S32 LLDrawable::getMinVisFrameRange()
+{
+	return MIN_VIS_FRAME_RANGE ;
+}
 
 BOOL LLDrawable::isRecentlyVisible() const
 {
 	//currently visible or visible in the previous frame.
-	return isVisible() || (mVisible == sCurVisible - 1)  ;
+	BOOL vis = isVisible() || (sCurVisible - mVisible < MIN_VIS_FRAME_RANGE)  ;
+
+	if(!vis)
+	{
+		LLSpatialGroup* group = getSpatialGroup();
+		if (group && group->isRecentlyVisible())
+		{
+			mVisible = sCurVisible;
+			vis = TRUE ;
+		}
+	}
+
+	return vis ;
 }
+
 BOOL LLDrawable::isVisible() const
 {
 	if (mVisible == sCurVisible)
@@ -1010,7 +1028,7 @@ BOOL LLDrawable::isVisible() const
 // Spatial Partition Bridging Drawable
 //=======================================
 
-LLSpatialBridge::LLSpatialBridge(LLDrawable* root, BOOL render_by_group, U32 data_mask) // KL Sd version
+LLSpatialBridge::LLSpatialBridge(LLDrawable* root, BOOL render_by_group, U32 data_mask)
 : LLSpatialPartition(data_mask, render_by_group, FALSE)
 {
 	mDrawable = root;
@@ -1022,8 +1040,17 @@ LLSpatialBridge::LLSpatialBridge(LLDrawable* root, BOOL render_by_group, U32 dat
 	mPartitionType = LLViewerRegion::PARTITION_VOLUME;
 	
 	mOctree->balance();
-	
-	mDrawable->getRegion()->getSpatialPartition(mPartitionType)->put(this);
+
+	llassert(mDrawable);
+	llassert(mDrawable->getRegion());
+	LLSpatialPartition *part = mDrawable->getRegion()->getSpatialPartition(mPartitionType);
+	llassert(part);
+
+	if (part)
+	{
+		part->put(this);
+	}
+
 }
 
 LLSpatialBridge::~LLSpatialBridge()
@@ -1245,7 +1272,9 @@ void LLSpatialBridge::setVisible(LLCamera& camera_in, std::vector<LLDrawable*>* 
 		(camera_in.AABBInFrustumNoFarClip(center, size) && 
 		AABBSphereIntersect(mExtents[0], mExtents[1], camera_in.getOrigin(), camera_in.mFrustumCornerDist)))
 	{
-		if (!LLPipeline::sImpostorRender && LLPipeline::calcPixelArea(center, size, camera_in) < FORCE_INVISIBLE_AREA)
+		if (!LLPipeline::sImpostorRender &&
+			!LLPipeline::sShadowRender &&
+			LLPipeline::calcPixelArea(center, size, camera_in) < FORCE_INVISIBLE_AREA)
 		{
 			return;
 		}
@@ -1300,8 +1329,8 @@ void LLSpatialBridge::updateDistance(LLCamera& camera_in, bool force_update)
 		}
 
 		LLCamera camera = transformCamera(camera_in);
-	
-	mDrawable->updateDistance(camera, force_update);
+
+		mDrawable->updateDistance(camera, force_update);
 	
 		LLViewerObject::const_child_list_t& child_list = mDrawable->getVObj()->getChildren();
 		for (LLViewerObject::child_list_t::const_iterator iter = child_list.begin();
@@ -1335,8 +1364,16 @@ void LLSpatialBridge::move(LLDrawable *drawablep, LLSpatialGroup *curp, BOOL imm
 
 BOOL LLSpatialBridge::updateMove()
 {
+	llassert(mDrawable);
+	llassert(mDrawable->getRegion());
+	LLSpatialPartition* part = mDrawable->getRegion()->getSpatialPartition(mPartitionType);
+	llassert(part);
+
 	mOctree->balance();
-	mDrawable->getRegion()->getSpatialPartition(mPartitionType)->move(this, getSpatialGroup(), TRUE);
+	if (part)
+	{
+		part->move(this, getSpatialGroup(), TRUE);
+	}
 	return TRUE;
 }
 
@@ -1441,8 +1478,7 @@ void LLDrawable::updateFaceSize(S32 idx)
 
 LLBridgePartition::LLBridgePartition()
 : LLSpatialPartition(0, FALSE, 0) 
-{ 
-	//mRenderByGroup = FALSE;  // KL
+{
 	mDrawableType = LLPipeline::RENDER_TYPE_AVATAR; 
 	mPartitionType = LLViewerRegion::PARTITION_BRIDGE;
 	mLODPeriod = 16;

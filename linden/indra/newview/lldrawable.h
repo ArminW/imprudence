@@ -44,9 +44,9 @@
 #include "llquaternion.h"
 #include "xform.h"
 #include "llmemtype.h"
-#include "llprimitive.h"
+//impfixme:rm #include "llprimitive.h"
 #include "lldarray.h"
-#include "llstat.h"
+//impfixme:rm #include "llstat.h"
 #include "llviewerobject.h"
 #include "llrect.h"
 #include "llappviewer.h" // for gFrameTimeSeconds
@@ -281,6 +281,8 @@ public:
 	S32				mQuietCount;
 
 	static S32 getCurrentFrame() { return sCurVisible; }
+
+	static S32 getMinVisFrameRange();
 	
 	void setSpatialBridge(LLSpatialBridge* bridge) { mSpatialBridge = (LLDrawable*) bridge; }
 	LLSpatialBridge* getSpatialBridge() { return (LLSpatialBridge*) (LLDrawable*) mSpatialBridge; }

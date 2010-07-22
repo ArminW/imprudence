@@ -443,6 +443,7 @@ public:
 	static BOOL				sRenderAttachedParticles;
 	static BOOL				sRenderDeferred;
 	static S32				sVisibleLightCount;
+	static F32				sMinRenderSize;
 
 	//screen texture
 	LLRenderTarget			mScreen;
@@ -464,8 +465,12 @@ public:
 	LLCamera				mShadowCamera[8];
 	LLVector3				mShadowExtents[4][2];
 	glh::matrix4f			mSunShadowMatrix[6];
+	glh::matrix4f			mShadowModelview[6];
+	glh::matrix4f			mShadowProjection[6];
 	glh::matrix4f			mGIMatrix;
 	glh::matrix4f			mGIMatrixProj;
+	glh::matrix4f			mGIModelview;
+	glh::matrix4f			mGIProjection;
 	glh::matrix4f			mGINormalMatrix;
 	glh::matrix4f			mGIInvProj;
 	LLVector2				mGIRange;

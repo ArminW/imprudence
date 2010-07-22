@@ -356,6 +356,11 @@ public:
 	static LLColor4				sHighlightInspectColor;
 	static LLColor4				sContextSilhouetteColor;
 
+	bool					mHideSelectedObjects;
+	bool					mRenderHighlightSelections;
+	bool					mAllowSelectAvatar;
+	bool					mDebugSelectMgr;
+
 public:
 	LLSelectMgr();
 	~LLSelectMgr();
