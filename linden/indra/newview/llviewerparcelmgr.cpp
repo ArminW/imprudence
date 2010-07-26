@@ -147,7 +147,7 @@ LLViewerParcelMgr::LLViewerParcelMgr()
 	// JC: Resolved a merge conflict here, eliminated
 	// mBlockedImage->setAddressMode(LLTexUnit::TAM_WRAP);
 	// because it is done in llviewertexturelist.cpp
-//impfixme:sg2 	mBlockedImage = LLViewerTextureManager::getFetchedTextureFromFile("world/NoEntryLines.png");
+//SG2: 	mBlockedImage = LLViewerTextureManager::getFetchedTextureFromFile("world/NoEntryLines.png");
 // 	mPassImage = LLViewerTextureManager::getFetchedTextureFromFile("world/NoEntryPassLines.png");
 	mBlockedImage = LLViewerTextureManager::getFetchedTextureFromFile("noentrylines.j2c");
 	mPassImage = LLViewerTextureManager::getFetchedTextureFromFile("noentrypasslines.j2c");

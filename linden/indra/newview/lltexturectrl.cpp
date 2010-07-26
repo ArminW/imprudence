@@ -559,12 +559,12 @@ void LLFloaterTexturePicker::draw()
 		mTexturep = NULL;
 		if(mImageAssetID.notNull())
 		{
-			mTexturep = LLViewerTextureManager::getLocalTexture(mImageAssetID, MIPMAP_YES, IMMEDIATE_NO);
+			mTexturep = LLViewerTextureManager::getLocalTexture(mImageAssetID, MIPMAP_YES);
 			mTexturep->setBoostLevel(LLViewerTexture::BOOST_PREVIEW);
 		}
 		else if (!mFallbackImageName.empty())
 		{
-//impfixme:compile			mTexturep = LLViewerTextureManager::getImageFromFile(mFallbackImageName);
+			mTexturep = LLViewerTextureManager::getFetchedTextureFromFile(mFallbackImageName);
 			mTexturep->setBoostLevel(LLViewerTexture::BOOST_PREVIEW);
 		}
 

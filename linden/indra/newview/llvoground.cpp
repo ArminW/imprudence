@@ -37,7 +37,6 @@
 
 #include "llviewercontrol.h"
 
-#include "llagent.h"
 #include "lldrawable.h"
 #include "llface.h"
 #include "llsky.h"
@@ -71,7 +70,7 @@ BOOL LLVOGround::idleUpdate(LLAgent &agent, LLWorld &world, const F64 &time)
 }
 
 
-void LLVOGround::updateTextures(LLAgent &agent)
+void LLVOGround::updateTextures()
 {
 }
 

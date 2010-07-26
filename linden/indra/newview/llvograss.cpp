@@ -36,9 +36,7 @@
 
 #include "imageids.h"
 #include "llviewercontrol.h"
-
 #include "llagent.h"
-#include "llviewerwindow.h"
 #include "lldrawable.h"
 #include "llface.h"
 #include "llsky.h"
@@ -162,20 +160,15 @@ void LLVOGrass::initClass()
 
 		GrassSpeciesData* newGrass = new GrassSpeciesData();
 
+ 		if (newGrass->mTextureID.isNull())
+		{
+			std::string textureName;
 
-		static LLStdStringHandle texture_id_string = LLXmlTree::addAttributeString("texture_id");
-		grass_def->getFastAttributeUUID(texture_id_string, id);
-		newGrass->mTextureID = id;
-
-//impfixme 		if (newGrass->mTextureID.isNull())
-// 		{
-// 			std::string textureName;
-// 
-// 			static LLStdStringHandle texture_name_string = LLXmlTree::addAttributeString("texture_name");
-// 			success &= grass_def->getFastAttributeString(texture_name_string, textureName);
-// 			LLViewerTexture* grass_image = LLViewerTextureManager::getFetchedTextureFromHost(textureName);
-// 			newGrass->mTextureID = grass_image->getID();
-// 		}
+			static LLStdStringHandle texture_name_string = LLXmlTree::addAttributeString("texture_name");
+			success &= grass_def->getFastAttributeString(texture_name_string, textureName);
+			LLViewerTexture* grass_image = LLViewerTextureManager::getFetchedTextureFromFile(textureName);
+			newGrass->mTextureID = grass_image->getID();
+		}
 
 		static LLStdStringHandle blade_sizex_string = LLXmlTree::addAttributeString("blade_size_x");
 		success &= grass_def->getFastAttributeF32(blade_sizex_string, F32_val);
@@ -198,10 +191,10 @@ void LLVOGrass::initClass()
 
 		if (species >= sMaxGrassSpecies) sMaxGrassSpecies = species + 1;
 
-//impfixme 		std::string name;
-// 		static LLStdStringHandle name_string = LLXmlTree::addAttributeString("name");
-// 		success &= grass_def->getFastAttributeString(name_string, name);
-// 		sSpeciesNames[name] = species;
+		std::string name;
+		static LLStdStringHandle name_string = LLXmlTree::addAttributeString("name");
+		success &= grass_def->getFastAttributeString(name_string, name);
+		sSpeciesNames[name] = species;
 
 		if (!success)
 		{
@@ -339,7 +332,7 @@ void LLVOGrass::setPixelAreaAndAngle(LLAgent &agent)
 
 
 // BUG could speed this up by caching the relative_position and range calculations
-void LLVOGrass::updateTextures(LLAgent &agent)
+void LLVOGrass::updateTextures()
 {
 	if (getTEImage(0))
 	{

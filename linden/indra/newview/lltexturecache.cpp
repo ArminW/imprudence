@@ -806,7 +806,7 @@ std::string LLTextureCache::getLocalFileName(const LLUUID& id)
 	// Does not include extension
 	std::string idstr = id.asString();
 	// TODO: should we be storing cached textures in skin directory?
-//impfixme SG2:	std::string filename = gDirUtilp->getExpandedFilename(LL_PATH_LOCAL_ASSETS, idstr);
+//SG2:	std::string filename = gDirUtilp->getExpandedFilename(LL_PATH_LOCAL_ASSETS, idstr);
 	std::string delem = gDirUtilp->getDirDelimiter();
 	std::string filename = mTexturesDirName + delem + idstr[0] + delem + idstr + ".texture";
 	return filename;

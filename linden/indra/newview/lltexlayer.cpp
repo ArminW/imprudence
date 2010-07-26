@@ -1563,14 +1563,10 @@ BOOL LLTexLayer::blendAlphaTexture(S32 x, S32 y, S32 width, S32 height)
 	{
 		if (getInfo()->mLocalTexture >=0 && getInfo()->mLocalTexture < TEX_NUM_INDICES)
 		{
-// LLViewerFetchedTexture* getImage() const;
-// LLPointer<LLViewerFetchedTexture>  			mImage;
-
-
+//SG2:			LLViewerTexture* tex = mLocalTextureObject->getImage();
+// 			if (tex)
 			LLViewerTexture* tex = NULL;
  			if (mTexLayerSet->getAvatar()->getLocalTextureGL((ETextureIndex)getInfo()->mLocalTexture, &tex))
-// 			LLViewerTexture* tex = mLocalTextureObject->getImage();
-// 			if (tex)
 			{
 				LLGLSNoAlphaTest gls_no_alpha_test;
 				gGL.getTexUnit(0)->bind(tex);
@@ -2045,7 +2041,7 @@ BOOL LLTexLayerParamAlpha::getSkip()
 }
 
 
-BOOL LLTexLayerParamAlpha::render( S32 x, S32 y, S32 width, S32 height )//impfixme:todo port texlayerparam
+BOOL LLTexLayerParamAlpha::render( S32 x, S32 y, S32 width, S32 height )//imp todo port texlayerparam
 {
 	BOOL success = TRUE;
 

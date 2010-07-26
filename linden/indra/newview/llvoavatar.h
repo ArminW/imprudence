@@ -335,7 +335,6 @@ public:
 	void			setInvisible(BOOL newvalue);
 	static LLColor4 getDummyColor();
 
-//impfixme 	void 		applyMorphMask(U8* tex_data, S32 width, S32 height, S32 num_components, LLVOAvatarDefines::EBakedTextureIndex index = LLVOAvatarDefines::BAKED_NUM_INDICES);
 
 	//--------------------------------------------------------------------
 	// Clothing colors (conventience functions to access visual parameters

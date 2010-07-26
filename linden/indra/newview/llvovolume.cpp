@@ -3531,7 +3531,7 @@ void LLVolumeGeometryManager::rebuildMesh(LLSpatialGroup* group)
 	llassert(group);
 	if (group && group->isState(LLSpatialGroup::MESH_DIRTY) && !group->isState(LLSpatialGroup::GEOM_DIRTY))
 	{
-//impfixme:compile		LLFastTimer tm(LLFastTimer::FTM_VOLUME_GEOM);
+		LLFastTimer tm(LLFastTimer::FTM_VOLUME_GEOM);
 		S32 num_mapped_veretx_buffer = LLVertexBuffer::sMappedCount ;
 
 		group->mBuilt = 1.f;

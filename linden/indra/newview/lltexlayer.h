@@ -184,7 +184,6 @@ protected:
 	LLColor4				mFixedColor;
 
 	S32						mLocalTexture;
-//impfixme	LLLocalTextureObject 	*mLocalTextureObject;//impfixme
 	std::string				mStaticImageFileName;
 	BOOL					mStaticImageIsMask;
 	BOOL					mUseLocalTextureAlphaOnly;	// Ignore RGB channels from the input texture.  Use alpha as a mask

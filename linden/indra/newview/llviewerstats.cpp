@@ -448,7 +448,6 @@ void output_statistics(void*)
 
 	llinfos << "--------------------------------" << llendl;
 	llinfos << "Avatar Memory (partly overlaps with above stats):" << llendl;
-//impfixme 	gTexStaticImageList.dumpByteCount();
 	LLTexStaticImageList::getInstance()->dumpByteCount();
 	LLVOAvatar::dumpScratchTextureByteCount();
 	LLTexLayerSetBuffer::dumpTotalByteCount();
