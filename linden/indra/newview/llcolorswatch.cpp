@@ -203,9 +203,7 @@ BOOL LLColorSwatchCtrl::handleMouseUp(S32 x, S32 y, MASK mask)
 // assumes GL state is set for 2D
 void LLColorSwatchCtrl::draw()
 {
-//impru	F32 alpha = getDrawContext().mAlpha;
-	F32 alpha;
-
+//SG2:	F32 alpha = getDrawContext().mAlpha;
 	mBorder->setKeyboardFocusHighlight(hasFocus());
 	// Draw border
 	LLRect border( 0, getRect().getHeight(), getRect().getWidth(), BTN_HEIGHT_SMALL );
@@ -242,15 +240,18 @@ void LLColorSwatchCtrl::draw()
 			{	
 				gl_rect_2d_checkerboard( interior );
 			}	
-			gl_draw_scaled_image( interior.mLeft, interior.mBottom, interior.getWidth(), interior.getHeight(), fallback_image, LLColor4::white % alpha);
+			gl_draw_scaled_image( interior.mLeft, interior.mBottom, interior.getWidth(), interior.getHeight(), fallback_image); 
+//SG2:			gl_draw_scaled_image( interior.mLeft, interior.mBottom, interior.getWidth(), interior.getHeight(), fallback_image, LLColor4::white % alpha);
 			fallback_image->addTextureStats( (F32)(interior.getWidth() * interior.getHeight()) );
 		}
 		else
 		{
 			// Draw grey and an X
-			gl_rect_2d(interior, LLColor4::grey % alpha, TRUE);
+			gl_rect_2d(interior, LLColor4::grey, TRUE);
+//SG2: 			gl_rect_2d(interior, LLColor4::grey % alpha, TRUE);
 			
-			gl_draw_x(interior, LLColor4::black % alpha);
+			gl_draw_x(interior, LLColor4::black);
+//SG2:			gl_draw_x(interior,  LLColor4::black % alpha);
 		}
 	}
 

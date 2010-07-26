@@ -592,7 +592,7 @@ void primbackup::export_next_texture()
 
 		id=(*iter);
 
-		LLViewerTexture * imagep ;//impfixme:compile= gTextureList.hasImage(id);
+		LLViewerTexture * imagep = NULL; //impfixme: compile = gTextureList.hasImage(id);
 		if(imagep!=NULL)
 		{
 			S32 cur_discard = imagep->getDiscardLevel();
