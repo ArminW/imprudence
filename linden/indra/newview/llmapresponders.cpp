@@ -66,8 +66,8 @@ void LLMapLayerResponder::result(const LLSD& result)
 		LLWorldMapLayer new_layer;
 		new_layer.LayerDefined = TRUE;
 		new_layer.LayerImageID = layer_data["ImageID"];
-		new_layer.LayerImage = LLViewerTextureManager::getLocalTexture(new_layer.LayerImageID, MIPMAP_TRUE, FALSE);
-		gGL.getTexUnit(0)->bind(new_layer.LayerImage.get());
+		new_layer.LayerImage = LLViewerTextureManager::getFetchedTexture(new_layer.LayerImageID, MIPMAP_TRUE, LLViewerTexture::BOOST_MAP, LLViewerTexture::LOD_TEXTURE);
+		gGL.getTexUnit(0)->bind(new_layer.LayerImage);
 		new_layer.LayerImage->setAddressMode(LLTexUnit::TAM_CLAMP);
 		
 		new_layer.LayerExtents.mLeft = layer_data["Left"];
@@ -163,15 +163,14 @@ void LLMapLayerResponder::result(const LLSD& result)
 				siminfo->mRegionFlags = region_flags;
 				siminfo->mWaterHeight = (F32) water_height;
 				siminfo->mMapImageID[agent_flags] = image_id;
-				siminfo->mCurrentImage = LLViewerTextureManager::getLocalTexture(siminfo->mMapImageID[LLWorldMap::getInstance()->mCurrentMap], MIPMAP_TRUE, FALSE);
+				siminfo->mCurrentImage =  LLViewerTextureManager::getFetchedTexture(siminfo->mMapImageID[LLWorldMap::getInstance()->mCurrentMap], MIPMAP_TRUE, LLViewerTexture::BOOST_MAP, LLViewerTexture::LOD_TEXTURE);
+
 				siminfo->mCurrentImage->setAddressMode(LLTexUnit::TAM_CLAMP);
-				gGL.getTexUnit(0)->bind(siminfo->mCurrentImage.get());
+				gGL.getTexUnit(0)->bind(siminfo->mCurrentImage);
 			
 				if (siminfo->mMapImageID[2].notNull())
 				{
-					siminfo->mOverlayImage = LLViewerTextureManager::getLocalTexture(siminfo->mMapImageID[2], MIPMAP_TRUE, FALSE);
-
-					LLViewerTextureManager::getLocalTexture(siminfo->mMapImageID[2], MIPMAP_TRUE, FALSE);
+					siminfo->mOverlayImage = LLViewerTextureManager::getFetchedTexture(siminfo->mMapImageID[2], MIPMAP_TRUE, LLViewerTexture::BOOST_MAP, LLViewerTexture::LOD_TEXTURE);
 				}
 				else
 				{

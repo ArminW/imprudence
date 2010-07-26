@@ -520,9 +520,9 @@ void LLWorldMap::processMapLayerReply(LLMessageSystem* msg, void**)
 		LLWorldMapLayer new_layer;
 		new_layer.LayerDefined = TRUE;
 		msg->getUUIDFast(_PREHASH_LayerData, _PREHASH_ImageID, new_layer.LayerImageID, block);
- 		new_layer.LayerImage = LLViewerTextureManager::getLocalTexture(new_layer.LayerImageID, MIPMAP_TRUE, FALSE);
+ 		new_layer.LayerImage = LLViewerTextureManager::getFetchedTexture(new_layer.LayerImageID, MIPMAP_TRUE,LLViewerTexture::BOOST_MAP, LLViewerTexture::LOD_TEXTURE);
 
-		gGL.getTexUnit(0)->bind(new_layer.LayerImage.get());
+		gGL.getTexUnit(0)->bind(new_layer.LayerImage);
 		new_layer.LayerImage->setAddressMode(LLTexUnit::TAM_CLAMP);
 		
 		U32 left, right, top, bottom;
@@ -635,15 +635,15 @@ void LLWorldMap::processMapBlockReply(LLMessageSystem* msg, void**)
 			siminfo->mMapImageID[agent_flags] = image_id;
 
 #ifdef IMMEDIATE_IMAGE_LOAD
-			siminfo->mCurrentImage = gTextureList.getImage(siminfo->mMapImageID[LLWorldMap::getInstance()->mCurrentMap], MIPMAP_TRUE, FALSE);
-			gGL.getTexUnit(0)->bind(siminfo->mCurrentImage.get());
+			siminfo->mCurrentImage = LLViewerTextureManager::getFetchedTexture(siminfo->mMapImageID[LLWorldMap::getInstance()->mCurrentMap], MIPMAP_TRUE, LLViewerTexture::BOOST_MAP, LLViewerTexture::LOD_TEXTURE);
+			gGL.getTexUnit(0)->bind(siminfo->mCurrentImage);
 			siminfo->mCurrentImage->setAddressMode(LLTexUnit::TAM_CLAMP);
 #endif
 			
 			if (siminfo->mMapImageID[2].notNull())
 			{
 #ifdef IMMEDIATE_IMAGE_LOAD
-				siminfo->mOverlayImage = gTextureList.getImage(siminfo->mMapImageID[2], MIPMAP_TRUE, FALSE);
+				siminfo->mOverlayImage = LLViewerTextureManager::getFetchedTexture(siminfo->mMapImageID[2], MIPMAP_TRUE,  LLViewerTexture::BOOST_MAP, LLViewerTexture::LOD_TEXTURE);
 #endif
 			}
 			else

@@ -94,8 +94,8 @@ public:
 	LLUUID mMapImageID[MAP_SIM_IMAGE_TYPES];
 
 	// Hold a reference to the currently displayed image.
-	LLPointer<LLViewerTexture> mCurrentImage;
-	LLPointer<LLViewerTexture> mOverlayImage;
+	LLPointer<LLViewerFetchedTexture> mCurrentImage;
+	LLPointer<LLViewerFetchedTexture> mOverlayImage;
 };
 
 #define MAP_BLOCK_RES 256
@@ -103,7 +103,7 @@ public:
 struct LLWorldMapLayer
 {
 	BOOL LayerDefined;
-	LLPointer<LLViewerTexture> LayerImage;
+	LLPointer<LLViewerFetchedTexture> LayerImage;
 	LLUUID LayerImageID;
 	LLRect LayerExtents;
 

@@ -343,7 +343,7 @@ void LLWorldMapView::draw()
 			continue;
 		}
 		LLWorldMapLayer *layer = &LLWorldMap::getInstance()->mMapLayers[LLWorldMap::getInstance()->mCurrentMap][layer_idx];
-		LLViewerTexture *current_image = layer->LayerImage;
+		LLViewerFetchedTexture *current_image = layer->LayerImage;
 
 		if (current_image->isMissingAsset())
 		{
@@ -445,8 +445,8 @@ void LLWorldMapView::draw()
 		U64 handle = (*it).first;
 		LLSimInfo* info = (*it).second;
 
-		LLViewerTexture* simimage = info->mCurrentImage;
-		LLViewerTexture* overlayimage = info->mOverlayImage;
+		LLViewerFetchedTexture* simimage = info->mCurrentImage;
+		LLViewerFetchedTexture* overlayimage = info->mOverlayImage;
 
 		if (gMapScale < SIM_MAP_SCALE)
 		{
@@ -521,7 +521,8 @@ void LLWorldMapView::draw()
 				 (textures_requested_this_tick < MAX_REQUEST_PER_TICK)))
 			{
 				textures_requested_this_tick++;
-//impfixme:compile				info->mCurrentImage = gTextureList.getImage(info->mMapImageID[LLWorldMap::getInstance()->mCurrentMap], MIPMAP_TRUE, FALSE);
+				info->mCurrentImage = LLViewerTextureManager::getFetchedTexture(info->mMapImageID[LLWorldMap::getInstance()->mCurrentMap], MIPMAP_TRUE, LLViewerTexture::BOOST_MAP, LLViewerTexture::LOD_TEXTURE);
+
                 info->mCurrentImage->setAddressMode(LLTexUnit::TAM_CLAMP);
 				simimage = info->mCurrentImage;
 				gGL.getTexUnit(0)->bind(simimage);
@@ -534,7 +535,8 @@ void LLWorldMapView::draw()
 				 (textures_requested_this_tick < MAX_REQUEST_PER_TICK)))
 			{
 				textures_requested_this_tick++;
-//impfixme:compile				info->mOverlayImage = gTextureList.getImage(info->mMapImageID[2], MIPMAP_TRUE, FALSE);
+				info->mOverlayImage = LLViewerTextureManager::getFetchedTexture(info->mMapImageID[2], MIPMAP_TRUE, LLViewerTexture::BOOST_MAP, LLViewerTexture::LOD_TEXTURE);
+
 				info->mOverlayImage->setAddressMode(LLTexUnit::TAM_CLAMP);
 				overlayimage = info->mOverlayImage;
 				gGL.getTexUnit(0)->bind(overlayimage);
