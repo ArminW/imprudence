@@ -220,6 +220,10 @@
 	<string name="compressed_image_files">Compressed Images</string>
 	<string name="load_files">Load Files</string>
 	<string name="choose_the_directory">Choose Directory</string>
+	
+	<!-- viewer object -->
+	<string name="ViewerObjectContents">Contents</string>
+
 
 </strings>
 

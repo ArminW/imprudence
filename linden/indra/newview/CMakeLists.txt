@@ -307,7 +307,7 @@ set(viewer_SOURCE_FILES
     llpanelpermissions.cpp
     llpanelpick.cpp
     llpanelplace.cpp
-#    llpanelprimmediacontrols.cpp
+    llpanelprimmediacontrols.cpp
     llpanelskins.cpp
     llpanelvolume.cpp
     llpanelweb.cpp
@@ -748,7 +748,7 @@ set(viewer_HEADER_FILES
     llpanelpermissions.h
     llpanelpick.h
     llpanelplace.h
-#    llpanelprimmediacontrols.h
+    llpanelprimmediacontrols.h
     llpanelskins.h
     llpanelvolume.h
     llpanelweb.h

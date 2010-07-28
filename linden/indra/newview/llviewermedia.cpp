@@ -170,7 +170,7 @@ public:
 		std::string::size_type idx1 = media_type.find_first_of(";");
 		std::string mime_type = media_type.substr(0, idx1);
 
-		lldebugs << "status is " << status << ", media type \"" << media_type << "\"" << llendl;
+		LL_DEBUGS("Media") << "status is " << status << ", media type \"" << media_type << "\"" << llendl;
 		
 		// 2xx status codes indicate success.
 		// Most 4xx status codes are successful enough for our purposes.
@@ -260,7 +260,7 @@ static const F32 LLVIEWERMEDIA_CREATE_DELAY = 1.0f;
 static F32 sGlobalVolume = 1.0f;
 static F64 sLowestLoadableImplInterest = 0.0f;
 static bool sAnyMediaShowing = false;
-//impfixme:compile static boost::signals::connection sTeleportFinishConnection;
+//imp fixme:compile static boost::signals::connection sTeleportFinishConnection;
 
 //////////////////////////////////////////////////////////////////////////////////////////
 static void add_media_impl(LLViewerMediaImpl* media)
@@ -330,7 +330,7 @@ viewer_media_t LLViewerMedia::updateMediaImpl(LLMediaEntry* media_entry, const s
 	// Try to find media with the same media ID
 	viewer_media_t media_impl = getMediaImplFromTextureID(media_entry->getMediaID());
 	
-	lldebugs << "called, current URL is \"" << media_entry->getCurrentURL() 
+	LL_DEBUGS("Media") << "called, current URL is \"" << media_entry->getCurrentURL() 
 			<< "\", previous URL is \"" << previous_url 
 			<< "\", update_from_self is " << (update_from_self?"true":"false")
 			<< llendl;
@@ -365,11 +365,12 @@ viewer_media_t LLViewerMedia::updateMediaImpl(LLMediaEntry* media_entry, const s
 				// The current media URL is now empty.  Unload the media source.
 				media_impl->unload();
 			
-				lldebugs << "Unloading media instance (new current URL is empty)." << llendl;
+				LL_DEBUGS("Media") << "Unloading media instance (new current URL is empty)." << llendl;
 			}
 		}
 		else
 		{
+			LL_DEBUGS("Media") << "The current media URL is not empty" << LL_ENDL;
 			// The current media URL is not empty.
 			// If (the media was already loaded OR the media was set to autoplay) AND this update didn't come from this agent,
 			// do a navigate.
@@ -379,13 +380,14 @@ viewer_media_t LLViewerMedia::updateMediaImpl(LLMediaEntry* media_entry, const s
 				needs_navigate = url_changed;
 			}
 			
-			lldebugs << "was_loaded is " << (was_loaded?"true":"false") 
+			LL_DEBUGS("Media") << "was_loaded is " << (was_loaded?"true":"false") 
 					<< ", auto_play is " << (auto_play?"true":"false") 
 					<< ", needs_navigate is " << (needs_navigate?"true":"false") << llendl;
 		}
 	}
 	else
 	{
+		LL_DEBUGS("Media") << "new MediaImpl" << LL_ENDL;
 		media_impl = newMediaImpl(
 			media_entry->getMediaID(), 
 			media_entry->getWidthPixels(),
@@ -408,7 +410,7 @@ viewer_media_t LLViewerMedia::updateMediaImpl(LLMediaEntry* media_entry, const s
 		if(needs_navigate)
 		{
 			media_impl->navigateTo(media_impl->mMediaEntryURL, "", true, true);
-			lldebugs << "navigating to URL " << media_impl->mMediaEntryURL << llendl;
+			LL_DEBUGS("Media") << "navigating to URL " << media_impl->mMediaEntryURL << LL_ENDL;
 		}
 		else if(!media_impl->mMediaURL.empty() && (media_impl->mMediaURL != media_impl->mMediaEntryURL))
 		{
@@ -418,9 +420,10 @@ viewer_media_t LLViewerMedia::updateMediaImpl(LLMediaEntry* media_entry, const s
 			// If this causes a navigate at some point (such as after a reload), it should be considered server-driven so it isn't broadcast.
 			media_impl->mNavigateServerRequest = true;
 
-			lldebugs << "updating URL in the media impl to " << media_impl->mMediaEntryURL << llendl;
+			LL_DEBUGS("Media") << "updating URL in the media impl to " << media_impl->mMediaEntryURL << LL_ENDL;
 		}
 	}
+	else LL_DEBUGS("Media") << "NO MediaImpl" << LL_ENDL;
 	
 	return media_impl;
 }
@@ -598,7 +601,7 @@ bool LLViewerMedia::isInterestingEnough(const LLVOVolume *object, const F64 &obj
 	}
 	else 
 	{
-		lldebugs << "object interest = " << object_interest << ", lowest loadable = " << sLowestLoadableImplInterest << llendl;
+		LL_DEBUGS("Media") << "object interest = " << object_interest << ", lowest loadable = " << sLowestLoadableImplInterest << LL_ENDL;
 		if(object_interest >= sLowestLoadableImplInterest)
 			result = true;
 	}
@@ -751,6 +754,7 @@ void LLViewerMedia::updateMedia(void *dummy_arg)
 			// Never load muted or failed impls.
 			// Hard limit on the number of instances that will be loaded at one time
 			new_priority = LLPluginClassMedia::PRIORITY_UNLOADED;
+			LL_DEBUGS("Media")<< "isForcedUnloaded()" << LL_ENDL;
 		}
 		else if(!pimpl->getVisible())
 		{
@@ -852,6 +856,7 @@ void LLViewerMedia::updateMedia(void *dummy_arg)
 			if(!pimpl->getUsedInUI())
 			{
 				new_priority = LLPluginClassMedia::PRIORITY_UNLOADED;
+				LL_DEBUGS("Media")<< "!inworld_media_enabled" << LL_ENDL;
 			}
 		}
 		// update the audio stream here as well
@@ -916,7 +921,7 @@ void LLViewerMedia::updateMedia(void *dummy_arg)
 		proximity_order[i]->mProximity = i;
 	}
 	
-	LL_DEBUGS("PluginPriority") << "Total reported CPU usage is " << total_cpu << llendl;
+	LL_DEBUGS("PluginPriority") << "Total reported CPU usage is " << total_cpu << LL_ENDL;
 
 }
 
@@ -982,7 +987,7 @@ bool LLViewerMedia::isParcelMediaPlaying()
 // static
 bool LLViewerMedia::isParcelAudioPlaying()
 {
-	return (LLViewerMedia::hasParcelAudio() && gAudiop && LLAudioEngine::AUDIO_PLAYING == gAudiop->isInternetStreamPlaying());//impfixme:compile
+	return (LLViewerMedia::hasParcelAudio() && gAudiop && LLAudioEngine::AUDIO_PLAYING == gAudiop->isInternetStreamPlaying());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -1016,14 +1021,14 @@ void LLViewerMedia::clearAllCookies()
 	std::string target;
 	std::string filename;
 	
-	lldebugs << "base dir = " << base_dir << llendl;
+	LL_DEBUGS("Media") << "base dir = " << base_dir << LL_ENDL;
 
 	// The non-logged-in version is easy
 	target = base_dir;
 	target += "browser_profile";
 	target += gDirUtilp->getDirDelimiter();
 	target += "cookies";
-	lldebugs << "target = " << target << llendl;
+	LL_DEBUGS("Media") << "target = " << target << LL_ENDL;
 	if(LLFile::isfile(target))
 	{
 		LLFile::remove(target);
@@ -1038,7 +1043,7 @@ void LLViewerMedia::clearAllCookies()
 		target += "browser_profile";
 		target += gDirUtilp->getDirDelimiter();
 		target += "cookies";
-		lldebugs << "target = " << target << llendl;
+		LL_DEBUGS("Media") << "target = " << target << LL_ENDL;
 		if(LLFile::isfile(target))
 		{	
 			LLFile::remove(target);
@@ -1107,7 +1112,7 @@ bool LLViewerMedia::hasInWorldMedia()
 	for (; iter != end; iter++)
 	{
 		LLViewerMediaImpl* pimpl = *iter;
-		if (!pimpl->getUsedInUI() && !pimpl->isParcelMedia())//impfixme:compile!
+		if (!pimpl->getUsedInUI() && !pimpl->isParcelMedia())
 		{
 			// Found an in-world media impl
 			return true;
@@ -1431,7 +1436,7 @@ bool LLViewerMediaImpl::initializePlugin(const std::string& media_type)
 	if(mPriority == LLPluginClassMedia::PRIORITY_UNLOADED)
 	{
 		// This impl should not be loaded at this time.
-		LL_DEBUGS("PluginPriority") << this << "Not loading (PRIORITY_UNLOADED)" << LL_ENDL;
+		LL_DEBUGS("PluginPriority") << this << " Not loading (PRIORITY_UNLOADED)" << LL_ENDL;
 		
 		return false;
 	}
@@ -2162,6 +2167,7 @@ void LLViewerMediaImpl::update()
 	
 	if(mMediaSource == NULL)
 	{
+		LL_DEBUGS("Media") << "mMediaSource == NULL" << LL_ENDL;
 		return;
 	}
 	
@@ -2179,6 +2185,7 @@ void LLViewerMediaImpl::update()
 	
 	if(mMediaSource->isPluginExited())
 	{
+		LL_DEBUGS("Media") << "Plugin Exited" << LL_ENDL;
 		resetPreviousMediaState();
 		destroyMediaSource();
 		return;
@@ -2186,6 +2193,7 @@ void LLViewerMediaImpl::update()
 
 	if(!mMediaSource->textureValid())
 	{
+		LL_DEBUGS("Media") << "texture not valid" << LL_ENDL;
 		return;
 	}
 	
@@ -2198,6 +2206,7 @@ void LLViewerMediaImpl::update()
 		
 	if(placeholder_image)
 	{
+		LL_DEBUGS("Media") << "media has placeholder_image" << LL_ENDL;
 		LLRect dirty_rect;
 		
 		// Since we're updating this texture, we know it's playing.  Tell the texture to do its replacement magic so it gets rendered.
@@ -2247,6 +2256,7 @@ LLViewerMediaTexture* LLViewerMediaImpl::updatePlaceholderImage()
 {
 	if(mTextureId.isNull())
 	{
+		LL_DEBUGS("Media") << "no placeholder image" << LL_ENDL;
 		// The code that created this instance will read from the plugin's bits.
 		return NULL;
 	}
@@ -2864,14 +2874,14 @@ void LLViewerMediaImpl::setNavState(EMediaNavState state)
 	
 	switch (state) 
 	{
-		case MEDIANAVSTATE_NONE: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_NONE" << llendl; break;
-		case MEDIANAVSTATE_BEGUN: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_BEGUN" << llendl; break;
-		case MEDIANAVSTATE_FIRST_LOCATION_CHANGED: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_FIRST_LOCATION_CHANGED" << llendl; break;
-		case MEDIANAVSTATE_COMPLETE_BEFORE_LOCATION_CHANGED: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_COMPLETE_BEFORE_LOCATION_CHANGED" << llendl; break;
-		case MEDIANAVSTATE_SERVER_SENT: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_SERVER_SENT" << llendl; break;
-		case MEDIANAVSTATE_SERVER_BEGUN: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_SERVER_BEGUN" << llendl; break;
-		case MEDIANAVSTATE_SERVER_FIRST_LOCATION_CHANGED: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_SERVER_FIRST_LOCATION_CHANGED" << llendl; break;
-		case MEDIANAVSTATE_SERVER_COMPLETE_BEFORE_LOCATION_CHANGED: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_SERVER_COMPLETE_BEFORE_LOCATION_CHANGED" << llendl; break;
+		case MEDIANAVSTATE_NONE: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_NONE" << LL_ENDL; break;
+		case MEDIANAVSTATE_BEGUN: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_BEGUN" << LL_ENDL; break;
+		case MEDIANAVSTATE_FIRST_LOCATION_CHANGED: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_FIRST_LOCATION_CHANGED" << LL_ENDL; break;
+		case MEDIANAVSTATE_COMPLETE_BEFORE_LOCATION_CHANGED: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_COMPLETE_BEFORE_LOCATION_CHANGED" << LL_ENDL; break;
+		case MEDIANAVSTATE_SERVER_SENT: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_SERVER_SENT" << LL_ENDL; break;
+		case MEDIANAVSTATE_SERVER_BEGUN: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_SERVER_BEGUN" << LL_ENDL; break;
+		case MEDIANAVSTATE_SERVER_FIRST_LOCATION_CHANGED: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_SERVER_FIRST_LOCATION_CHANGED" << LL_ENDL; break;
+		case MEDIANAVSTATE_SERVER_COMPLETE_BEFORE_LOCATION_CHANGED: LL_DEBUGS("Media") << "Setting nav state to MEDIANAVSTATE_SERVER_COMPLETE_BEFORE_LOCATION_CHANGED" << LL_ENDL; break;
 	}
 }
 

@@ -100,6 +100,8 @@ LLPanelPrimMediaControls::LLPanelPrimMediaControls() :
 	mZoomObjectFace(0),
 	mVolumeSliderVisible(0)
 {
+
+/*
 	mCommitCallbackRegistrar.add("MediaCtrl.Close",		boost::bind(&LLPanelPrimMediaControls::onClickClose, this));
 	mCommitCallbackRegistrar.add("MediaCtrl.Back",		boost::bind(&LLPanelPrimMediaControls::onClickBack, this));
 	mCommitCallbackRegistrar.add("MediaCtrl.Forward",	boost::bind(&LLPanelPrimMediaControls::onClickForward, this));
@@ -121,7 +123,30 @@ LLPanelPrimMediaControls::LLPanelPrimMediaControls() :
 	mCommitCallbackRegistrar.add("MediaCtrl.HideVolumeSlider",		boost::bind(&LLPanelPrimMediaControls::hideVolumeSlider, this));
 	mCommitCallbackRegistrar.add("MediaCtrl.SkipBack",		boost::bind(&LLPanelPrimMediaControls::onClickSkipBack, this));
 	mCommitCallbackRegistrar.add("MediaCtrl.SkipForward",	boost::bind(&LLPanelPrimMediaControls::onClickSkipForward, this));
-	
+*/
+//impfixme: this needs to be done properly:
+// 	this->childSetCommitCallback("MediaCtrl.Close",	LLPanelPrimMediaControls::onClickClose, this);
+// 	this->childSetAction("MediaCtrl.Back",		LLPanelPrimMediaControls::onClickBack, this);
+// 	this->childSetAction("MediaCtrl.Forward",	LLPanelPrimMediaControls::onClickForward, this);
+// 	this->childSetAction("MediaCtrl.Home",		LLPanelPrimMediaControls::onClickHome, this);
+// 	this->childSetAction("MediaCtrl.Stop",		LLPanelPrimMediaControls::onClickStop, this);
+// 	this->childSetAction("MediaCtrl.MediaStop",	LLPanelPrimMediaControls::onClickMediaStop, this);
+// 	this->childSetAction("MediaCtrl.Reload",	LLPanelPrimMediaControls::onClickReload, this);
+// 	this->childSetAction("MediaCtrl.Play",		LLPanelPrimMediaControls::onClickPlay, this);
+// 	this->childSetAction("MediaCtrl.Pause",		LLPanelPrimMediaControls::onClickPause, this);
+// 	this->childSetAction("MediaCtrl.Open",		LLPanelPrimMediaControls::onClickOpen, this);
+// 	this->childSetAction("MediaCtrl.Zoom",		LLPanelPrimMediaControls::onClickZoom, this));
+// 	this->childSetAction("MediaCtrl.CommitURL",	LLPanelPrimMediaControls::onCommitURL, this);
+// 	this->childSetAction("MediaCtrl.JumpProgress",	LLPanelPrimMediaControls::onCommitSlider, this);
+// 	this->childSetAction("MediaCtrl.CommitVolumeUp",LLPanelPrimMediaControls::onCommitVolumeUp, this);
+// 	this->childSetAction("MediaCtrl.CommitVolumeDown",	LLPanelPrimMediaControls::onCommitVolumeDown, this);
+// 	this->childSetAction("MediaCtrl.Volume",	LLPanelPrimMediaControls::onCommitVolumeSlider, this);
+// 	this->childSetAction("MediaCtrl.ToggleMute",	LLPanelPrimMediaControls::onToggleMute, this);
+// 	this->childSetAction("MediaCtrl.ShowVolumeSlider",	LLPanelPrimMediaControls::showVolumeSlider, this);
+// 	this->childSetAction("MediaCtrl.HideVolumeSlider",	LLPanelPrimMediaControls::hideVolumeSlider, this);
+// 	this->childSetAction("MediaCtrl.SkipBack",	LLPanelPrimMediaControls::onClickSkipBack, this);
+// 	this->childSetAction("MediaCtrl.SkipForward",	LLPanelPrimMediaControls::onClickSkipForward, this);
+
 	LLUICtrlFactory::getInstance()->buildPanel(this, "panel_prim_media_controls.xml");
 	mInactivityTimer.reset();
 	mFadeTimer.stop();
@@ -180,38 +205,39 @@ BOOL LLPanelPrimMediaControls::postBuild()
 
 	// These are currently removed...but getChild creates a "dummy" widget.
 	// This class handles them missing.
-	mMediaPanelScroll		= findChild<LLUICtrl>("media_panel_scroll");
-	mScrollUpCtrl			= findChild<LLButton>("scrollup");
-	mScrollLeftCtrl			= findChild<LLButton>("scrollleft");
-	mScrollRightCtrl		= findChild<LLButton>("scrollright");
-	mScrollDownCtrl			= findChild<LLButton>("scrolldown");	
+//impfixme: and in the process of porting we don't handle them at all :p
+// 	mMediaPanelScroll		= findChild<LLUICtrl>("media_panel_scroll");
+// 	mScrollUpCtrl			= findChild<LLButton>("scrollup");
+// 	mScrollLeftCtrl			= findChild<LLButton>("scrollleft");
+// 	mScrollRightCtrl		= findChild<LLButton>("scrollright");
+// 	mScrollDownCtrl			= findChild<LLButton>("scrolldown");	
 	
 	if (mScrollUpCtrl)
 	{
 		mScrollUpCtrl->setClickedCallback(onScrollUp, this);
-		mScrollUpCtrl->setHeldDownCallback(onScrollUpHeld, this);
-		mScrollUpCtrl->setMouseUpCallback(onScrollStop, this);
+//impfixme		mScrollUpCtrl->setHeldDownCallback(onScrollUpHeld, this);
+//impfixme:		mScrollUpCtrl->setMouseUpCallback(onScrollStop, this);
 	}
 	if (mScrollLeftCtrl)
 	{
 		mScrollLeftCtrl->setClickedCallback(onScrollLeft, this);
-		mScrollLeftCtrl->setHeldDownCallback(onScrollLeftHeld, this);
-		mScrollLeftCtrl->setMouseUpCallback(onScrollStop, this);
+//impfixme:		mScrollLeftCtrl->setHeldDownCallback(onScrollLeftHeld, this);
+//impfixme:		mScrollLeftCtrl->setMouseUpCallback(onScrollStop, this);
 	}
 	if (mScrollRightCtrl)
 	{
 		mScrollRightCtrl->setClickedCallback(onScrollRight, this);
-		mScrollRightCtrl->setHeldDownCallback(onScrollRightHeld, this);
-		mScrollRightCtrl->setMouseUpCallback(onScrollStop, this);
+//impfixme:		mScrollRightCtrl->setHeldDownCallback(onScrollRightHeld, this);
+//impfixme:		mScrollRightCtrl->setMouseUpCallback(onScrollStop, this);
 	}
 	if (mScrollDownCtrl)
 	{
 		mScrollDownCtrl->setClickedCallback(onScrollDown, this);
-		mScrollDownCtrl->setHeldDownCallback(onScrollDownHeld, this);
-		mScrollDownCtrl->setMouseUpCallback(onScrollStop, this);
+//impfixme:		mScrollDownCtrl->setHeldDownCallback(onScrollDownHeld, this);
+//impfixme:		mScrollDownCtrl->setMouseUpCallback(onScrollStop, this);
 	}
 		
-	mMediaAddress->setFocusReceivedCallback(boost::bind(&LLPanelPrimMediaControls::onInputURL, _1, this ));
+//impfixme	mMediaAddress->setFocusReceivedCallback(boost::bind(&LLPanelPrimMediaControls::onInputURL, _1, this ));
 	
 	mCurrentZoom = ZOOM_NONE;
 	// clicks on buttons do not remove keyboard focus from media
@@ -599,11 +625,11 @@ void LLPanelPrimMediaControls::updateShape()
 		{
 			mat = glh_get_current_projection() * glh_get_current_modelview();
 		}
-		else {
-			glh::matrix4f proj, modelview;
-			if (get_hud_matrices(proj, modelview))
-				mat = proj * modelview;
-		}
+//impfixme 		else {
+// 			glh::matrix4f proj, modelview;
+// 			if (get_hud_matrices(proj, modelview))
+// 				mat = proj * modelview;
+// 		}
 		LLVector3 min = LLVector3(1,1,1);
 		LLVector3 max = LLVector3(-1,-1,-1);
 		for(; vert_it != vert_end; ++vert_it)
@@ -617,7 +643,7 @@ void LLPanelPrimMediaControls::updateShape()
 		}
 		
 		// convert screenspace bbox to pixels (in screen coords)
-		LLRect window_rect = gViewerWindow->getWorldViewRectScaled();
+		LLRect window_rect = gViewerWindow->getVirtualWindowRect();
 		LLCoordGL screen_min;
 		screen_min.mX = llround((F32)window_rect.getWidth() * (min.mV[VX] + 1.f) * 0.5f);
 		screen_min.mY = llround((F32)window_rect.getHeight() * (min.mV[VY] + 1.f) * 0.5f);
@@ -654,7 +680,7 @@ void LLPanelPrimMediaControls::updateShape()
 										  llmax(mMinHeight, media_panel_rect.getHeight()));
 		
 		// Finally set the size of the panel
-		setShape(media_panel_rect, true);
+//impfixme		setShape(media_panel_rect, true);
 		
 		// Test mouse position to see if the cursor is stationary
 		LLCoordWindow cursor_pos_window;
@@ -725,10 +751,11 @@ void LLPanelPrimMediaControls::draw()
 	
 	// Build rect for icon area in coord system of this panel
 	// Assumes layout_stack is a direct child of this panel
-	mMediaControlsStack->updateLayout();
+//impfixme 	mMediaControlsStack->updateLayout();
 	
 	// adjust for layout stack spacing
-	S32 space = mMediaControlsStack->getPanelSpacing() + 2;
+//impfixme	S32 space = mMediaControlsStack->getPanelSpacing() + 2;
+	S32 space ;
 	LLRect controls_bg_area = mMediaControlsStack->getRect();
 	
 	controls_bg_area.mTop += space + 2;
@@ -749,12 +776,12 @@ void LLPanelPrimMediaControls::draw()
 	if (mVolumeSliderCtrl->getVisible())
 	{
 		LLRect volume_slider_rect;
-		screenRectToLocal(mVolumeSliderCtrl->calcScreenRect(), &volume_slider_rect);
+//impfixme 		screenRectToLocal(mVolumeSliderCtrl->calcScreenRect(), &volume_slider_rect);
 		mVolumeSliderBackgroundImage->draw(volume_slider_rect, UI_VERTEX_COLOR % alpha);
 	}
 	
 	{
-		LLViewDrawContext context(alpha);
+//impfixme		LLViewDrawContext context(alpha);
 		LLPanel::draw();
 	}
 }
@@ -800,7 +827,9 @@ bool LLPanelPrimMediaControls::isMouseOver()
 		{
 			mMediaControlsStack->screenPointToLocal(cursor_pos_gl.mX, cursor_pos_gl.mY, &x, &y);
 
-			LLView *hit_child = mMediaControlsStack->childFromPoint(x, y);
+//impfixme			LLView *hit_child = mMediaControlsStack->childFromPoint(x, y);
+			LLView *hit_child ;
+
 			if(hit_child && hit_child->getVisible())
 			{
 				// This was useful for debugging both coordinate translation and view hieararchy problems...
@@ -809,9 +838,10 @@ bool LLPanelPrimMediaControls::isMouseOver()
 				// This will be a direct child of the LLLayoutStack, which should be a layout_panel.
 				// These may not shown/hidden by the logic in updateShape(), so we need to do another hit test on the children of the layout panel,
 				// which are the actual controls.
-				hit_child->screenPointToLocal(cursor_pos_gl.mX, cursor_pos_gl.mY, &x, &y);
-				
-				LLView *hit_child_2 = hit_child->childFromPoint(x, y);
+//impfixme				hit_child->screenPointToLocal(cursor_pos_gl.mX, cursor_pos_gl.mY, &x, &y);
+
+//impfixme				LLView *hit_child_2 = hit_child->childFromPoint(x, y);				
+				LLView *hit_child_2;
 				if(hit_child_2 && hit_child_2->getVisible())
 				{
 					// This was useful for debugging both coordinate translation and view hieararchy problems...

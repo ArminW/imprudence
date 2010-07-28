@@ -37,7 +37,7 @@
 
 //LLViewerMediaFocus
 #include "llviewerobjectlist.h"
-// #include "llpanelprimmediacontrols.h"
+#include "llpanelprimmediacontrols.h"
 #include "llpluginclassmedia.h"
 #include "llagent.h"
 #include "lltoolpie.h"
@@ -122,8 +122,7 @@ void LLViewerMediaFocus::setFocusFace(LLPointer<LLViewerObject> objectp, S32 fac
 		
 		// We must do this before  processing the media HUD zoom, or it may zoom to the wrong face. 
 		update();
-//impfixme:compile
-/*
+
 		if(mMediaControls.get())
 		{
 			if(face_auto_zoom && ! parcel->getMediaPreventCameraZoom())
@@ -140,7 +139,6 @@ void LLViewerMediaFocus::setFocusFace(LLPointer<LLViewerObject> objectp, S32 fac
 				mMediaControls.get()->resetZoomLevel(false);
 			}
 		}
-*/
 	}
 	else
 	{
@@ -321,18 +319,16 @@ BOOL LLViewerMediaFocus::handleKey(KEY key, MASK mask, BOOL called_from_parent)
 			// Reset camera zoom in this case.
 			if(mFocusedImplID.notNull())
 			{
-//impfixme:compile
-/*
+
 				if(mMediaControls.get())
 				{
 					mMediaControls.get()->resetZoomLevel(true);
 				}
-*/
 			}
 			
 			clearFocus();
 		}
-//impfixme:compile
+//SG2:
 /*		
 		if ( KEY_F1 == key && LLUI::sHelpImpl && mMediaControls.get())
 		{
@@ -380,8 +376,6 @@ void LLViewerMediaFocus::update()
 		if(!getFocus())
 		{
 			// We've lost keyboard focus -- check to see whether the media controls have it
-//impfixme:compile
-/*
 			if(mMediaControls.get() && mMediaControls.get()->hasFocus())
 			{
 				// the media controls have focus -- don't clear.
@@ -391,7 +385,6 @@ void LLViewerMediaFocus::update()
 				// Someone else has focus -- back off.
 				clearFocus();
 			}
-*/
 		}
 		else if(LLToolMgr::getInstance()->inBuildMode())
 		{
@@ -421,8 +414,7 @@ void LLViewerMediaFocus::update()
 		// We have an object and impl to point at.
 		
 		// Make sure the media HUD object exists.
-//impfixme:compile
-/*
+
 		if(! mMediaControls.get())
 		{
 
@@ -439,7 +431,7 @@ void LLViewerMediaFocus::update()
 		{
 			mMediaControls.get()->setMediaFace(NULL, 0, NULL);
 		}
-*/
+
 	}
 
 }
@@ -567,33 +559,30 @@ void LLViewerMediaFocus::focusZoomOnMedia(LLUUID media_id)
 			
 			// Attempt to focus/zoom on that face.
 			setFocusFace(obj, face, impl, normal);
-//impfixme:compile
-/*
+
 			if(mMediaControls.get())
 			{
 				mMediaControls.get()->resetZoomLevel();
 				mMediaControls.get()->nextZoomLevel();
 			}
-*/
 		}
 	}
 }
 
 void LLViewerMediaFocus::unZoom()
 {
-//impfixme:compile
-/*
+
 	if(mMediaControls.get())
 	{
 		mMediaControls.get()->resetZoomLevel();
 	}
-*/
+
 }
 
 bool LLViewerMediaFocus::isZoomed() const
 {
-		return true;
-//impfixme:compile	return (mMediaControls.get() && mMediaControls.get()->getZoomLevel() != LLPanelPrimMediaControls::ZOOM_NONE);
+// 		return true;
+return (mMediaControls.get() && mMediaControls.get()->getZoomLevel() != LLPanelPrimMediaControls::ZOOM_NONE);
 }
 
 LLUUID LLViewerMediaFocus::getControlsMediaID()

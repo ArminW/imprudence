@@ -52,6 +52,7 @@
 #include "lldrawpoolbump.h"
 #include "llface.h"
 #include "lllineeditor.h"
+#include "llmediaentry.h"
 #include "llresmgr.h"
 #include "llselectmgr.h"
 #include "llspinctrl.h"
@@ -64,9 +65,11 @@
 #include "llviewermedia.h"
 #include "llviewerobject.h"
 #include "llviewerstats.h"
-#include "llviewerwindow.h"
+//impfixme:rm #include "llviewerwindow.h"
+#include "llvovolume.h"
 #include "lluictrlfactory.h"
 #include "llpluginclassmedia.h"
+#include "llviewertexturelist.h"
 
 //
 // Methods
@@ -500,10 +503,8 @@ void LLPanelFace::getState()
 		BOOL editable = objectp->permModify();
 
 		// only turn on auto-adjust button if there is a media renderer and the media is loaded
-		childSetEnabled("textbox autofix",FALSE);
-		//mLabelTexAutoFix->setEnabled ( FALSE );
-		childSetEnabled("button align",FALSE);
-		//mBtnAutoFix->setEnabled ( FALSE );
+		childSetEnabled("textbox autofix", editable);
+		childSetEnabled("button align", editable);
 		
 		//if ( LLMediaEngine::getInstance()->getMediaRenderer () )
 		//	if ( LLMediaEngine::getInstance()->getMediaRenderer ()->isLoaded () )
@@ -523,13 +524,39 @@ void LLPanelFace::getState()
 			LLUUID id;
 			struct f1 : public LLSelectedTEGetFunctor<LLUUID>
 			{
-				LLUUID get(LLViewerObject* object, S32 te)
+				LLUUID get(LLViewerObject* object, S32 te_index)
 				{
-					LLViewerTexture* image = object->getTEImage(te);
-					return image ? image->getID() : LLUUID::null;
+					LLViewerTexture* image = object->getTEImage(te_index);
+					LLUUID id;
+
+					if (image) id = image->getID();
+					
+					if (!id.isNull() && LLViewerMedia::textureHasMedia(id))
+					{
+						LLTextureEntry *te = object->getTE(te_index);
+						if (te)
+						{
+							LLViewerTexture* tex = te->getID().notNull() ? gTextureList.findImage(te->getID()) : NULL ;
+							if(!tex)
+							{
+								tex = LLViewerFetchedTexture::sDefaultImagep;
+							}
+							if (tex)
+							{
+								id = tex->getID();
+							}
+						}
+					}
+					return id;
 				}
 			} func;
 			identical = LLSelectMgr::getInstance()->getSelection()->getSelectedTEValue( &func, id );
+
+			if(LLViewerMedia::textureHasMedia(id))
+			{
+				childSetEnabled("textbox autofix",editable);
+				childSetEnabled("button align",editable);
+			}
 
 			if (identical)
 			{
@@ -561,13 +588,6 @@ void LLPanelFace::getState()
 					}
 				}
 			}
-
-			if(LLViewerMedia::textureHasMedia(id))
-			{
-				childSetEnabled("textbox autofix",editable);
-				childSetEnabled("button align",editable);
-			}
-
 		}
 
 		
@@ -1118,9 +1138,22 @@ struct LLPanelFaceSetMediaFunctor : public LLSelectedTEFunctor
 {
 	virtual bool apply(LLViewerObject* object, S32 te)
 	{
-		// TODO: the media impl pointer should actually be stored by the texture
-		viewer_media_t pMediaImpl = LLViewerMedia::getMediaImplFromTextureID(object->getTE ( te )->getID());
-		// only do this if it's a media texture
+		viewer_media_t pMediaImpl;
+
+		const LLTextureEntry* tep = object->getTE(te);
+		const LLMediaEntry* mep = tep->hasMedia() ? tep->getMediaData() : NULL;
+		if ( mep )
+		{
+			pMediaImpl = LLViewerMedia::getMediaImplFromTextureID(mep->getMediaID());
+		}
+		
+		if ( pMediaImpl.isNull())
+		{
+			// If we didn't find face media for this face, check whether this face is showing parcel media.
+			pMediaImpl = LLViewerMedia::getMediaImplFromTextureID(tep->getID());
+		}
+
+
 		if ( pMediaImpl.notNull())
 		{
 			LLPluginClassMedia *media = pMediaImpl->getMediaPlugin();
@@ -1165,4 +1198,15 @@ void LLPanelFace::onCommitPlanarAlign(LLUICtrl* ctrl, void* userdata)
 void LLPanelFace::onClickTextureConstants(void *)
 {
 	LLNotifications::instance().add("ClickTextureConstants");
+}
+
+//SG2: // TODO: I don't know who put these in or what these are for???
+void LLPanelFace::setMediaURL(const std::string& url)
+{
+
+}
+
+void LLPanelFace::setMediaType(const std::string& mime_type)
+{
+
 }

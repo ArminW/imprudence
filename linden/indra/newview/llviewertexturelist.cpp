@@ -769,14 +769,20 @@ F32 LLViewerTextureList::updateImagesCreateTextures(F32 max_time)
 	for (image_list_t::iterator iter = mCreateTextureList.begin();
 		 iter != mCreateTextureList.end();)
 	{
-		image_list_t::iterator curiter = iter++;
-		enditer = iter;
-		LLViewerFetchedTexture *imagep = *curiter;
-		imagep->createTexture();
 		if (create_timer.getElapsedTimeF32() > max_time)
 		{
 			break;
 		}
+		image_list_t::iterator curiter = iter++;
+		enditer = iter;
+		LLViewerFetchedTexture *imagep = *curiter;
+		if (imagep->getComponents() > 4) 
+		{
+			llwarns << "Eeeeeeeeeeek! imagep->getComponents() > 4" << llendl;
+			break;
+		}
+		imagep->createTexture();
+
 	}
 	mCreateTextureList.erase(mCreateTextureList.begin(), enditer);
 	return create_timer.getElapsedTimeF32();

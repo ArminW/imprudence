@@ -51,7 +51,18 @@ class LLMediaCtrl :
 	public LLViewerMediaEventEmitter
 {
 	public:
-		LLMediaCtrl( const std::string& name, const LLRect& rect );
+		LLMediaCtrl(	const std::string& name,
+				const LLRect& rect,
+				const std::string& start_url,
+				const bool&	border_visible,
+				const bool&	ignore_ui_scale,
+				const	bool& hide_loading,
+				const	bool& decouple_texture_size,
+				const	S32& texture_width,
+				const	S32& texture_height,
+				const	LLColor4& caret_color
+			);
+
 		virtual ~LLMediaCtrl();
 
 		void setBorderVisible( BOOL border_visible );
@@ -112,11 +123,20 @@ class LLMediaCtrl :
 		void setForceUpdate(bool force_update) { mForceUpdate = force_update; }
 		bool getForceUpdate() { return mForceUpdate; }
 
+		bool ensureMediaSourceExists();
+		void unloadMediaSource();
+
 		LLPluginClassMedia* getMediaPlugin();
 
 		bool setCaretColor( unsigned int red, unsigned int green, unsigned int blue );
 
+		void setDecoupleTextureSize(bool decouple) { mDecoupleTextureSize = decouple; }
+		bool getDecoupleTextureSize() { return mDecoupleTextureSize; }
 
+		void setTextureSize(S32 width, S32 height);
+		
+		void setHideLoading(bool hide_loading) { mHideLoading = hide_loading; }
+		
 		// over-rides
 		virtual BOOL handleKeyHere( KEY key, MASK mask);
 		virtual void handleVisibilityChange ( BOOL new_visibility );
@@ -143,7 +163,7 @@ class LLMediaCtrl :
 		static bool onClickLinkExternalTarget( const LLSD&, const LLSD& );
 
 		const S32 mTextureDepthBytes;
-		LLWebBrowserTexture* mWebBrowserImage;
+		LLUUID mMediaTextureID;
 		LLViewBorder* mBorder;
 		bool mFrequentUpdates;
 		bool mForceUpdate;
@@ -161,41 +181,13 @@ class LLMediaCtrl :
 		bool mStretchToFill;
 		bool mMaintainAspectRatio;
 		bool mHideLoading;
+		bool mHidingInitialLoad;
+		bool mDecoupleTextureSize;
+		S32 mTextureWidth;
+		S32 mTextureHeight;
+		bool mClearCache;
 };
 
-////////////////////////////////////////////////////////////////////////////////
-//
-class LLWebBrowserTexture : public LLDynamicTexture
-{
-LOG_CLASS(LLWebBrowserTexture);
-	public:
-		LLWebBrowserTexture( S32 width, S32 height, LLMediaCtrl* browserCtrl, viewer_media_t media_source );
-		virtual ~LLWebBrowserTexture();
 
-		virtual BOOL needsRender();
-		virtual void preRender( BOOL clear_depth = TRUE ) {};
-		virtual void postRender( BOOL success ) {};
-		virtual BOOL render();
-		
-		bool adjustSize();
-		S32 getMediaWidth();
-		S32 getMediaHeight();
-		bool getNeedsUpdate();
-		void setNeedsUpdate();
-		bool getTextureCoordsOpenGL();
-
-		void resize( S32 new_width, S32 new_height );
-		bool updateBrowserTexture();
-
-	protected:
-		S32 mMediaWidth;
-		S32 mMediaHeight;
-		bool mNeedsUpdate;
-		bool mNeedsResize;
-		bool mTextureCoordsOpenGL;
-		LLFrameTimer mElapsedTime;
-		LLMediaCtrl* mWebBrowserCtrl;
-		viewer_media_t mMediaSource;
-};
 
 #endif // LL_LLMediaCtrl_H

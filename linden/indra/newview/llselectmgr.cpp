@@ -40,6 +40,7 @@
 #include "lldbstrings.h"
 #include "lleconomy.h"
 #include "llgl.h"
+#include "llmediaentry.h"
 #include "llrender.h"
 #include "llpermissions.h"
 #include "llpermissionsflags.h"
@@ -1434,7 +1435,7 @@ void LLSelectMgr::selectionSetImage(const LLUUID& imageid)
 				// Texture picker defaults aren't inventory items
 				// * Don't need to worry about permissions for them
 				// * Can just apply the texture and be done with it.
-				objectp->setTEImage(te, LLViewerTextureManager::getLocalTexture(mImageID, TRUE, FALSE));
+				objectp->setTEImage(te, LLViewerTextureManager::getFetchedTexture(mImageID, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE));
 			}
 			return true;
 		}
@@ -1590,7 +1591,7 @@ BOOL LLSelectMgr::selectionRevertTextures()
 					}
 					else
 					{
-						object->setTEImage(te, LLViewerTextureManager::getFetchedTexture(id));
+						object->setTEImage(te, LLViewerTextureManager::getFetchedTexture(id, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE));
 					}
 				}
 			}
@@ -1717,50 +1718,83 @@ void LLSelectMgr::selectionSetFullbright(U8 fullbright)
 	} sendfunc(fullbright);
 	getSelection()->applyToObjects(&sendfunc);
 }
-/*
-void LLSelectMgr::selectionSetMediaTypeAndURL(U8 media_type, const std::string& media_url)
-{
-	U8 media_flags = LLTextureEntry::MF_NONE;
-	if (media_type == LLViewerObject::MEDIA_TYPE_WEB_PAGE)
-	{
-		media_flags = LLTextureEntry::MF_HAS_MEDIA;
-	}
+
+// This function expects media_data to be a map containing relevant
+// media data name/value pairs (e.g. home_url, etc.)
+void LLSelectMgr::selectionSetMedia(U8 media_type, const LLSD &media_data)
+{	
 	
 	struct f : public LLSelectedTEFunctor
 	{
 		U8 mMediaFlags;
-		f(const U8& t) : mMediaFlags(t) {}
+		const LLSD &mMediaData;
+		f(const U8& t, const LLSD& d) : mMediaFlags(t), mMediaData(d) {}
 		bool apply(LLViewerObject* object, S32 te)
 		{
 			if (object->permModify())
 			{
-				// update viewer side color in anticipation of update from simulator
-				object->setTEMediaFlags(te, mMediaFlags);
+				// If we are adding media, then check the current state of the
+				// media data on this face.  
+				//  - If it does not have media, AND we are NOT setting the HOME URL, then do NOT add media to this
+				// face.
+				//  - If it does not have media, and we ARE setting the HOME URL, add media to this face.
+				//  - If it does already have media, add/update media to/on this face
+				// If we are removing media, just do it (ignore the passed-in LLSD).
+				if (mMediaFlags & LLTextureEntry::MF_HAS_MEDIA)
+				{
+					llassert(mMediaData.isMap());
+					const LLTextureEntry *texture_entry = object->getTE(te);
+					if (!mMediaData.isMap() ||
+						(NULL != texture_entry) && !texture_entry->hasMedia() && !mMediaData.has(LLMediaEntry::HOME_URL_KEY))
+					{
+						// skip adding/updating media
+					}
+					else {
+						// Add/update media
+						object->setTEMediaFlags(te, mMediaFlags);
+						LLVOVolume *vo = dynamic_cast<LLVOVolume*>(object);
+						llassert(NULL != vo);
+						if (NULL != vo) 
+						{
+							vo->syncMediaData(te, mMediaData, true/*merge*/, true/*ignore_agent*/);
+						}
+					}
+				}
+				else
+				{
+					// delete media (or just set the flags)
+					object->setTEMediaFlags(te, mMediaFlags);
+				}
 			}
 			return true;
 		}
-	} setfunc(media_flags);
+	} setfunc(media_type, media_data);
 	getSelection()->applyToTEs(&setfunc);
 
-	struct g : public LLSelectedObjectFunctor
+	struct f2 : public LLSelectedObjectFunctor
 	{
-		U8 media_type;
-		const std::string& media_url ;
-		g(U8 a, const std::string& b) : media_type(a), media_url(b) {}
 		virtual bool apply(LLViewerObject* object)
 		{
 			if (object->permModify())
 			{
-				object->sendTEUpdate();
-				object->setMediaType(media_type);
-				object->setMediaURL(media_url);
+ 				object->sendTEUpdate();
+				LLVOVolume *vo = dynamic_cast<LLVOVolume*>(object);
+				llassert(NULL != vo);
+				// It's okay to skip this object if hasMedia() is false...
+				// the sendTEUpdate() above would remove all media data if it were
+				// there.
+				if (NULL != vo && vo->hasMedia())
+				{
+					// Send updated media data FOR THE ENTIRE OBJECT
+					vo->sendMediaDataUpdate();
+				}
 			}
 			return true;
 		}
-	} sendfunc(media_type, media_url);
-	getSelection()->applyToObjects(&sendfunc);
+	} func2;
+	mSelectedObjects->applyToObjects( &func2 );
 }
-*/
+
 void LLSelectMgr::selectionSetGlow(F32 glow)
 {
 	struct f1 : public LLSelectedTEFunctor
@@ -3452,6 +3486,7 @@ void LLSelectMgr::deselectAllIfTooFar()
 	LLVector3d selectionCenter = getSelectionCenterGlobal();
 	if (gSavedSettings.getBOOL("LimitSelectDistance")
 		&& (!mSelectedObjects->getPrimaryObject() || !mSelectedObjects->getPrimaryObject()->isAvatar())
+		&& (mSelectedObjects->getPrimaryObject() != LLViewerMediaFocus::getInstance()->getFocusedObject())
 		&& !mSelectedObjects->isAttachment()
 		&& !selectionCenter.isExactlyZero())
 	{
@@ -4831,7 +4866,7 @@ void LLSelectMgr::renderSilhouettes(BOOL for_hud)
 		return;
 	}
 
-	gGL.getTexUnit(0)->bind(mSilhouetteImagep.get());
+	gGL.getTexUnit(0)->bind(mSilhouetteImagep);
 	LLGLSPipelineSelection gls_select;
 	gGL.setAlphaRejectSettings(LLRender::CF_GREATER, 0.f);
 	LLGLEnable blend(GL_BLEND);
@@ -4846,13 +4881,15 @@ void LLSelectMgr::renderSilhouettes(BOOL for_hud)
 
 		// set up transform to encompass bounding box of HUD
 		glMatrixMode(GL_PROJECTION);
-		glPushMatrix();
+		gGL.pushMatrix();
 		glLoadIdentity();
 		F32 depth = llmax(1.f, hud_bbox.getExtentLocal().mV[VX] * 1.1f);
 		glOrtho(-0.5f * LLViewerCamera::getInstance()->getAspect(), 0.5f * LLViewerCamera::getInstance()->getAspect(), -0.5f, 0.5f, 0.f, depth);
 
 		glMatrixMode(GL_MODELVIEW);
-		glPushMatrix();
+		gGL.pushMatrix();
+		gGL.pushUIMatrix();
+		gGL.loadUIIdentity();
 		glLoadIdentity();
 		glLoadMatrixf(OGL_TO_CFR_ROTATION);		// Load Cory's favorite reference frame
 		glTranslatef(-hud_bbox.getCenterLocal().mV[VX] + (depth *0.5f), 0.f, 0.f);
