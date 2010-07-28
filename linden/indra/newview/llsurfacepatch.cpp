@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2001&license=viewergpl$
  * 
- * Copyright (c) 2001-2009, Linden Research, Inc.
+ * Copyright (c) 2001-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -60,6 +61,7 @@ LLSurfacePatch::LLSurfacePatch() :
 	mHeightsGenerated(FALSE),
 	mDataOffset(0),
 	mDataZ(NULL),
+	mDataNorm(NULL),
 	mVObjp(NULL),
 	mOriginRegion(0.f, 0.f, 0.f),
 	mCenterRegion(0.f, 0.f, 0.f),
@@ -355,12 +357,14 @@ void LLSurfacePatch::calcNormal(const U32 x, const U32 y, const U32 stride)
 	normal %= c2;
 	normal.normVec();
 
+	llassert(mDataNorm);
 	*(mDataNorm + surface_stride * y + x) = normal;
 }
 
 const LLVector3 &LLSurfacePatch::getNormal(const U32 x, const U32 y) const
 {
 	U32 surface_stride = mSurfacep->getGridsPerEdge();
+	llassert(mDataNorm);
 	return *(mDataNorm + surface_stride * y + x);
 }
 
@@ -402,6 +406,7 @@ void LLSurfacePatch::updateVerticalStats()
 	U32 i, j, k;
 	F32 z, total;
 
+	llassert(mDataZ);
 	z = *(mDataZ);
 
 	mMinZ = z;
@@ -725,7 +730,7 @@ BOOL LLSurfacePatch::updateTexture()
 	}
 }
 
-void LLSurfacePatch::updateGL() // KL SD
+void LLSurfacePatch::updateGL()
 {
 	F32 meters_per_grid = getSurface()->getMetersPerGrid();
 	F32 grids_per_patch_edge = (F32)getSurface()->getGridsPerPatchEdge();
@@ -746,7 +751,7 @@ void LLSurfacePatch::updateGL() // KL SD
 		mSurfacep->generateWaterTexture((F32)origin_region.mdV[VX], (F32)origin_region.mdV[VY],
 										tex_patch_size, tex_patch_size);
 	}
-}  // KL
+}
 
 void LLSurfacePatch::dirtyZ()
 {

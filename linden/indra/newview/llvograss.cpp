@@ -160,6 +160,10 @@ void LLVOGrass::initClass()
 
 		GrassSpeciesData* newGrass = new GrassSpeciesData();
 
+		static LLStdStringHandle texture_id_string = LLXmlTree::addAttributeString("texture_id");
+		grass_def->getFastAttributeUUID(texture_id_string, id);
+		newGrass->mTextureID = id;
+
  		if (newGrass->mTextureID.isNull())
 		{
 			std::string textureName;
@@ -198,9 +202,9 @@ void LLVOGrass::initClass()
 
 		if (!success)
 		{
-			std::string name;
+			/*std::string name;
 			static LLStdStringHandle name_string = LLXmlTree::addAttributeString("name");
-			grass_def->getFastAttributeString(name_string, name);
+			grass_def->getFastAttributeString(name_string, name);*/
 			llwarns << "Incomplete definition of grass " << name << llendl;
 		}
 	}
