@@ -7077,6 +7077,7 @@ inline float sgn(float a)
 
 void LLPipeline::generateWaterReflection(LLCamera& camera_in)
 {
+	llpushcallstacks ;
 	if (LLPipeline::sWaterReflections && assertInitialized() && LLDrawPoolWater::sNeedsReflectionUpdate)
 	{
 		LLVOAvatar* agent = gAgent.getAvatarObject();
@@ -7099,6 +7100,9 @@ void LLPipeline::generateWaterReflection(LLCamera& camera_in)
 		camera.setFar(camera.getFar()*0.87654321f);
 		LLPipeline::sReflectionRender = TRUE;
 		S32 occlusion = LLPipeline::sUseOcclusion;
+
+		LLViewerCamera::sCurCameraID = LLViewerCamera::CAMERA_WORLD;
+
 		LLPipeline::sUseOcclusion = llmin(occlusion, 1);
 		
 		U32 type_mask = gPipeline.mRenderTypeMask;
@@ -7139,15 +7143,14 @@ void LLPipeline::generateWaterReflection(LLCamera& camera_in)
 		{	//generate planar reflection map
 			gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 			glClearColor(0,0,0,0);
-			gGL.setColorMask(true, true);
 			mWaterRef.bindTarget();
-			mWaterRef.getViewport(gGLViewport);
+			gGL.setColorMask(true, true);
 			mWaterRef.clear();
 			gGL.setColorMask(true, false);
 
-			stop_glerror();
+			mWaterRef.getViewport(gGLViewport);
 
-			LLVector3 origin = camera.getOrigin();
+			stop_glerror();
 
 			glPushMatrix();
 
@@ -7163,25 +7166,36 @@ void LLPipeline::generateWaterReflection(LLCamera& camera_in)
 
 			LLViewerCamera::updateFrustumPlanes(camera, FALSE, TRUE);
 
+			glh::matrix4f inv_mat = mat.inverse();
+
+			glh::vec3f origin(0,0,0);
+			inv_mat.mult_matrix_vec(origin);
+
+			camera.setOrigin(origin.v);
+ 
 			glCullFace(GL_FRONT);
 
-			//initial sky pass (no user clip plane)
-			{ //mask out everything but the sky
-				U32 tmp = mRenderTypeMask;
-				mRenderTypeMask = tmp & ((1 << LLPipeline::RENDER_TYPE_SKY) |
-									(1 << LLPipeline::RENDER_TYPE_WL_SKY));
-				static LLCullResult result;
-				updateCull(camera, result);
-				stateSort(camera, result);
-				mRenderTypeMask = tmp & ((1 << LLPipeline::RENDER_TYPE_SKY) |
-									(1 << LLPipeline::RENDER_TYPE_CLOUDS) |
-									(1 << LLPipeline::RENDER_TYPE_WL_SKY));
-				renderGeom(camera, TRUE);
-				mRenderTypeMask = tmp;
-			}
-
+			
+			static LLCullResult ref_result;
+			U32 ref_mask = 0;
 			if (LLDrawPoolWater::sNeedsDistortionUpdate)
 			{
+				//initial sky pass (no user clip plane)
+				{ //mask out everything but the sky
+					U32 tmp = mRenderTypeMask;
+					mRenderTypeMask = tmp & ((1 << LLPipeline::RENDER_TYPE_SKY) |
+										(1 << LLPipeline::RENDER_TYPE_WL_SKY));
+					static LLCullResult result;
+					updateCull(camera, result);
+					stateSort(camera, result);
+					mRenderTypeMask = tmp & ((1 << LLPipeline::RENDER_TYPE_SKY) |
+										(1 << LLPipeline::RENDER_TYPE_CLOUDS) |
+										(1 << LLPipeline::RENDER_TYPE_WL_SKY));
+					renderGeom(camera, TRUE);
+					mRenderTypeMask = tmp;
+				}
+
+				U32 mask = mRenderTypeMask;
 				mRenderTypeMask &=	~((1<<LLPipeline::RENDER_TYPE_WATER) |
 									  (1<<LLPipeline::RENDER_TYPE_GROUND) |
 									  (1<<LLPipeline::RENDER_TYPE_SKY) |
@@ -7204,15 +7218,24 @@ void LLPipeline::generateWaterReflection(LLCamera& camera_in)
 						}
 					}
 
-					//LLSpatialPartition::sFreezeState = TRUE;
-					//LLPipeline::sSkipUpdate = TRUE;
 					LLGLUserClipPlane clip_plane(plane, mat, projection);
-					static LLCullResult result;
-					updateCull(camera, result, 1);
-					stateSort(camera, result);
+					LLGLDisable cull(GL_CULL_FACE);
+					updateCull(camera, ref_result, 1);
+					stateSort(camera, ref_result);
+				}
+				
+				ref_mask = mRenderTypeMask;
+				mRenderTypeMask = mask;
+			}
+
+			if (LLDrawPoolWater::sNeedsDistortionUpdate)
+			{
+				mRenderTypeMask = ref_mask;
+				if (gSavedSettings.getBOOL("RenderWaterReflections"))
+				{
+					gPipeline.grabReferences(ref_result);
+					LLGLUserClipPlane clip_plane(plane, mat, projection);
 					renderGeom(camera);
-					//LLSpatialPartition::sFreezeState = FALSE;
-					//LLPipeline::sSkipUpdate = FALSE;
 				}
 			}	
 			glCullFace(GL_BACK);
@@ -7221,6 +7244,8 @@ void LLPipeline::generateWaterReflection(LLCamera& camera_in)
 
 			glh_set_current_modelview(current);
 		}
+
+		camera.setOrigin(camera_in.getOrigin());
 
 		//render distortion map
 		static BOOL last_update = TRUE;
@@ -7245,11 +7270,8 @@ void LLPipeline::generateWaterReflection(LLCamera& camera_in)
 			gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 			LLColor4& col = LLDrawPoolWater::sWaterFogColor;
 			glClearColor(col.mV[0], col.mV[1], col.mV[2], 0.f);
-			gGL.setColorMask(true, true);
 			mWaterDis.bindTarget();
 			mWaterDis.getViewport(gGLViewport);
-			mWaterDis.clear();
-			gGL.setColorMask(true, false);
 
 			if (!LLPipeline::sUnderWaterRender || LLDrawPoolWater::sNeedsReflectionUpdate)
 			{
@@ -7259,6 +7281,11 @@ void LLPipeline::generateWaterReflection(LLCamera& camera_in)
 				static LLCullResult result;
 				updateCull(camera, result, water_clip);
 				stateSort(camera, result);
+
+				gGL.setColorMask(true, true);
+				mWaterDis.clear();
+				gGL.setColorMask(true, false);
+
 				renderGeom(camera);
 			}
 
