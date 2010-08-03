@@ -191,6 +191,10 @@ void LLMediaCtrl::setOpenInInternalBrowser( bool valIn )
 ////////////////////////////////////////////////////////////////////////////////
 void LLMediaCtrl::setTrusted( bool valIn )
 {
+	if(mMediaSource)
+	{
+		mMediaSource->setTrustedBrowser(valIn);
+	}
 	mTrusted = valIn;
 }
 
@@ -447,6 +451,21 @@ void LLMediaCtrl::clr404RedirectUrl()
 
 ////////////////////////////////////////////////////////////////////////////////
 //
+void LLMediaCtrl::clearCache()
+{
+	if(mMediaSource)
+	{
+		mMediaSource->clearCache();
+	}
+	else
+	{
+		mClearCache = true;
+	}
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
 void LLMediaCtrl::navigateTo( std::string url_in, std::string mime_type)
 {
 	// don't browse to anything that starts with secondlife:// or sl://
@@ -650,18 +669,17 @@ void LLMediaCtrl::draw()
 			if(media_texture)
 			{
 				draw_media = true;
-				LL_DEBUGS("MediaCtrl")<<"draw_media = true"<<LL_ENDL; //awfixme
 			}
 		}
 	}
-//impfixme
-/*	
+
 	if(mHidingInitialLoad)
 	{
 		// If we're hiding loading, don't draw at all.
 		draw_media = false;
 	}
-	
+//impfixme
+/*		
 	bool background_visible = isBackgroundVisible();
 	bool background_opaque = isBackgroundOpaque();
 */

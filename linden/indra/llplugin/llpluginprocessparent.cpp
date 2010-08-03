@@ -61,12 +61,13 @@ LLPluginProcessParent::LLPluginProcessParent(LLPluginProcessParentOwner *owner)
 	mPluginLockupTimeout = 15.0f;
 	
 	// Don't start the timer here -- start it when we actually launch the plugin process.
-	mHeartbeat.stop();
+	mHeartbeat.stop();	
+	LL_DEBUGS("Plugin") << "LLPluginProcessParent contructor "<< this  << " Owner: " << mOwner << LL_ENDL;
 }
 
 LLPluginProcessParent::~LLPluginProcessParent()
 {
-	LL_DEBUGS("Plugin") << "destructor" << LL_ENDL;
+	LL_DEBUGS("Plugin") << "LLPluginProcessParent destructor " << this << LL_ENDL;
 
 	// Destroy any remaining shared memory regions
 	sharedMemoryRegionsType::iterator iter;
@@ -107,6 +108,7 @@ void LLPluginProcessParent::init(const std::string &launcher_filename, const std
 	mCPUUsage = 0.0f;
 	mDebug = debug;	
 	setState(STATE_INITIALIZED);
+	LL_DEBUGS("Plugin") << "LLPluginProcessParent init " << this <<" launcher_filename: " << launcher_filename << " plugin_filename: "<< plugin_filename << LL_ENDL;
 }
 
 bool LLPluginProcessParent::accept()
@@ -483,14 +485,14 @@ void LLPluginProcessParent::sendMessage(const LLPluginMessage &message)
 {
 	
 	std::string buffer = message.generate();
-	LL_DEBUGS("Plugin") << "Sending: " << buffer << LL_ENDL;	
+// 	LL_DEBUGS("Plugin") << "Sending: " << buffer << LL_ENDL;	
 	writeMessageRaw(buffer);
 }
 
 
 void LLPluginProcessParent::receiveMessageRaw(const std::string &message)
 {
-	LL_DEBUGS("Plugin") << "Received: " << message << LL_ENDL;
+// 	LL_DEBUGS("Plugin") << "Received: " << message << LL_ENDL;
 
 	// FIXME: should this go into a queue instead?
 	
@@ -559,7 +561,8 @@ void LLPluginProcessParent::receiveMessage(const LLPluginMessage &message)
 
 			mCPUUsage = message.getValueReal("cpu_usage");
 
-			LL_DEBUGS("Plugin") << "cpu usage reported as " << mCPUUsage << LL_ENDL;
+			//spammer
+			LL_DEBUGS("PluginCPUUsage") << "cpu usage reported as " << mCPUUsage << LL_ENDL;
 			
 		}
 		else if(message_name == "shm_add_response")

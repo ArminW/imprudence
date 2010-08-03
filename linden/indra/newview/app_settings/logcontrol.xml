@@ -40,11 +40,12 @@
 						</array>
 					<key>tags</key>
 						<array>
-							<string>Media</string>
-							<string>MediaCtrl</string>
-							<string>MediaOnAPrim</string>
-							<string>Plugin</string>
-							<string>PluginPriority</string>
+							<string>Media</string><!-- in several llviewer*media* classes -->
+							<string>MediaCtrl</string><!-- in llmediactrl -->
+							<string>MediaOnAPrim</string><!--in llvovolume-->
+							<string>Plugin</string><!-- in several classes in llplugin-->
+							<string>PluginPriority</string><!-- in llviewermedia -->
+							<!--<string>PluginCPUUsage</string>--><!--adds spam in llviewermedia and llpluginprocessparent -->
 <!--Unused debug messages below-->
 
               <!--<string>AppInit</string>-->

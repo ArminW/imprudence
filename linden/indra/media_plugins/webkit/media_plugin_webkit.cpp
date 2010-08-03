@@ -661,7 +661,7 @@ private:
 MediaPluginWebKit::MediaPluginWebKit(LLPluginInstance::sendMessageFunction host_send_func, void *host_user_data) :
 	MediaPluginBase(host_send_func, host_user_data)
 {
-//	std::cerr << "MediaPluginWebKit constructor" << std::endl;
+	std::cerr << "MediaPluginWebKit constructor" << std::endl;
 
 	mBrowserWindowId = 0;
 	mInitState = INIT_STATE_UNINITIALIZED;
@@ -690,7 +690,7 @@ MediaPluginWebKit::~MediaPluginWebKit()
 	// clean up
 	LLQtWebKit::getInstance()->reset();
 
-//	std::cerr << "MediaPluginWebKit destructor" << std::endl;
+	std::cerr << "MediaPluginWebKit destructor" << std::endl;
 }
 
 void MediaPluginWebKit::receiveMessage(const char *message_string)

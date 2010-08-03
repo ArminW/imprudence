@@ -447,8 +447,8 @@ U32 LLVOVolume::processUpdateMessage(LLMessageSystem *mesgsys,
 				 ! LLTextureEntry::isMediaVersionString(mMedia->mMediaURL) ) )
 		{
 			// If the media changed at all, request new media data
-			LL_DEBUGS("MediaOnAPrim") << "Media update: " << getID() << ": retval=" << retval << " Media URL: " <<
-                ((mMedia) ?  mMedia->mMediaURL : std::string("")) << LL_ENDL;
+//			LL_DEBUGS("MediaOnAPrim") << "Media update: " << getID() << ": retval=" << retval << " Media URL: " <<
+//                ((mMedia) ?  mMedia->mMediaURL : std::string("")) << LL_ENDL;
 			requestMediaDataUpdate(retval & MEDIA_FLAGS_CHANGED);
 		}
         else {

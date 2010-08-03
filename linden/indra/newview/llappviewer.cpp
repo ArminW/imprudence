@@ -873,6 +873,8 @@ bool LLAppViewer::init()
 
 	LLViewerJoystick::getInstance()->init(false);
 
+	LLViewerMedia::initClass();
+
 	return true;
 }
 

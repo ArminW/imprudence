@@ -170,7 +170,7 @@ public:
 		std::string::size_type idx1 = media_type.find_first_of(";");
 		std::string mime_type = media_type.substr(0, idx1);
 
-		LL_DEBUGS("Media") << "status is " << status << ", media type \"" << media_type << "\"" << llendl;
+		LL_DEBUGS("Media") << "status is " << status << ", media type \"" << media_type << "\"" << LL_ENDL;;
 		
 		// 2xx status codes indicate success.
 		// Most 4xx status codes are successful enough for our purposes.
@@ -307,10 +307,12 @@ viewer_media_t LLViewerMedia::newMediaImpl(
 											 U8 media_loop)
 {
 	LLViewerMediaImpl* media_impl = getMediaImplFromTextureID(texture_id);
+
 	if(media_impl == NULL || texture_id.isNull())
 	{
 		// Create the media impl
 		media_impl = new LLViewerMediaImpl(texture_id, media_width, media_height, media_auto_scale, media_loop);
+
 	}
 	else
 	{
@@ -322,6 +324,7 @@ viewer_media_t LLViewerMedia::newMediaImpl(
 		media_impl->mMediaLoop = media_loop;
 	}
 
+	LL_DEBUGS("Media") << "TextureID: "<< texture_id << " Impl: " << media_impl << LL_ENDL;
 	return media_impl;
 }
 
@@ -333,7 +336,7 @@ viewer_media_t LLViewerMedia::updateMediaImpl(LLMediaEntry* media_entry, const s
 	LL_DEBUGS("Media") << "called, current URL is \"" << media_entry->getCurrentURL() 
 			<< "\", previous URL is \"" << previous_url 
 			<< "\", update_from_self is " << (update_from_self?"true":"false")
-			<< llendl;
+			<< LL_ENDL;
 			
 	bool was_loaded = false;
 	bool needs_navigate = false;
@@ -365,7 +368,7 @@ viewer_media_t LLViewerMedia::updateMediaImpl(LLMediaEntry* media_entry, const s
 				// The current media URL is now empty.  Unload the media source.
 				media_impl->unload();
 			
-				LL_DEBUGS("Media") << "Unloading media instance (new current URL is empty)." << llendl;
+				LL_DEBUGS("Media") << "Unloading media instance (new current URL is empty)." << LL_ENDL;;
 			}
 		}
 		else
@@ -382,7 +385,7 @@ viewer_media_t LLViewerMedia::updateMediaImpl(LLMediaEntry* media_entry, const s
 			
 			LL_DEBUGS("Media") << "was_loaded is " << (was_loaded?"true":"false") 
 					<< ", auto_play is " << (auto_play?"true":"false") 
-					<< ", needs_navigate is " << (needs_navigate?"true":"false") << llendl;
+					<< ", needs_navigate is " << (needs_navigate?"true":"false") << LL_ENDL;;
 		}
 	}
 	else
@@ -727,8 +730,9 @@ void LLViewerMedia::updateMedia(void *dummy_arg)
 	int impl_count_interest_normal = 0;
 	
 	std::vector<LLViewerMediaImpl*> proximity_order;
-	
-	bool inworld_media_enabled = gSavedSettings.getBOOL("AudioStreamingMedia");
+
+	bool inworld_media_enabled = gSavedSettings.getBOOL("AudioStreamingVideo");
+//SG2:	bool inworld_media_enabled = gSavedSettings.getBOOL("AudioStreamingMedia");
 	bool inworld_audio_enabled = gSavedSettings.getBOOL("AudioStreamingMusic");
 	U32 max_instances = gSavedSettings.getU32("PluginInstancesTotal");
 	U32 max_normal = gSavedSettings.getU32("PluginInstancesNormal");
@@ -749,12 +753,17 @@ void LLViewerMedia::updateMedia(void *dummy_arg)
 		
 		LLPluginClassMedia::EPriority new_priority = LLPluginClassMedia::PRIORITY_NORMAL;
 
-		if(pimpl->isForcedUnloaded() || (impl_count_total >= (int)max_instances))
+		if(pimpl->isForcedUnloaded() )
 		{
 			// Never load muted or failed impls.
+			new_priority = LLPluginClassMedia::PRIORITY_UNLOADED;
+			LL_DEBUGS("Media")<< "Is forced unloaded: muted or failed" << LL_ENDL;
+		}
+		else if(impl_count_total >= (int)max_instances)
+		{
 			// Hard limit on the number of instances that will be loaded at one time
 			new_priority = LLPluginClassMedia::PRIORITY_UNLOADED;
-			LL_DEBUGS("Media")<< "isForcedUnloaded()" << LL_ENDL;
+			LL_DEBUGS("Media")<< "number of instances too high" << LL_ENDL;
 		}
 		else if(!pimpl->getVisible())
 		{
@@ -920,8 +929,9 @@ void LLViewerMedia::updateMedia(void *dummy_arg)
 	{
 		proximity_order[i]->mProximity = i;
 	}
-	
-	LL_DEBUGS("PluginPriority") << "Total reported CPU usage is " << total_cpu << LL_ENDL;
+
+	//spammer
+	LL_DEBUGS("PluginCPUUsage") << "Total reported CPU usage is " << total_cpu << LL_ENDL;
 
 }
 
@@ -1146,7 +1156,10 @@ std::string LLViewerMedia::getParcelAudioURL()
 // static
 void LLViewerMedia::initClass()
 {
-	gIdleCallbacks.addFunction(LLViewerMedia::updateMedia, NULL);	
+
+	gIdleCallbacks.addFunction(LLViewerMedia::updateMedia, NULL);
+
+
 //impfixme:compile
 /*
 	sTeleportFinishConnection = LLViewerParcelMgr::getInstance()->
@@ -1159,6 +1172,8 @@ void LLViewerMedia::initClass()
 void LLViewerMedia::cleanupClass()
 {
 	gIdleCallbacks.deleteFunction(LLViewerMedia::updateMedia, NULL);
+
+
 //impfixme:compile	sTeleportFinishConnection.disconnect();
 }
 
@@ -1436,7 +1451,7 @@ bool LLViewerMediaImpl::initializePlugin(const std::string& media_type)
 	if(mPriority == LLPluginClassMedia::PRIORITY_UNLOADED)
 	{
 		// This impl should not be loaded at this time.
-		LL_DEBUGS("PluginPriority") << this << " Not loading (PRIORITY_UNLOADED)" << LL_ENDL;
+		LL_DEBUGS("PluginPriority")<< "Initialize Plugin: Not loading (PRIORITY_UNLOADED) " << this  << LL_ENDL;
 		
 		return false;
 	}
@@ -1943,7 +1958,7 @@ void LLViewerMediaImpl::navigateTo(const std::string& url, const std::string& mi
 		llinfos << "NOT LOADING media id= " << mTextureId << " url=" << url << " mime_type=" << mime_type << llendl;
 
 		// This impl should not be loaded at this time.
-		LL_DEBUGS("PluginPriority") << this << "Not loading (PRIORITY_UNLOADED)" << LL_ENDL;
+		LL_DEBUGS("PluginPriority") << "Navigate to: Not loading (PRIORITY_UNLOADED) " << this << LL_ENDL;
 		
 		return;
 	}
@@ -2193,7 +2208,6 @@ void LLViewerMediaImpl::update()
 
 	if(!mMediaSource->textureValid())
 	{
-		LL_DEBUGS("Media") << "texture not valid" << LL_ENDL;
 		return;
 	}
 	
@@ -2206,7 +2220,6 @@ void LLViewerMediaImpl::update()
 		
 	if(placeholder_image)
 	{
-		LL_DEBUGS("Media") << "media has placeholder_image" << LL_ENDL;
 		LLRect dirty_rect;
 		
 		// Since we're updating this texture, we know it's playing.  Tell the texture to do its replacement magic so it gets rendered.
@@ -2792,10 +2805,12 @@ void LLViewerMediaImpl::setUsedInUI(bool used_in_ui)
 	{
 		if(getVisible())
 		{
+			LL_DEBUGS("Media") << "UsedInUI setting  PRIORITY_NORMAL" << LL_ENDL;
 			setPriority(LLPluginClassMedia::PRIORITY_NORMAL);
 		}
 		else
 		{
+			LL_DEBUGS("Media") << "UsedInUI setting  PRIORITY_HIDDEN" << LL_ENDL;
 			setPriority(LLPluginClassMedia::PRIORITY_HIDDEN);
 		}
 

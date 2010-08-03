@@ -439,6 +439,12 @@ void LLPluginClassMedia::mouseEvent(EMouseEventType type, int button, int x, int
 {
 	if(type == MOUSE_EVENT_MOVE)
 	{
+		if(!mPlugin || !mPlugin->isRunning() )
+		{
+			// Don't queue up mouse move events that can't be delivered.
+			return;
+		}
+
 		if((x == mLastMouseX) && (y == mLastMouseY))
 		{
 			// Don't spam unnecessary mouse move events.

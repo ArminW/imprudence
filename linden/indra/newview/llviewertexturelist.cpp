@@ -631,6 +631,7 @@ void LLViewerTextureList::updateImages(F32 max_time)
 			didone = image->doLoadedCallbacks();
 		}
 	}
+
 	updateImagesUpdateStats();
 }
 
