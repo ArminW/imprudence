@@ -81,6 +81,14 @@
 // Globals
 //
 
+const char* LLPanelContents::TENTATIVE_SUFFIX = "_tentative";
+const char* LLPanelContents::PERMS_OWNER_INTERACT_KEY = "perms_owner_interact";
+const char* LLPanelContents::PERMS_OWNER_CONTROL_KEY = "perms_owner_control";
+const char* LLPanelContents::PERMS_GROUP_INTERACT_KEY = "perms_group_interact";
+const char* LLPanelContents::PERMS_GROUP_CONTROL_KEY = "perms_group_control";
+const char* LLPanelContents::PERMS_ANYONE_INTERACT_KEY = "perms_anyone_interact";
+const char* LLPanelContents::PERMS_ANYONE_CONTROL_KEY = "perms_anyone_control";
+
 BOOL LLPanelContents::postBuild()
 {
 	LLRect rect = this->getRect();

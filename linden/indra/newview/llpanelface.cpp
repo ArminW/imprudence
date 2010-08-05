@@ -65,7 +65,6 @@
 #include "llviewermedia.h"
 #include "llviewerobject.h"
 #include "llviewerstats.h"
-//impfixme:rm #include "llviewerwindow.h"
 #include "llvovolume.h"
 #include "lluictrlfactory.h"
 #include "llpluginclassmedia.h"

@@ -6087,6 +6087,29 @@ bool LLObjectSelection::applyToRootNodes(LLSelectedNodeFunctor *func, bool first
 	return result;
 }
 
+BOOL LLObjectSelection::isMultipleTESelected()
+{
+	BOOL te_selected = FALSE;
+	// ...all faces
+	for (LLObjectSelection::iterator iter = begin();
+		 iter != end(); iter++)
+	{
+		LLSelectNode* nodep = *iter;
+		for (S32 i = 0; i < SELECT_MAX_TES; i++)
+		{
+			if(nodep->isTESelected(i))
+			{
+				if(te_selected)
+				{
+					return TRUE;
+				}
+				te_selected = TRUE;
+			}
+		}
+	}
+	return FALSE;
+}
+
 //-----------------------------------------------------------------------------
 // contains()
 //-----------------------------------------------------------------------------

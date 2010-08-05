@@ -7,12 +7,7 @@
 
 <!-- Main floater tabs -->
 
-	<button bottom="-34" follows="left|top" font="SansSerif" halign="center" height="32"
-	     image_disabled="tool_zoom.tga"
-	     image_disabled_selected="tool_zoom_active.tga"
-	     image_selected="tool_zoom_active.tga" image_unselected="tool_zoom.tga"
-	     label="" label_selected="" left="4" mouse_opaque="true" name="button focus"
-	     tool_tip="Focus" width="32" />
+ 
 	<button bottom="-34" follows="left|top" font="SansSerif" halign="center" height="32"
 	     image_disabled="UIImgGrabUUID"
 	     image_disabled_selected="UIImgGrabSelectedUUID"
@@ -1202,12 +1197,12 @@
 			     initial_value="false" label="Flip" left_delta="170" mouse_opaque="true"
 			     name="checkbox flip t" width="70" />
 			<text bg_visible="false" border_drop_shadow_visible="false" border_visible="false"
-			     bottom="-228" drop_shadow_visible="true" follows="left|top"
+			     top_delta="25" drop_shadow_visible="true" follows="left|top"
 			     font="SansSerifSmall" h_pad="0" halign="left" height="10" left="10"
 			     mouse_opaque="true" name="tex rotate" v_pad="0" width="102">
 				Rotation (degrees):
 			</text>
-			<spinner bottom="-234" decimal_digits="2" follows="left|top" height="16" increment="1"
+			<spinner bottom_delta="-5" decimal_digits="2" follows="left|top" height="16" increment="1"
 			     initial_val="0" left="112" max_val="9999" min_val="-9999"
 			     mouse_opaque="true" name="TexRot" width="68" />
 			<string name="string repeats per meter">
@@ -1217,30 +1212,58 @@
 				Repeats per face
 			</string>
 			<text bg_visible="false" border_drop_shadow_visible="false" border_visible="false"
-			     bottom="-250" drop_shadow_visible="true" follows="left|top"
+			     top_delta="22" drop_shadow_visible="true" follows="left|top"
 			     font="SansSerifSmall" h_pad="0" halign="left" height="10" left="10"
 			     mouse_opaque="true" name="rpt" v_pad="0" width="160">
         Repeats per meter:
       </text>
-			<spinner bottom="-256" decimal_digits="1" follows="left|top" height="16" increment="0.1"
+			<spinner bottom_delta="-5" decimal_digits="1" follows="left|top" height="16" increment="0.1"
 			     initial_val="1" left="112" max_val="10" min_val="0.1" mouse_opaque="true"
 			     name="rptctrl" width="68" />
-			<button bottom="-256" follows="left|top" font="SansSerifSmall" halign="center"
+			<button bottom_delta="-3" follows="left|top" font="SansSerifSmall" halign="center"
 			     height="20" label="Apply" label_selected="Apply" left_delta="78"
 			     mouse_opaque="true" name="button apply" scale_image="TRUE" width="75" />
 			<text bg_visible="false" border_drop_shadow_visible="false" border_visible="false"
-			     bottom="-288" drop_shadow_visible="true" follows="left|top"
+		      top_delta="25" drop_shadow_visible="true" follows="left|top"
 			     font="SansSerifSmall" h_pad="0" halign="left" height="10" left="10"
 			     mouse_opaque="true" name="tex offset" v_pad="0" width="160">
-        Offset:
-      </text>
-			<spinner bottom="-308" decimal_digits="3" follows="left|top" height="16" increment="0.1"
+				Offset:
+			</text>
+	
+			<spinner top_delta="18" decimal_digits="3" follows="left|top" height="16" increment="0.1"
 			     initial_val="0" label="Horizontal (U):" label_width="90" left="20"
 			     max_val="1" min_val="-1" mouse_opaque="true" name="TexOffsetU" width="160" />
-			<spinner bottom_delta="-18" decimal_digits="3" follows="left|top" height="16"
+			<spinner top_delta="18" decimal_digits="3" follows="left|top" height="16"
 			     increment="0.1" initial_val="0" label="Vertical (V):" label_width="90"
 			     left="20" max_val="1" min_val="-1" mouse_opaque="true" name="TexOffsetV"
 			     width="160" />
+
+			<text bg_visible="false" border_drop_shadow_visible="false" border_visible="false"
+			     top_delta="18" drop_shadow_visible="true" follows="left|top"
+			     font="SansSerifSmall" h_pad="0" halign="left" height="20" left="10"
+			     mouse_opaque="true" name="media_tex" v_pad="0" width="160">
+				Media
+			</text>
+			<button bottom_delta="0" left_delta="30" width="18" height="18" follows="left|top"
+				label="Add" name="add_media" font="SansSerif" halign="center" tool_tip="Add Media"
+				image_selected="AddItem_Press.png" image_unselected="AddItem_Off.png" 
+				image_disabled="AddItem_Disabled.png" mouse_opaque="true" scale_image="TRUE" />
+			<button bottom_delta="0" left_delta="22" width="18" height="18" follows="left|top"
+				label="Delete" name="delete_media" font="SansSerif" halign="center" 
+				tool_tip="Delete this media texture"
+				image_selected="TrashItem_Press.png" image_unselected="TrashItem_Off.png" image_disabled="TrashItem_Disabled.png"
+				mouse_opaque="true" scale_image="TRUE" />
+			<button bottom_delta="0" left_delta="22" width="18" height="18" follows="left|top"
+				label="Edit" name="edit_media" font="SansSerif" halign="center" 
+				tool_tip="Edit this Media"
+				image_selected="Icon_Gear_Press.png" image_unselected="Icon_Gear_Foreground.png" 
+				image_disabled="Icon_Gear_Background.png" mouse_opaque="true" scale_image="TRUE" />
+			<text follows="left|top|right" height="9" layout="topleft" left="10" use_ellipses="true"
+				read_only="true" name="media_info" width="280" />
+			<web_browser visible="false" enabled="false" border_visible="true" bottom_delta="0"
+				follows="top|left" left="0" name="title_media" width="4" height="4" 
+				start_url="about:blank" decouple_texture_size="true" />
+
 			<text bg_visible="false" border_drop_shadow_visible="false" border_visible="false"
 			     bottom="-352" drop_shadow_visible="true" follows="left|top"
 			     font="SansSerifSmall" h_pad="0" halign="left" height="20" left="10"

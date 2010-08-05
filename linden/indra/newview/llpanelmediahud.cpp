@@ -601,9 +601,9 @@ void LLPanelMediaHUD::nextZoomLevel()
 			break;
 		}
 	}
-//impfixme:compile
-// 	if (zoom_padding > 0.0f)		
-// 		LLViewerMediaFocus::setCameraZoom(getTargetObject(), mTargetObjectNormal, zoom_padding, true);
+
+	if (zoom_padding > 0.0f)		
+		LLViewerMediaFocus::setCameraZoom(getTargetObject(), mTargetObjectNormal, zoom_padding, true);
 }
 void LLPanelMediaHUD::onScrollUp(void* user_data)
 {

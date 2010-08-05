@@ -168,7 +168,6 @@ set(viewer_SOURCE_FILES
     llfloaterhandler.cpp
     llfloaterhardwaresettings.cpp
     llfloaterhtmlcurrency.cpp
-    llfloatermediabrowser.cpp
     llfloaterhtmlsimple.cpp
     llfloaterhud.cpp
     llfloaterimagepreview.cpp
@@ -179,6 +178,8 @@ set(viewer_SOURCE_FILES
     llfloaterlandholdings.cpp
     llfloaterlandmark.cpp
     llfloatermap.cpp
+    llfloatermediabrowser.cpp
+    llfloatermediasettings.cpp
     llfloatermemleak.cpp
     llfloatermute.cpp
     llfloaternamedesc.cpp
@@ -210,6 +211,7 @@ set(viewer_SOURCE_FILES
     llfloaterurlentry.cpp
     llfloatervoicedevicesettings.cpp
     llfloaterwater.cpp
+    llfloaterwhitelistentry.cpp
     llfloaterwindlight.cpp
     llfloaterworldmap.cpp
     llfolderview.cpp
@@ -300,6 +302,9 @@ set(viewer_SOURCE_FILES
     llpanellandobjects.cpp
     llpanellandoptions.cpp
     llpanellogin.cpp
+    llpanelmediasettingsgeneral.cpp
+    llpanelmediasettingssecurity.cpp
+    llpanelmediasettingspermissions.cpp
     llpanelmorph.cpp
     llpanelmsgs.cpp
     llpanelnetwork.cpp
@@ -610,6 +615,7 @@ set(viewer_HEADER_FILES
     llfloaterhardwaresettings.h
     llfloaterhtmlcurrency.h
     llfloatermediabrowser.h
+    llfloatermediasettings.h
     llfloaterhtmlsimple.h
     llfloaterhud.h
     llfloaterimagepreview.h
@@ -651,6 +657,7 @@ set(viewer_HEADER_FILES
     llfloaterurlentry.h
     llfloatervoicedevicesettings.h
     llfloaterwater.h
+    llfloaterwhitelistentry.h
     llfloaterwindlight.h
     llfloaterworldmap.h
     llfolderview.h
@@ -741,6 +748,9 @@ set(viewer_HEADER_FILES
     llpanellandoptions.h
     llpanelLCD.h
     llpanellogin.h
+    llpanelmediasettingsgeneral.h
+    llpanelmediasettingssecurity.h
+    llpanelmediasettingspermissions.h
     llpanelmorph.h
     llpanelmsgs.h
     llpanelnetwork.h

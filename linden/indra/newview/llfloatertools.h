@@ -50,6 +50,7 @@ class LLPanelFace;
 class LLPanelLandInfo;
 class LLComboBox;
 class LLSlider;
+class LLMediaCtrl;
 class LLParcelSelection;
 class LLObjectSelection;
 
@@ -105,6 +106,14 @@ public:
 	virtual void onFocusReceived();
 	static void setEditTool(void* data);
 	void saveLastTool();
+	static void onClickBtnDeleteMedia(void* data);
+	static void onClickBtnAddMedia(void* data);
+	static void onClickBtnEditMedia(void* data);
+	void clearMediaSettings();
+	void updateMediaTitle();
+	void navigateToTitleMedia( const std::string url );
+	bool selectedMediaEditable();
+
 private:
 	static void setObjectType( void* data );
 	
@@ -114,6 +123,13 @@ private:
 
 	static void onClickLink(void* data);
 	static void onClickUnlink(void* data);
+	void refreshMedia();
+	void getMediaState();
+	void updateMediaSettings();
+	static bool deleteMediaConfirm(const LLSD& notification, const LLSD& response);
+	static bool multipleFacesSelectedConfirm(const LLSD& notification, const LLSD& response);
+	static void setObjectType( LLPCode pcode );
+	void onClickGridOptions();
 
 public:
 
@@ -161,6 +177,10 @@ public:
 	LLButton	*mBtnLink;
 	LLButton	*mBtnUnlink;
 
+	LLButton	*mBtnAddMedia;
+	LLButton	*mBtnDeleteMedia;
+	LLButton	*mBtnEditMedia;
+
 	// Create buttons
 	LLComboBox		*mComboTreesGrass;
 	LLCheckBoxCtrl	*mCheckSticky;
@@ -198,6 +218,9 @@ public:
 	LLParcelSelectionHandle	mParcelSelection;
 	LLObjectSelectionHandle	mObjectSelection;
 
+	LLMediaCtrl				*mTitleMedia;
+	bool					mNeedMediaTitle;
+
 private:
 	BOOL					mDirty;
 	U32						mPrecision;
@@ -206,6 +229,9 @@ private:
 
 	void updateTreeGrassCombo(bool visible);
 	static void onSelectTreesGrass(LLUICtrl*, void*);
+
+protected:
+	LLSD				mMediaSettings;
 };
 
 extern LLFloaterTools *gFloaterTools;
