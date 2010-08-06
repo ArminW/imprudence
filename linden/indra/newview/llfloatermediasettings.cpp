@@ -58,8 +58,7 @@ LLFloaterMediaSettings::LLFloaterMediaSettings(const LLSD& key)
 	mMultipleMedia(false),
 	mMultipleValidMedia(false)
 {
-	const BOOL DONT_OPEN = TRUE;
-	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_media_settings.xml",NULL, DONT_OPEN);
+	LLUICtrlFactory::getInstance()->buildFloater(this, "floater_media_settings.xml");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -90,7 +89,6 @@ LLFloaterMediaSettings::~LLFloaterMediaSettings()
 //
 BOOL LLFloaterMediaSettings::postBuild()
 {
-	LLFloater::setVisible(FALSE);
 	mApplyBtn = getChild<LLButton>("Apply");
 	mApplyBtn->setClickedCallback(onBtnApply, this);
 		
@@ -125,23 +123,6 @@ BOOL LLFloaterMediaSettings::postBuild()
 	};
 
 	return TRUE;
-}
-// //static 
-bool LLFloaterMediaSettings::visible(void*)
-{
-	return LLFloaterMediaSettings::instanceVisible();
-}
-
-//static 
-void LLFloaterMediaSettings::show(void* ignored)
-{
-// 	LLFloater::setVisible(TRUE);
-}
-
-// //static 
-void LLFloaterMediaSettings::hide(void*)
-{
-// 	LLFloater::setVisible(FALSE);
 }
 
 //static 

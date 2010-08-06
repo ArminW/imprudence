@@ -50,16 +50,9 @@ public:
 	LLFloaterMediaSettings(const LLSD& key = LLSD());
 	virtual ~LLFloaterMediaSettings();
 
-// 	static LLFloaterMediaSettings* getInstance();
-
 	/*virtual*/ BOOL postBuild();
 	/*virtual*/ void draw();
 	/*virtual*/ void onClose(bool app_quitting);
-
-
-	static bool visible(void*);
-	static void show(void* ignored = NULL);
-	static void hide(void*);
 
 	static void apply();
 	static void initValues( const LLSD& media_settings , bool editable);

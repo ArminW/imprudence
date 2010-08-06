@@ -302,6 +302,8 @@ BOOL	LLFloaterTools::postBuild()
 	mBtnEditMedia = getChild<LLButton>("edit_media");
 	childSetAction("edit_media",onClickBtnEditMedia,this);
 
+	LLFloaterMediaSettings::hideInstance("media_settings");
+
 	// Set the default size limits for spinners -- MC
 	updateToolsSizeLimits();
 
@@ -1531,7 +1533,7 @@ void LLFloaterTools::onClickBtnAddMedia(void* data)
 	}
 	else
 	{
-		onClickBtnEditMedia(NULL);
+		onClickBtnEditMedia(data);
 	}
 }
 
