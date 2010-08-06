@@ -106,7 +106,13 @@ void LLVOGrass::updateSpecies()
 		SpeciesMap::const_iterator it = sSpeciesTable.begin();
 		mSpecies = (*it).first;
 	}
-	setTEImage(0, LLViewerTextureManager::getFetchedTexture(sSpeciesTable[mSpecies]->mTextureID, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE));
+	LLViewerTexture* image = LLViewerTextureManager::getFetchedTexture(
+										sSpeciesTable[mSpecies]->mTextureID, 
+										TRUE,
+										LLViewerTexture::BOOST_NONE,
+										LLViewerTexture::LOD_TEXTURE);
+
+	setTEImage(0, image);
 }
 
 
@@ -162,17 +168,33 @@ void LLVOGrass::initClass()
 
 		static LLStdStringHandle texture_id_string = LLXmlTree::addAttributeString("texture_id");
 		grass_def->getFastAttributeUUID(texture_id_string, id);
-		newGrass->mTextureID = id;
 
- 		if (newGrass->mTextureID.isNull())
+		LLViewerFetchedTexture* grass_image = LLViewerTextureManager::getFetchedTexture(
+											id,
+											TRUE,
+											LLViewerTexture::BOOST_NONE,
+											LLViewerTexture::LOD_TEXTURE);
+
+
+		//*HACK:LLViewerFetchedTexture::isMissingAsset does not return if the grass actually is on the server.
+		//	using texture size instead and hope its 0 if no grass is present.
+
+		if (0 == grass_image->getFullWidth()*grass_image->getFullHeight())
 		{
 			std::string textureName;
-
+	
 			static LLStdStringHandle texture_name_string = LLXmlTree::addAttributeString("texture_name");
 			success &= grass_def->getFastAttributeString(texture_name_string, textureName);
-			LLViewerTexture* grass_image = LLViewerTextureManager::getFetchedTextureFromFile(textureName);
-			newGrass->mTextureID = grass_image->getID();
+			grass_image = LLViewerTextureManager::getFetchedTextureFromFile(
+											textureName,
+											TRUE,
+											LLViewerTexture::BOOST_NONE,
+											LLViewerTexture::LOD_TEXTURE);
 		}
+// 		else {llinfos << "What is that green in your pocket? w:" << grass_image->getFullWidth() 
+// 								<<" h: "<<grass_image->getFullHeight() << llendl;}
+
+		newGrass->mTextureID = grass_image->getID();
 
 		static LLStdStringHandle blade_sizex_string = LLXmlTree::addAttributeString("blade_size_x");
 		success &= grass_def->getFastAttributeF32(blade_sizex_string, F32_val);
