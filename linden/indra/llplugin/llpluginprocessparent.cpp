@@ -839,7 +839,7 @@ void LLPluginProcessParent::servicePoll()
 
 void LLPluginProcessParent::receiveMessageRaw(const std::string &message)
 {
-	LL_DEBUGS("Plugin") << "Received: " << message << LL_ENDL;
+	//spammer LL_DEBUGS("Plugin") << "Received: " << message << LL_ENDL;
 	
 	LLPluginMessage parsed;
 	if(parsed.parse(message) != -1)
@@ -948,8 +948,8 @@ void LLPluginProcessParent::receiveMessage(const LLPluginMessage &message)
 
 			mCPUUsage = message.getValueReal("cpu_usage");
 
-			//spammer
-			LL_DEBUGS("PluginCPUUsage") << "cpu usage reported as " << mCPUUsage << LL_ENDL;
+			
+			//spammer LL_DEBUGS("PluginCPUUsage") << "cpu usage reported as " << mCPUUsage << LL_ENDL;
 			
 		}
 		else if(message_name == "shm_add_response")
