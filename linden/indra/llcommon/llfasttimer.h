@@ -194,6 +194,9 @@ public:
 			FTM_FULLSCREEN_LIGHTS,
 			FTM_POST,
 
+			//llviewermedia
+			FTM_MEDIA_UPDATE,
+
 		// Temp
 		FTM_TEMP1,
 		FTM_TEMP2,

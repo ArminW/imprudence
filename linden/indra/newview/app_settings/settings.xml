@@ -45,6 +45,39 @@
       <key>Value</key>
       <integer>0</integer>
     </map>
+  <key>MediaRollOffRate</key>
+  <map>
+    <key>Comment</key>
+    <string>Multiplier to change rate of media attenuation</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>F32</string>
+    <key>Value</key>
+    <real>0.125</real>
+  </map>
+  <key>MediaRollOffMin</key>
+  <map>
+    <key>Comment</key>
+    <string>Adjusts the distance at which media attentuation starts</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>F32</string>
+    <key>Value</key>
+    <real>5.0</real>
+  </map>
+  <key>MediaRollOffMax</key>
+  <map>
+    <key>Comment</key>
+    <string>Distance at which media volume is set to 0</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>F32</string>
+    <key>Value</key>
+    <real>30.0</real>
+  </map>
     <key>PluginAttachDebuggerToPlugins</key>
     <map>
       <key>Comment</key>

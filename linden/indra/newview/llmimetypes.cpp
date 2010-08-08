@@ -35,6 +35,7 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "llmimetypes.h"
+#include "lltrans.h"
 #include "llxmlnode.h"
 
 #include "lluictrlfactory.h"
@@ -50,6 +51,7 @@ std::string sDefaultImpl;
 	// Returned when we don't know what impl to use
 std::string sXMLFilename; 
     // Squirrel away XML filename so we know how to reset
+std::string DEFAULT_MIME_TYPE = "none/none";
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -58,24 +60,6 @@ bool LLMIMETypes::parseMIMETypes(const std::string& xml_filename)
 {
 	LLXMLNodePtr root;
 	bool success = LLUICtrlFactory::getLayeredXMLNode(xml_filename, root);
-
-	if (!success)
-	{
-		// If fails, check if we can read the file from the app_settings folder
-		std::string settings_filename = gDirUtilp->getExpandedFilename(LL_PATH_APP_SETTINGS, xml_filename);
-		success = LLUICtrlFactory::getLayeredXMLNode(settings_filename, root);
-
-		#if LL_WINDOWS
-		// On the windows dev builds, unpackaged, the mime_types.xml file will be located in 
-		// indra/build-vc**/newview/<config>/app_settings.
-		if (!success)
-		{
-			settings_filename = gDirUtilp->getExpandedFilename(LL_PATH_EXECUTABLE, "app_settings", xml_filename);
-			success = LLUICtrlFactory::getLayeredXMLNode(settings_filename, root);
-		}	
-		#endif
-	}
-
 	if ( ! success || root.isNull() || ! root->hasName( "mimetypes" ) )
 	{
 		llwarns << "Unable to read MIME type file: "
@@ -231,12 +215,24 @@ std::string LLMIMETypes::findIcon(const std::string& mime_type)
 // static
 std::string LLMIMETypes::findDefaultMimeType(const std::string& widget_type)
 {
-	std::string mime_type = "none/none";
+	std::string mime_type = getDefaultMimeType();
 	mime_widget_set_map_t::iterator it = sWidgetMap.find(widget_type);
 	if(it != sWidgetMap.end())
 	{
 		mime_type = it->second.mDefaultMimeType;
 	}
+	return mime_type;
+}
+
+// static
+const std::string& LLMIMETypes::getDefaultMimeType()
+{
+	return DEFAULT_MIME_TYPE;
+}
+
+const std::string& LLMIMETypes::getDefaultMimeTypeTranslation()
+{
+	static std::string mime_type = LLTrans::getString("DefaultMimeType");
 	return mime_type;
 }
 

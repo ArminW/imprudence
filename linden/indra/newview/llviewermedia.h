@@ -45,12 +45,15 @@
 #include "llpluginclassmedia.h"
 #include "v4color.h"
 
+#include "llurl.h"
+
 class LLViewerMediaImpl;
 class LLUUID;
 class LLViewerMediaTexture;
 class LLMediaEntry;
 class LLVOVolume;
 class LLMimeDiscoveryResponder;
+class LLPluginCookieStore;
 
 typedef LLPointer<LLViewerMediaImpl> viewer_media_t;
 ///////////////////////////////////////////////////////////////////////////////
@@ -82,7 +85,7 @@ public:
 	static const char* SHOW_MEDIA_WITHIN_PARCEL_SETTING;
 	static const char* SHOW_MEDIA_OUTSIDE_PARCEL_SETTING;
 	
-	typedef std::vector<LLViewerMediaImpl*> impl_list;
+	typedef std::list<LLViewerMediaImpl*> impl_list;
 	
 	typedef std::map<LLUUID, LLViewerMediaImpl*> impl_id_map;
 	
@@ -146,8 +149,23 @@ public:
 	// Set the proxy config for all loaded plugins
 	static void setProxyConfig(bool enable, const std::string &host, int port);
 	
+	static LLPluginCookieStore *getCookieStore();
+	static void loadCookieFile();
+	static void saveCookieFile();
+	static void addCookie(const std::string &name, const std::string &value, const std::string &domain, const LLDate &expires, const std::string &path = std::string("/"), bool secure = false );
+	static void addSessionCookie(const std::string &name, const std::string &value, const std::string &domain, const std::string &path = std::string("/"), bool secure = false );
+	static void removeCookie(const std::string &name, const std::string &domain, const std::string &path = std::string("/") );
+
+//imp fixme	static void openIDSetup(const std::string &openid_url, const std::string &openid_token);
+//imp fixme	static void openIDCookieResponse(const std::string &cookie);
+	
 private:
+//imp fixme	static void setOpenIDCookie();
 	static void onTeleportFinished();
+	
+	static LLPluginCookieStore *sCookieStore;
+	static LLURL sOpenIDURL;
+//imp fixme	static std::string sOpenIDCookie;
 };
 
 // Implementation functions not exported into header file
@@ -297,6 +315,7 @@ public:
 
 	// Inherited from LLPluginClassMediaOwner
 	/*virtual*/ void handleMediaEvent(LLPluginClassMedia* plugin, LLPluginClassMediaOwner::EMediaEvent);
+	/*virtual*/ void handleCookieSet(LLPluginClassMedia* self, const std::string &cookie);
 
 	// LLEditMenuHandler overrides
 	/*virtual*/ void	cut();
@@ -415,6 +434,7 @@ private:
 	bool mIsParcelMedia;
 	S32 mProximity;
 	F64 mProximityDistance;
+	F64 mProximityCamera;
 	LLMimeDiscoveryResponder *mMimeTypeProbe;
 	bool mMediaAutoPlay;
 	std::string mMediaEntryURL;

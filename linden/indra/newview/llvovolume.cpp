@@ -1857,6 +1857,11 @@ void LLVOVolume::syncMediaData(S32 texture_index, const LLSD &media_data, bool m
 	}
 	
 	LLTextureEntry *te = getTE(texture_index);
+	if(!te)
+	{
+		return ;
+	}
+
 	LL_DEBUGS("MediaOnAPrim") << "BEFORE: texture_index = " << texture_index
 		<< " hasMedia = " << te->hasMedia() << " : " 
 		<< ((NULL == te->getMediaData()) ? "NULL MEDIA DATA" : ll_pretty_print_sd(te->getMediaData()->asLLSD())) << llendl;
@@ -1974,9 +1979,13 @@ bool LLVOVolume::hasMediaPermission(const LLMediaEntry* media_entry, MediaPermTy
     }
     
     // Group permissions
-    else if (0 != (media_perms & LLMediaEntry::PERM_GROUP) && permGroupOwner())
+    else if (0 != (media_perms & LLMediaEntry::PERM_GROUP))
     {
-        return true;
+		LLPermissions* obj_perm = LLSelectMgr::getInstance()->findObjectPermissions(this);
+		if (obj_perm && gAgent.isInGroup(obj_perm->getGroup()))
+		{
+			return true;
+		}
     }
     
     // Owner permissions
@@ -2450,7 +2459,6 @@ void LLVOVolume::updateSpotLightPriority()
 		mLightTexture->setBoostLevel(LLViewerTexture::BOOST_CLOUDS);
 	}
 }
-
 
 LLViewerTexture* LLVOVolume::getLightTexture()
 {
@@ -3179,24 +3187,20 @@ void LLVolumeGeometryManager::registerFace(LLSpatialGroup* group, LLFace* facep,
 {
 	LLMemType mt(LLMemType::MTYPE_SPACE_PARTITION);
 
-//impfixme:compile
-/*
-	if (facep->getViewerObject()->isSelected() && gHideSelectedObjects)
+	if (facep->getViewerObject()->isSelected() && LLSelectMgr::getInstance()->mHideSelectedObjects)
 	{
 		return;
 	}
-*/
 
 	//add face to drawmap
 	LLSpatialGroup::drawmap_elem_t& draw_vec = group->mDrawMap[type];	
 
 	S32 idx = draw_vec.size()-1;
 
-
 	BOOL fullbright = (type == LLRenderPass::PASS_FULLBRIGHT) ||
-					  (type == LLRenderPass::PASS_INVISIBLE) ||
-					  (type == LLRenderPass::PASS_ALPHA ? facep->isState(LLFace::FULLBRIGHT) : FALSE);
-
+		(type == LLRenderPass::PASS_INVISIBLE) ||
+		(type == LLRenderPass::PASS_ALPHA ? facep->isState(LLFace::FULLBRIGHT) : FALSE);
+	
 	if (!fullbright && type != LLRenderPass::PASS_GLOW && !facep->mVertexBuffer->hasDataType(LLVertexBuffer::TYPE_NORMAL))
 	{
 		llwarns << "Non fullbright face has no normals!" << llendl;
@@ -3613,7 +3617,7 @@ void LLVolumeGeometryManager::rebuildMesh(LLSpatialGroup* group)
 
 	if (group && group->isState(LLSpatialGroup::NEW_DRAWINFO))
 	{
-		llwarns << "WTF?" << llendl;
+		llwarns << "Spatial Group unexpected state NEW_DRAWINFO" << llendl;
 	}
 }
 

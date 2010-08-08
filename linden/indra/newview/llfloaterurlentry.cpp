@@ -35,9 +35,11 @@
 #include "llfloaterurlentry.h"
 
 #include "llpanellandmedia.h"
+#include "llpanelface.h"
 
 // project includes
 #include "llcombobox.h"
+#include "llmimetypes.h"
 #include "llurlhistory.h"
 #include "lluictrlfactory.h"
 #include "llwindow.h"
@@ -68,14 +70,14 @@ public:
 
 	  virtual void error( U32 status, const std::string& reason )
 	  {
-		  completeAny(status, "none/none");
+		  completeAny(status, LLMIMETypes::getDefaultMimeType());
 	  }
 
 	  void completeAny(U32 status, const std::string& mime_type)
 	  {
 		  // Set empty type to none/none.  Empty string is reserved for legacy parcels
 		  // which have no mime type set.
-		  std::string resolved_mime_type = ! mime_type.empty() ? mime_type : "none/none";
+		  std::string resolved_mime_type = ! mime_type.empty() ? mime_type : LLMIMETypes::getDefaultMimeType();
 		  LLFloaterURLEntry* floater_url_entry = (LLFloaterURLEntry*)mParent.get();
 		  if ( floater_url_entry )
 			  floater_url_entry->headerFetchComplete( status, resolved_mime_type );
@@ -151,6 +153,16 @@ void LLFloaterURLEntry::headerFetchComplete(U32 status, const std::string& mime_
 		// status is ignored for now -- error = "none/none"
 		panel_media->setMediaType(mime_type);
 		panel_media->setMediaURL(mMediaURLEdit->getValue().asString());
+	}
+	else
+	{
+		LLPanelFace* panel_face = dynamic_cast<LLPanelFace*>(mPanelLandMediaHandle.get());
+		if(panel_face)
+		{
+			panel_face->setMediaType(mime_type);
+			panel_face->setMediaURL(mMediaURLEdit->getValue().asString());
+		}
+
 	}
 	// Decrement the cursor
 	getWindow()->decBusyCount();

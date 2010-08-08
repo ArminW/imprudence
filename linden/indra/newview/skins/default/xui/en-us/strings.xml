@@ -227,6 +227,7 @@
 	<!-- media -->
 	<string name="Multiple Media">Multiple Media</string>
 	<string name="Play Media">Play/Pause Media</string>
+	<string name="DefaultMimeType">none/none</string>
 
 </strings>
 
