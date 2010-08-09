@@ -46,7 +46,7 @@ class LLUICtrlFactory;
 ////////////////////////////////////////////////////////////////////////////////
 //
 class LLMediaCtrl :
-	public LLUICtrl,
+	public LLPanel,
 	public LLViewerMediaObserver,
 	public LLViewerMediaEventEmitter
 {

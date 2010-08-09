@@ -38,6 +38,7 @@
 // viewer includes
 #include "llfloaterhtml.h"
 #include "llfloaterworldmap.h"
+#include "llpanel.h"
 #include "lluictrlfactory.h"
 #include "llurldispatcher.h"
 #include "llurlsimstring.h"
@@ -73,7 +74,7 @@ LLMediaCtrl::LLMediaCtrl( 	const std::string& name,
 				const	S32& texture_height,
 				const	LLColor4& caret_color
 			) :
-	LLUICtrl( name, rect, FALSE, NULL, NULL ),
+	LLPanel(name, rect),
 	mTextureDepthBytes( 4 ),
 	mMediaTextureID( 0 ),
 	mBorder(NULL),
@@ -296,7 +297,7 @@ void LLMediaCtrl::onFocusReceived()
 		LLEditMenuHandler::gEditMenuHandler = mMediaSource;
 	}
 	
-	LLUICtrl::onFocusReceived();
+	LLPanel::onFocusReceived();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -316,7 +317,7 @@ void LLMediaCtrl::onFocusLost()
 
 	gViewerWindow->focusClient();
 
-	LLUICtrl::onFocusLost();
+	LLPanel::onFocusLost();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -371,7 +372,7 @@ void LLMediaCtrl::onVisibilityChange ( BOOL new_visibility )
 	{
 		mFrequentUpdates = false;
 	}
-	LLUICtrl::onVisibilityChange(new_visibility);
+	LLPanel::onVisibilityChange(new_visibility);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -390,7 +391,7 @@ void LLMediaCtrl::reshape( S32 width, S32 height, BOOL called_from_parent )
 		}
 	}
 	
-	LLUICtrl::reshape( width, height, called_from_parent );
+	LLPanel::reshape( width, height, called_from_parent );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -592,7 +593,7 @@ bool LLMediaCtrl::ensureMediaSourceExists()
 			mMediaSource->setHomeURL(mHomePageUrl);
 			mMediaSource->setVisible( getVisible() );
 			mMediaSource->addObserver( this );
-//impfixme			mMediaSource->setBackgroundColor( getBackgroundColor() );
+			mMediaSource->setBackgroundColor( getBackgroundColor() );
 			mMediaSource->setTrustedBrowser(mTrusted);
 			if(mClearCache)
 			{
@@ -678,11 +679,10 @@ void LLMediaCtrl::draw()
 		// If we're hiding loading, don't draw at all.
 		draw_media = false;
 	}
-//impfixme
-/*		
+		
 	bool background_visible = isBackgroundVisible();
 	bool background_opaque = isBackgroundOpaque();
-*/
+
 	if(draw_media)
 	{
 		// alpha off for this
@@ -795,12 +795,11 @@ void LLMediaCtrl::draw()
 	}
 	else
 	{
-//impfixme
-/*
+
 		// Setting these will make LLPanel::draw draw the opaque background color.
 		setBackgroundVisible(true);
 		setBackgroundOpaque(true);
-*/
+
 	}
 	
 	// highlight if keyboard focus here. (TODO: this needs some work)
@@ -808,13 +807,11 @@ void LLMediaCtrl::draw()
 		mBorder->setKeyboardFocusHighlight( gFocusMgr.childHasKeyboardFocus( this ) );
 
 	
-	LLUICtrl::draw();
-//impfixme
-/*
+	LLPanel::draw();
 	// Restore the previous values
 	setBackgroundVisible(background_visible);
 	setBackgroundOpaque(background_opaque);
-*/
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////

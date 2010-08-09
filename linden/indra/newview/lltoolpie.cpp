@@ -682,6 +682,7 @@ BOOL LLToolPie::handleHover(S32 x, S32 y, MASK mask)
 BOOL LLToolPie::handleMouseUp(S32 x, S32 y, MASK mask)
 {
 	LLViewerObject* obj = mPick.getObject();
+
 	U8 click_action = final_click_action(obj);
 	if (click_action != CLICK_ACTION_NONE)
 	{
