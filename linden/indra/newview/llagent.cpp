@@ -6299,6 +6299,12 @@ void LLAgent::setTeleportState(ETeleportState state)
 		gRlvHandler.setCanCancelTp(true);
 	}
 // [/RLVa:KB]
+
+	else if(mTeleportState == TELEPORT_ARRIVING)
+	{
+		// Let the interested parties know we've teleported.
+		LLViewerParcelMgr::getInstance()->onTeleportFinished(false, getPositionGlobal());
+	}
 }
 
 void LLAgent::stopCurrentAnimations()

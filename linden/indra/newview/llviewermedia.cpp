@@ -305,7 +305,7 @@ static const F32 LLVIEWERMEDIA_CREATE_DELAY = 1.0f;
 static F32 sGlobalVolume = 1.0f;
 static F64 sLowestLoadableImplInterest = 0.0f;
 static bool sAnyMediaShowing = false;
-//imp fixme:compile static boost::signals2::connection sTeleportFinishConnection;
+static boost::signals2::connection sTeleportFinishConnection;
 static std::string sUpdatedCookies;
 static const char *PLUGIN_COOKIE_FILE_NAME = "plugin_cookies.txt";
 
@@ -1445,12 +1445,9 @@ void LLViewerMedia::initClass()
 
 	gIdleCallbacks.addFunction(LLViewerMedia::updateMedia, NULL);
 
-
-//impfixme:compile
-/*
 	sTeleportFinishConnection = LLViewerParcelMgr::getInstance()->
 		setTeleportFinishedCallback(boost::bind(&LLViewerMedia::onTeleportFinished));
-*/
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1459,8 +1456,7 @@ void LLViewerMedia::cleanupClass()
 {
 	gIdleCallbacks.deleteFunction(LLViewerMedia::updateMedia, NULL);
 
-
-//impfixme:compile	sTeleportFinishConnection.disconnect();
+	sTeleportFinishConnection.disconnect();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

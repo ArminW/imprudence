@@ -5546,6 +5546,9 @@ void process_teleport_failed(LLMessageSystem *msg, void**)
 
 	LLNotifications::instance().add("CouldNotTeleportReason", args);
 
+	// Let the interested parties know that teleport failed.
+	LLViewerParcelMgr::getInstance()->onTeleportFailed();
+
 	if( gAgent.getTeleportState() != LLAgent::TELEPORT_NONE )
 	{
 		gAgent.setTeleportState( LLAgent::TELEPORT_NONE );
@@ -5595,6 +5598,12 @@ void process_teleport_local(LLMessageSystem *msg,void**)
 	gAgent.updateCamera();
 
 	send_agent_update(TRUE, TRUE);
+
+	// Let the interested parties know we've teleported.
+	// Vadim *HACK: Agent position seems to get reset (to render position?)
+	//              on each frame, so we have to pass the new position manually.
+	LLViewerParcelMgr::getInstance()->onTeleportFinished(true, gAgent.getPosGlobalFromAgent(pos));
+
 }
 
 void send_simple_im(const LLUUID& to_id,
