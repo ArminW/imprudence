@@ -4,7 +4,7 @@
  *
  * $LicenseInfo:firstyear=2006&license=viewergpl$
  * 
- * Copyright (c) 2006-2009, Linden Research, Inc.
+ * Copyright (c) 2006-2010, Linden Research, Inc.
  * 
  * Second Life Viewer Source Code
  * The source code in this file ("Source Code") is provided by Linden Lab
@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #ifndef LL_LLMediaCtrl_H
@@ -91,8 +92,6 @@ class LLMediaCtrl :
 		void navigateToLocalPage( const std::string& subdir, const std::string& filename_in );
 		bool canNavigateBack();
 		bool canNavigateForward();
-		void setOpenInExternalBrowser( bool valIn );
-		void setOpenInInternalBrowser( bool valIn );
 		std::string getCurrentNavUrl();
 
 		// By default, we do not handle "secondlife:///app/" SLURLs, because
@@ -109,7 +108,7 @@ class LLMediaCtrl :
 		// set/clear URL to visit when a 404 page is reached
 		void set404RedirectUrl( std::string redirect_url );
 		void clr404RedirectUrl();
-
+ 
 		// Clear the browser cache when the instance gets loaded
 		void clearCache();
 
@@ -163,24 +162,19 @@ class LLMediaCtrl :
 		void convertInputCoords(S32& x, S32& y);
 
 	private:
-		static bool onClickLinkExternalTarget( const LLSD&, const LLSD& );
 
 		const S32 mTextureDepthBytes;
 		LLUUID mMediaTextureID;
 		LLViewBorder* mBorder;
 		bool mFrequentUpdates;
 		bool mForceUpdate;
-		bool mOpenLinksInExternalBrowser;
-		bool mOpenLinksInInternalBrowser;
 		bool mTrusted;
 		std::string mHomePageUrl;
-		std::string mExternalUrl;
 		std::string mCurrentNavUrl;
 		bool mIgnoreUIScale;
 		bool mAlwaysRefresh;
 		viewer_media_t mMediaSource;
 		bool mTakeFocusOnClick;
-		ECursorType mLastSetCursor;
 		bool mStretchToFill;
 		bool mMaintainAspectRatio;
 		bool mHideLoading;

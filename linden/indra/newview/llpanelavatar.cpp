@@ -415,9 +415,6 @@ BOOL LLPanelAvatarWeb::postBuild(void)
 	mWebBrowser = getChild<LLMediaCtrl>("profile_html");
 	mWebBrowser->addObserver(this);
 
-	// links open in internally 
-	mWebBrowser->setOpenInExternalBrowser( false );
-
 	return TRUE;
 }
 

@@ -50,6 +50,7 @@
 #include "llweb.h"
 #include "llrender.h"
 #include "llpluginclassmedia.h"
+#include "llkeyboard.h"
 
 // linden library includes
 #include "llfocusmgr.h"
@@ -76,21 +77,16 @@ LLMediaCtrl::LLMediaCtrl( 	const std::string& name,
 			) :
 	LLPanel(name, rect),
 	mTextureDepthBytes( 4 ),
-	mMediaTextureID( 0 ),
 	mBorder(NULL),
 	mFrequentUpdates( true ),
 	mForceUpdate( false ),
-	mOpenLinksInExternalBrowser( false ),
-	mOpenLinksInInternalBrowser( false ),
-	mTrusted( false ),
 	mHomePageUrl( "" ),
+	mTrusted(false),
 	mIgnoreUIScale( true ),
 	mAlwaysRefresh( false ),
-	mExternalUrl( "" ),
 	mMediaSource( 0 ),
 	mTakeFocusOnClick( true ),
-	mCurrentNavUrl( "about:blank" ),
-	mLastSetCursor( UI_CURSOR_ARROW ),
+	mCurrentNavUrl( "" ),
 	mStretchToFill( true ),
 	mMaintainAspectRatio ( true ),
 	mHideLoading (false),
@@ -126,7 +122,7 @@ LLMediaCtrl::LLMediaCtrl( 	const std::string& name,
 			
 		setTextureSize(screen_width, screen_height);
 	}
- 
+
 	mMediaTextureID.generate();
 	
 	// We don't need to create the media source up front anymore unless we have a non-empty home URL to navigate to.
@@ -155,7 +151,6 @@ LLMediaCtrl::~LLMediaCtrl()
 		mMediaSource->remObserver( this );
 		mMediaSource = NULL;
 	}
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -174,20 +169,6 @@ void LLMediaCtrl::setTakeFocusOnClick( bool take_focus )
 {
 	mTakeFocusOnClick = take_focus;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// set flag that forces the embedded browser to open links in the external system browser
-void LLMediaCtrl::setOpenInExternalBrowser( bool valIn )
-{
-	mOpenLinksInExternalBrowser = valIn;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// set flag that forces the embedded browser to open links in the internal browser floater
-void LLMediaCtrl::setOpenInInternalBrowser( bool valIn )
-{
-	mOpenLinksInInternalBrowser = valIn;
-};
 
 ////////////////////////////////////////////////////////////////////////////////
 void LLMediaCtrl::setTrusted( bool valIn )
@@ -218,7 +199,7 @@ BOOL LLMediaCtrl::handleHover( S32 x, S32 y, MASK mask )
 BOOL LLMediaCtrl::handleScrollWheel( S32 x, S32 y, S32 clicks )
 {
 	if (mMediaSource && mMediaSource->hasMedia())
-		mMediaSource->getMediaPlugin()->scrollEvent(0, clicks, MASK_NONE);
+		mMediaSource->getMediaPlugin()->scrollEvent(0, clicks, gKeyboard->currentMask(TRUE));
 
 	return TRUE;
 }
@@ -273,7 +254,7 @@ BOOL LLMediaCtrl::handleDoubleClick( S32 x, S32 y, MASK mask )
 	convertInputCoords(x, y);
 
 	if (mMediaSource)
-		mMediaSource->mouseDoubleClick( x, y, mask );
+		mMediaSource->mouseDoubleClick( x, y, mask);
 
 	gFocusMgr.setMouseCapture( this );
 
@@ -379,7 +360,7 @@ void LLMediaCtrl::onVisibilityChange ( BOOL new_visibility )
 //
 void LLMediaCtrl::reshape( S32 width, S32 height, BOOL called_from_parent )
 {
- 	if(!getDecoupleTextureSize())
+	if(!getDecoupleTextureSize())
 	{
 		S32 screen_width = mIgnoreUIScale ? llround((F32)width * LLUI::sGLScaleFactor.mV[VX]) : width;
 		S32 screen_height = mIgnoreUIScale ? llround((F32)height * LLUI::sGLScaleFactor.mV[VY]) : height;
@@ -391,7 +372,7 @@ void LLMediaCtrl::reshape( S32 width, S32 height, BOOL called_from_parent )
 		}
 	}
 	
-	LLPanel::reshape( width, height, called_from_parent );
+	LLUICtrl::reshape( width, height, called_from_parent );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -612,8 +593,7 @@ bool LLMediaCtrl::ensureMediaSourceExists()
 			// return;
 		}
 	}
-	std::string blah = !mMediaSource.isNull() ? "true" : "false";
-	llwarns << "media source create : " << blah << llendl;
+
 	return !mMediaSource.isNull();
 }
 
@@ -836,21 +816,6 @@ void LLMediaCtrl::convertInputCoords(S32& x, S32& y)
 	};
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// static 
-bool LLMediaCtrl::onClickLinkExternalTarget(const LLSD& notification, const LLSD& response )
-{
-	S32 option = LLNotification::getSelectedOption(notification, response);
-	if ( 0 == option )
-	{
-		// open in external browser because we don't support 
-		// creation of our own secondary browser windows
-		LLWeb::loadURLExternal( notification["payload"]["external_url"].asString() );
-	}
-	return false;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // inherited from LLViewerMediaObserver
 //virtual 
 void LLMediaCtrl::handleMediaEvent(LLPluginClassMedia* self, EMediaEvent event)
@@ -879,23 +844,8 @@ void LLMediaCtrl::handleMediaEvent(LLPluginClassMedia* self, EMediaEvent event)
 		
 		case MEDIA_EVENT_CURSOR_CHANGED:
 		{
-			LL_INFOS("MediaCtrl") <<  "Media event:  MEDIA_EVENT_CURSOR_CHANGED, new cursor is " << self->getCursorName() << LL_ENDL;
-
-			std::string cursor = self->getCursorName();
-			
-			if(cursor == "arrow")
-				mLastSetCursor = UI_CURSOR_ARROW;
-			else if(cursor == "ibeam")
-				mLastSetCursor = UI_CURSOR_IBEAM;
-			else if(cursor == "splith")
-				mLastSetCursor = UI_CURSOR_SIZEWE;
-			else if(cursor == "splitv")
-				mLastSetCursor = UI_CURSOR_SIZENS;
-			else if(cursor == "hand")
-				mLastSetCursor = UI_CURSOR_HAND;
-			else // for anything else, default to the arrow
-				mLastSetCursor = UI_CURSOR_ARROW;
-		};
+			LL_DEBUGS("MediaCtrl") <<  "Media event:  MEDIA_EVENT_CURSOR_CHANGED, new cursor is " << self->getCursorName() << LL_ENDL;
+		}
 		break;
 		
 		case MEDIA_EVENT_NAVIGATE_BEGIN:
@@ -910,8 +860,9 @@ void LLMediaCtrl::handleMediaEvent(LLPluginClassMedia* self, EMediaEvent event)
 		
 		case MEDIA_EVENT_NAVIGATE_COMPLETE:
 		{
-			LL_INFOS("MediaCtrl") <<  "Media event:  MEDIA_EVENT_NAVIGATE_COMPLETE, result string is: " << self->getNavigateResultString() << LL_ENDL;
-			if(mMediaSource && mHideLoading)
+			LL_DEBUGS("MediaCtrl") <<  "Media event:  MEDIA_EVENT_NAVIGATE_COMPLETE, result string is: " << self->getNavigateResultString() << LL_ENDL;
+
+			if(mHidingInitialLoad)
 			{
 				mMediaSource->suspendUpdates(false);
 			}
@@ -1064,7 +1015,7 @@ LLView* LLMediaCtrl::fromXML(LLXMLNodePtr node, LLView *parent, LLUICtrlFactory 
 	std::string start_url("");
 	node->getAttributeString("start_url", start_url );
 
-	BOOL border_visible = true;
+	BOOL border_visible = false;
 	node->getAttributeBOOL("border_visible", border_visible);
 
 	LLRect rect;

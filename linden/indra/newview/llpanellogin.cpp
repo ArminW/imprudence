@@ -299,9 +299,6 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
 	web_browser->setTabStop(FALSE);
 	// web_browser->navigateToLocalPage( "loading", "loading.html" );
 
-	// make links open in external browser
-	web_browser->setOpenInExternalBrowser( true );
-
 	// force the size to be correct (XML doesn't seem to be sufficient to do this) (with some padding so the other login screen doesn't show through)
 	LLRect htmlRect = getRect();
 #if USE_VIEWER_AUTH

@@ -149,10 +149,6 @@ BOOL LLPanelDirFind::postBuild()
 	{
 		mWebBrowser->addObserver(this);
 		
-		// new pages appear in same window as the results page now
-		mWebBrowser->setOpenInInternalBrowser( false );
-		mWebBrowser->setOpenInExternalBrowser( false );	
-
 		// need to handle secondlife:///app/ URLs for direct teleports
 		mWebBrowser->setTrusted( true );
 
