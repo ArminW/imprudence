@@ -50,8 +50,10 @@
 #include "llinventoryview.h"
 #include "llkeyboard.h"
 #include "lllineeditor.h"
+#include "llviewermedia.h"
 #include "llmenugl.h"
 #include "llnotify.h"
+#include "llpanelnearbymedia.h"
 #include "llimview.h"
 #include "lltextbox.h"
 #include "llui.h"
@@ -120,6 +122,7 @@ static void onClickBuild(void*);
 static void onClickScripts(void*);
 static void onClickBuyLand(void*);
 static void onClickScriptDebug(void*);
+// static void onClickMediaToggle(void*);
 
 std::vector<std::string> LLStatusBar::sDays;
 std::vector<std::string> LLStatusBar::sMonths;
@@ -219,6 +222,12 @@ mSquareMetersCommitted(0)
 
 	childSetActionTextbox("stat_btn", onClickStatGraph);
 
+	mMediaToggle = getChild<LLButton>("media_toggle_btn");
+	childSetAction("media_toggle_btn", onClickMediaToggle, this );
+	mPanelNearByMedia = new LLPanelNearByMedia();
+	addChild(mPanelNearByMedia);
+	mPanelNearByMedia->setFollows(FOLLOWS_TOP|FOLLOWS_RIGHT);
+	mPanelNearByMedia->setVisible(FALSE);
 }
 
 LLStatusBar::~LLStatusBar()
@@ -623,6 +632,9 @@ void LLStatusBar::refresh()
 		childSetRect("stat_btn", r);
 		new_right -= r.getWidth() + 6;
 	}
+	bool media_button_enabled = (gSavedSettings.getBOOL("AudioStreamingMusic")||gSavedSettings.getBOOL("AudioStreamingVideo")) && 
+						  (LLViewerMedia::hasInWorldMedia() || LLViewerMedia::hasParcelMedia() || LLViewerMedia::hasParcelAudio());
+	mMediaToggle->setEnabled(media_button_enabled);
 
 	// Set rects of money, buy money, time
 	childGetRect("BalanceText", r);
@@ -679,6 +691,7 @@ void LLStatusBar::setVisibleForMouselook(bool visible)
 	childSetVisible("search_editor", visible);
 	childSetVisible("search_btn", visible);
 	childSetVisible("menubar_search_bevel_bg", visible);
+	mMediaToggle->setVisible(visible);
 	mSGBandwidth->setVisible(visible);
 	mSGPacketLoss->setVisible(visible);
 	setBackgroundVisible(visible);
@@ -959,6 +972,34 @@ void LLStatusBar::onClickSearch(void* data)
 void LLStatusBar::onClickStatGraph(void* data)
 {
 	LLFloaterLagMeter::showInstance();
+}
+
+//static 
+void LLStatusBar::onClickMediaToggle(void* data)
+{
+	LLStatusBar* self = (LLStatusBar*)data;
+
+// 	LLView* popup_holder = gViewerWindow->getRootView()->getChildView("popup_holder");
+// 	LLRect nearby_media_rect = mPanelNearByMedia->getRect();
+// 
+// 	LLButton* nearby_media_btn =  getChild<LLButton>( "media_toggle_btn" );
+// 	LLRect nearby_media_btn_rect = nearby_media_btn->getRect();
+// 	nearby_media_rect.setLeftTopAndSize(nearby_media_btn_rect.mLeft - 
+// 										(nearby_media_rect.getWidth() - nearby_media_btn_rect.getWidth())/2,
+// 										nearby_media_btn_rect.mBottom,
+// 										nearby_media_rect.getWidth(),
+// 										nearby_media_rect.getHeight());
+// 	// force onscreen
+// 	nearby_media_rect.translate(popup_holder->getRect().getWidth() - nearby_media_rect.mRight, 0);
+// 	
+// 	// show the master volume pull-down
+// 	mPanelNearByMedia->setShape(nearby_media_rect);
+// 	LLUI::clearPopups();
+// 	LLUI::addPopup(mPanelNearByMedia);
+// 
+// 	mPanelVolumePulldown->setVisible(FALSE);
+	self->mPanelNearByMedia->setVisible(TRUE);
+
 }
 
 BOOL can_afford_transaction(S32 cost)

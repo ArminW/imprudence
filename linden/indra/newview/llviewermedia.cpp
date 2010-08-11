@@ -448,7 +448,8 @@ viewer_media_t LLViewerMedia::updateMediaImpl(LLMediaEntry* media_entry, const s
 		media_impl->setHomeURL(media_entry->getHomeURL());
 		media_impl->mMediaAutoPlay = media_entry->getAutoPlay();
 		media_impl->mMediaEntryURL = media_entry->getCurrentURL();
-		
+		media_impl->mMediaURL = media_impl->mMediaEntryURL;
+
 		if(media_impl->isAutoPlayable())
 		{
 			needs_navigate = true;

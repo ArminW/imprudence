@@ -47,6 +47,7 @@ class LLUICtrl;
 class LLUUID;
 class LLFrameTimer;
 class LLStatGraph;
+class LLPanelNearByMedia;
 
 // used by LCD screen
 class LLRegionDetails
@@ -121,6 +122,8 @@ public:
 	S32 getSquareMetersLeft() const;
 	LLRegionDetails mRegionDetails;
 
+	LLPanelNearByMedia* getNearbyMediaPanel() { return mPanelNearByMedia; }
+
 private:
 	// simple method to setup the part that holds the date
 	void setupDate();
@@ -128,7 +131,7 @@ private:
 	static void onCommitSearch(LLUICtrl*, void* data);
 	static void onClickSearch(void* data);
 	static void onClickStatGraph(void* data);
-
+	static void onClickMediaToggle(void* data);
 private:
 	LLTextBox	*mTextBalance;
 	LLTextBox	*mTextHealth;
@@ -140,6 +143,7 @@ private:
 	LLStatGraph *mSGPacketLoss;
 
 	LLButton	*mBtnBuyCurrency;
+	LLButton	*mMediaToggle;
 
 	S32				mBalance;
 	S32				mHealth;
@@ -147,7 +151,8 @@ private:
 	S32				mSquareMetersCommitted;
 	LLFrameTimer*	mBalanceTimer;
 	LLFrameTimer*	mHealthTimer;
-	
+
+	LLPanelNearByMedia*	mPanelNearByMedia;
 	static std::vector<std::string> sDays;
 	static std::vector<std::string> sMonths;
 	static const U32 MAX_DATE_STRING_LENGTH;
