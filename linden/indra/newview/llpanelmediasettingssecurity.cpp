@@ -48,7 +48,6 @@
 #include "llselectmgr.h"
 #include "llmediaentry.h"
 #include "lltextbox.h"
-#include "llfloaterwhitelistentry.h"
 #include "llfloatermediasettings.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -58,12 +57,6 @@ LLPanelMediaSettingsSecurity::LLPanelMediaSettingsSecurity() :
 	mBtnAdd	(NULL),
 	mBtnDel(NULL)
 {
-	mBtnAdd	= getChild<LLButton>("whitelist_add");
-	mBtnAdd->setClickedCallback(onBtnAdd, this);
-
-	mBtnDel = getChild<LLButton>("whitelist_del");
-	mBtnDel->setClickedCallback(onBtnDel, this);
-
 	// build dialog from XML
 	LLUICtrlFactory::getInstance()->buildPanel(this, "panel_media_settings_security.xml");
 }
@@ -72,6 +65,16 @@ LLPanelMediaSettingsSecurity::LLPanelMediaSettingsSecurity() :
 //
 BOOL LLPanelMediaSettingsSecurity::postBuild()
 {
+	mBtnAdd	= getChild<LLButton>("whitelist_add");
+	mBtnAdd->setClickedCallback(onBtnAdd, this);
+	mBtnAdd	= getChild<LLButton>("whitelist_clear");
+	mBtnAdd->setClickedCallback(onBtnClear, this);
+
+	mBtnDel = getChild<LLButton>("whitelist_del");
+	mBtnDel->setClickedCallback(onBtnDel, this);
+
+	mWhiteListEdit = getChild<LLLineEditor>("whitelist_entry");
+
 	mEnableWhiteList = getChild< LLCheckBoxCtrl >( LLMediaEntry::WHITELIST_ENABLE_KEY );
 	mWhiteListList = getChild< LLScrollListCtrl >( LLMediaEntry::WHITELIST_KEY );
 	mHomeUrlFailsWhiteListText = getChild<LLTextBox>( "home_url_fails_whitelist" );
@@ -325,13 +328,13 @@ void LLPanelMediaSettingsSecurity::addWhiteListEntry( const std::string& entry )
 	{
 		row[ "columns" ][ ICON_COLUMN ][ "type" ] = "icon";
 		row[ "columns" ][ ICON_COLUMN ][ "value" ] = "";
-		row[ "columns" ][ ICON_COLUMN ][ "width" ] = 20;
+		row[ "columns" ][ ICON_COLUMN ][ "width" ] = 16;
 	}
 	else
 	{
 		row[ "columns" ][ ICON_COLUMN ][ "type" ] = "icon";
 		row[ "columns" ][ ICON_COLUMN ][ "value" ] = "Parcel_Exp_Color.png";
-		row[ "columns" ][ ICON_COLUMN ][ "width" ] = 20;
+		row[ "columns" ][ ICON_COLUMN ][ "width" ] = 16;
 	};
 
 	// always add in the entry itself
@@ -346,7 +349,26 @@ void LLPanelMediaSettingsSecurity::addWhiteListEntry( const std::string& entry )
 // static
 void LLPanelMediaSettingsSecurity::onBtnAdd( void* userdata )
 {
-	LLFloaterWhiteListEntry::showInstance("whitelist_entry");
+
+	LLPanelMediaSettingsSecurity* self =(LLPanelMediaSettingsSecurity*)userdata;
+
+	std::string white_list_item = self->mWhiteListEdit->getText();
+
+	if (!white_list_item.empty())
+	{
+		self->addWhiteListEntry( white_list_item );
+		self->updateWhitelistEnableStatus();
+	}
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// static
+void LLPanelMediaSettingsSecurity::onBtnClear( void* userdata )
+{
+	LLPanelMediaSettingsSecurity* self =(LLPanelMediaSettingsSecurity*)userdata;
+// 	self->childSetValue("whitelist_clear","") ;
+	self->mWhiteListEdit->setText(LLStringUtil::null);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

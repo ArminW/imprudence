@@ -82,9 +82,12 @@ private:
 	LLScrollListCtrl* mWhiteListList;
 	LLTextBox* mHomeUrlFailsWhiteListText;
 	LLButton* mBtnAdd;
+	LLButton* mBtnClear;
 	LLButton* mBtnDel;
+	LLLineEditor* mWhiteListEdit;
 
 	static void onBtnAdd(void*);
+	static void onBtnClear(void*);
 	static void onBtnDel(void*);
 };
 

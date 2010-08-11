@@ -34,7 +34,6 @@
 #include "llviewerprecompiledheaders.h"
 
 // #include "llfloaterreg.h"
-#include "llfloaterwhitelistentry.h"
 #include "llfloatermediasettings.h"
 #include "llpanelmediasettingsgeneral.h"
 #include "llpanelmediasettingssecurity.h"
@@ -154,7 +153,6 @@ void LLFloaterMediaSettings::onClose(bool app_quitting)
 	{
 		mPanelMediaSettingsGeneral->onClose(app_quitting);
 	}
-	LLFloaterWhiteListEntry::hideInstance("whitelist_entry");
 	LLFloater::setVisible(FALSE);
 }
 

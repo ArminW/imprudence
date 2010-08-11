@@ -23,12 +23,27 @@
    name="whitelist_enable" 
    radio_style="false" 
    width="250" />
+  <text type="string" length="1" bottom_delta="-30" follows="top|left" height="15" layout="topleft"
+     left="30" name="media_label" top="20">
+        Enter a URL or URL pattern to add to the list of allowed domains
+    </text>
+
+  <line_editor bottom_delta="-20" enabled="true" follows="left|top" font="SansSerif"
+	     height="18" left="30" name="whitelist_entry"
+	     tool_tip="Enter a URL or URL pattern to White List"
+	     width="250" />
+  <button bottom_delta="0" follows="top|left" height="18" label="Add"
+   		left_delta="252" name="whitelist_add" width="52" enabled="true"> 
+  </button>
+  <button bottom_delta="-20" follows="top|left" height="18" label="Clear"
+   		left_delta="00" name="whitelist_clear" width="52" enabled="true" tooltip="Clear input line"> 
+  </button>
   <scroll_list 
    follows="top|left" 
-   height="200" 
+   height="100" 
    left="30" 
    name="whitelist" 
-   width="315" 
+   width="300" 
    enabled="true" />
   <icon
    bottom_delta="-23"
@@ -50,33 +65,22 @@
    name="home_url_fails_some_items_in_whitelist">
     Entries that the home page fails against are marked:
   </text>
-  <button 
-   bottom_delta="-36" 
+    <button 
+   bottom_delta="-22" 
    follows="top|left" 
-   height="20" 
-   label="Add"
-   left="30" 
-   name="whitelist_add" 
-   width="70" 
-   enabled="true"> 
-     <button.commit_callback
-	     function="Media.whitelistAdd"/>
-  </button>
-  <button 
-   bottom_delta="0" 
-   follows="top|left" 
-   height="20" 
+   height="18" 
    label="Delete"
-   left="275" 
+   left="262" 
    name="whitelist_del" 
    width="70" 
    enabled="true"> 
      <button.commit_callback
 	     function="Media.whitelistDelete"/>
   </button>
+
   <text
    visible="true"
-   bottom_delta="-75"
+   bottom_delta="-95"
    follows="top|left"
    height="40"
    left="30"

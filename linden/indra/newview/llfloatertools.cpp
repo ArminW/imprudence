@@ -302,7 +302,8 @@ BOOL	LLFloaterTools::postBuild()
 	mBtnEditMedia = getChild<LLButton>("edit_media");
 	childSetAction("edit_media",onClickBtnEditMedia,this);
 
-	LLFloaterMediaSettings::hideInstance("media_settings");
+	LLFloaterMediaSettings::hideInstance("media_settings");//imp fixme:ui-design why have an extra floater here?
+							//it would perfectly fit into here as a media-tab -- AW
 
 	// Set the default size limits for spinners -- MC
 	updateToolsSizeLimits();
@@ -1327,14 +1328,14 @@ void LLFloaterTools::getMediaState()
 	//impfixme
 	std::string url = gAgent.getRegion()->getCapability("ObjectMedia");
 	bool has_media_capability = (!url.empty());
-
+/*imp fixme:ignoring while porting for testing on local opensim
 	if(!has_media_capability)
 	{
 		childSetEnabled("Add_Media",  FALSE);
 		LL_WARNS("LLFloaterTools: media") << "Media not enabled (no capability) in this region!" << LL_ENDL;
 		clearMediaSettings();
 		return;
-	}
+	}*/
 
 	LLObjectSelectionHandle selected_objects =LLSelectMgr::getInstance()->getSelection();
 	LLViewerObject* first_object = selected_objects->getFirstObject();

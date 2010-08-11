@@ -691,6 +691,9 @@ BOOL LLToolPie::handleMouseUp(S32 x, S32 y, MASK mask)
 		case CLICK_ACTION_BUY:
 		case CLICK_ACTION_PAY:
 		case CLICK_ACTION_OPEN:
+//impfixme		case CLICK_ACTION_ZOOM:
+		case CLICK_ACTION_PLAY:
+		case CLICK_ACTION_OPEN_MEDIA:
 			// Because these actions open UI dialogs, we won't change
 			// the cursor again until the next hover and GL pick over
 			// the world.  Keep the cursor an arrow, assuming that 

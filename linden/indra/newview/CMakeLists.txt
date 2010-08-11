@@ -211,7 +211,6 @@ set(viewer_SOURCE_FILES
     llfloaterurlentry.cpp
     llfloatervoicedevicesettings.cpp
     llfloaterwater.cpp
-    llfloaterwhitelistentry.cpp
     llfloaterwindlight.cpp
     llfloaterworldmap.cpp
     llfolderview.cpp
@@ -657,7 +656,6 @@ set(viewer_HEADER_FILES
     llfloaterurlentry.h
     llfloatervoicedevicesettings.h
     llfloaterwater.h
-    llfloaterwhitelistentry.h
     llfloaterwindlight.h
     llfloaterworldmap.h
     llfolderview.h
