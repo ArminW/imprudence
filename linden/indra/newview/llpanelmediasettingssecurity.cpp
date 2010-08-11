@@ -330,7 +330,7 @@ void LLPanelMediaSettingsSecurity::addWhiteListEntry( const std::string& entry )
 	else
 	{
 		row[ "columns" ][ ICON_COLUMN ][ "type" ] = "icon";
-		row[ "columns" ][ ICON_COLUMN ][ "value" ] = "";//impfixme:artwork "Parcel_Exp_Color";
+		row[ "columns" ][ ICON_COLUMN ][ "value" ] = "Parcel_Exp_Color.png";
 		row[ "columns" ][ ICON_COLUMN ][ "width" ] = 20;
 	};
 

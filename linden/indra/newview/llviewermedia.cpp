@@ -2494,7 +2494,7 @@ void LLViewerMediaImpl::update()
 			}
 			else
 			{
-				LL_DEBUGS("PluginPriority") << this << ": NOT creating media (waiting on timer)" << LL_ENDL;
+				//LL_DEBUGS("PluginPriority") << this << ": NOT creating media (waiting on timer)" << LL_ENDL;
 			}
 		}
 	}

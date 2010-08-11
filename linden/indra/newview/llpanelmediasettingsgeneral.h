@@ -102,9 +102,6 @@ private:
 	LLTextBox* mCurrentURL;
 	LLMediaCtrl* mPreviewMedia;
 	LLTextBox* mFailWhiteListText;
-
-protected:
-	static LLPanelMediaSettingsGeneral* sInstance;
 };
 
 #endif  // LL_LLPANELMEDIAMEDIASETTINGSGENERAL_H

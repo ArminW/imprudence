@@ -69,7 +69,6 @@ const char *CHECKERBOARD_DATA_URL = "data:image/svg+xml,%3Csvg xmlns=%22http://w
 */
 const char *CHECKERBOARD_DATA_URL = "http://localhost"; //impfixme
 
-LLPanelMediaSettingsGeneral* LLPanelMediaSettingsGeneral::sInstance = NULL;
 ////////////////////////////////////////////////////////////////////////////////
 //
 LLPanelMediaSettingsGeneral::LLPanelMediaSettingsGeneral() :
@@ -87,10 +86,6 @@ LLPanelMediaSettingsGeneral::LLPanelMediaSettingsGeneral() :
 {
 	// build dialog from XML
 	LLUICtrlFactory::getInstance()->buildPanel(this, "panel_media_settings_general.xml");
-	if (!sInstance)
-	{
-		sInstance = this;
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -124,7 +119,6 @@ BOOL LLPanelMediaSettingsGeneral::postBuild()
 // virtual
 LLPanelMediaSettingsGeneral::~LLPanelMediaSettingsGeneral()
 {
-	if (sInstance) sInstance = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -216,7 +210,6 @@ void LLPanelMediaSettingsGeneral::draw()
 void LLPanelMediaSettingsGeneral::clearValues( void* userdata, bool editable)
 {
 	LLPanelMediaSettingsGeneral *self =(LLPanelMediaSettingsGeneral *)userdata;
-llinfos  << self << llendl;
 	self->mAutoLoop->clear();
 	self->mAutoPlay->clear();
 	self->mAutoScale->clear();
