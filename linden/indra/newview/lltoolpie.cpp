@@ -48,6 +48,7 @@
 #include "llhoverview.h"
 #include "llhudeffecttrail.h"
 #include "llhudmanager.h"
+#include "llmediaentry.h"
 #include "llmenugl.h"
 #include "llmutelist.h"
 #include "llselectmgr.h"
@@ -73,8 +74,6 @@ extern void handle_buy(void*);
 
 extern BOOL gDebugClicks;
 
-static bool handle_media_click(const LLPickInfo& info);
-static bool handle_media_hover(const LLPickInfo& info);
 static void handle_click_action_play();
 static void handle_click_action_open_media(LLPointer<LLViewerObject> objectp);
 static ECursorType cursor_from_parcel_media(U8 click_action);
@@ -102,6 +101,7 @@ void LLToolPie::leftMouseCallback(const LLPickInfo& pick_info)
 {
 	LLToolPie::getInstance()->mPick = pick_info;
 	LLToolPie::getInstance()->pickAndShowMenu(FALSE);
+
 }
 
 BOOL LLToolPie::handleRightMouseDown(S32 x, S32 y, MASK mask)
@@ -115,6 +115,7 @@ BOOL LLToolPie::handleRightMouseDown(S32 x, S32 y, MASK mask)
 
 BOOL LLToolPie::handleScrollWheel(S32 x, S32 y, S32 clicks)
 {
+       llerrs << "I am dead" << llendl;//impfixme:dead -but we'd need it for mouse over MOAP without panelprimmediacontrol. maybe hack viewerwindow
 	return LLViewerMediaFocus::getInstance()->handleScrollWheel(x, y, clicks);
 }
 // static
@@ -130,6 +131,7 @@ BOOL LLToolPie::pickAndShowMenu(BOOL always_show)
 	S32 x = mPick.mMousePt.mX;
 	S32 y = mPick.mMousePt.mY;
 	MASK mask = mPick.mKeyMask;
+
 	if (!always_show && mPick.mPickType == LLPickInfo::PICK_PARCEL_WALL)
 	{
 		LLParcel* parcel = LLViewerParcelMgr::getInstance()->getCollisionParcel();
@@ -259,7 +261,7 @@ BOOL LLToolPie::pickAndShowMenu(BOOL always_show)
 		}
 	}
 
-	if (!always_show && handle_media_click(mPick))
+	if (!always_show && handleMediaClick(mPick))
 	{
 		return FALSE;
 	}
@@ -648,8 +650,11 @@ BOOL LLToolPie::handleHover(S32 x, S32 y, MASK mask)
 			ECursorType cursor = cursor_from_object(object);
 			gViewerWindow->getWindow()->setCursor(cursor);
 		}
-		else if (handle_media_hover(gViewerWindow->getHoverPick()))
+		else if (handleMediaHover(gViewerWindow->getHoverPick()))
 		{
+			// *NOTE: If you think the hover glow conflicts with the media outline, you
+			// could disable it here.
+//impfixme			show_highlight = true;
 			// cursor set by media object
 		}
 		else if ((object && !object->isAvatar() && object->usePhysics()) 
@@ -682,6 +687,8 @@ BOOL LLToolPie::handleHover(S32 x, S32 y, MASK mask)
 BOOL LLToolPie::handleMouseUp(S32 x, S32 y, MASK mask)
 {
 	LLViewerObject* obj = mPick.getObject();
+
+	handleMediaMouseUp();
 
 	U8 click_action = final_click_action(obj);
 	if (click_action != CLICK_ACTION_NONE)
@@ -756,6 +763,28 @@ BOOL LLToolPie::handleDoubleClick(S32 x, S32 y, MASK mask)
 			LL_DEBUGS("DoubleClicks") << "Double clicked other Avatar" << LL_ENDL;
 			return FALSE;// or what about open profile or IM session or ...
 		}
+ 
+		//Imprudence proudly presents doubleclick-zoom-on-media-face:
+		const LLTextureEntry* tep = object->getTE(mPick.mObjectFace);
+		if (tep->hasMedia())
+		{
+			LL_DEBUGS("DoubleClicks") << "Double clicked on media face" << LL_ENDL;
+			LLMediaEntry* mep = (tep->hasMedia()) ? tep->getMediaData() : NULL;
+			if(!mep)
+				return FALSE;
+			
+			viewer_media_t media_impl = LLViewerMedia::getMediaImplFromTextureID(mep->getMediaID());
+		
+			if(media_impl)
+			{
+				LLViewerMediaFocus::getInstance()->setFocusFace(mPick.getObject(), mPick.mObjectFace,
+										media_impl, mPick.mNormal);
+				LLViewerMediaFocus::setCameraZoom(object, mPick.mNormal, 1.0, true);
+			}
+			return FALSE;
+		}
+
+		
 	}
 
 	std::string action = gSavedSettings.getString("DoubleClickAction");
@@ -863,7 +892,7 @@ static void handle_click_action_play()
 	}
 }
 
-static bool handle_media_click(const LLPickInfo& pick)
+bool LLToolPie::handleMediaClick(const LLPickInfo& pick)
 {
 	//FIXME: how do we handle object in different parcel than us?
 	LLParcel* parcel = LLViewerParcelMgr::getInstance()->getAgentParcel();
@@ -872,32 +901,31 @@ static bool handle_media_click(const LLPickInfo& pick)
 
 	if (!parcel ||
 		objectp.isNull() ||
+		objectp->isHUDAttachment() ||
 		pick.mObjectFace < 0 || 
 		pick.mObjectFace >= objectp->getNumTEs()) 
 	{
-		LLSelectMgr::getInstance()->deselect();
 		LLViewerMediaFocus::getInstance()->clearFocus();
 
 		return false;
 	}
 
 
-
-	// HACK: This is directly referencing an impl name.  BAD!
-	// This can be removed when we have a truly generic media browser that only 
-	// builds an impl based on the type of url it is passed.
-
-	// is media playing on this face?
+	// Does this face have media?
 	const LLTextureEntry* tep = objectp->getTE(pick.mObjectFace);
+	if(!tep)
+		return false;
 
-	viewer_media_t media_impl = LLViewerMedia::getMediaImplFromTextureID(tep->getID());
-	if (tep
-		&& media_impl.notNull()
-		&& media_impl->hasMedia()
-		&& gSavedSettings.getBOOL("MediaOnAPrimUI"))
+	LLMediaEntry* mep = (tep->hasMedia()) ? tep->getMediaData() : NULL;
+	if(!mep)
+		return false;
+	
+	viewer_media_t media_impl = LLViewerMedia::getMediaImplFromTextureID(mep->getMediaID());
+
+	if(media_impl) //if(gSavedSettings.getBOOL("MediaOnAPrimUI")) 	//atm we just don't want the the llpanelprimmediacontrols
+								// but we want the media
 	{
 		if (!LLViewerMediaFocus::getInstance()->isFocusedOnFace(pick.getObject(), pick.mObjectFace) || media_impl.isNull())
-//impfixme:compile		if (! selection->contains(pick.getObject(), pick.mObjectFace))
 		{
 			// It's okay to give this a null impl
 			LLViewerMediaFocus::getInstance()->setFocusFace(pick.getObject(), pick.mObjectFace, media_impl, pick.mNormal);
@@ -908,20 +936,19 @@ static bool handle_media_click(const LLPickInfo& pick)
 			gFocusMgr.setKeyboardFocus(LLViewerMediaFocus::getInstance());
 			
 			media_impl->mouseDown(pick.mUVCoords, gKeyboard->currentMask(TRUE));
-//impfixme:compile			mMediaMouseCaptureID = mep->getMediaID();
-//impfixme:compile			setMouseCapture(TRUE);  // This object will send a mouse-up to the media when it loses capture.
+			mMediaMouseCaptureID = mep->getMediaID();
+			setMouseCapture(TRUE);  // This object will send a mouse-up to the media when it loses capture.
 		}
 
 		return true;
 	}
 
-	LLSelectMgr::getInstance()->deselect();
 	LLViewerMediaFocus::getInstance()->clearFocus();
 
 	return false;
 }
 
-static bool handle_media_hover(const LLPickInfo& pick)
+bool LLToolPie::handleMediaHover(const LLPickInfo& pick)
 {
 	//FIXME: how do we handle object in different parcel than us?
 	LLParcel* parcel = LLViewerParcelMgr::getInstance()->getAgentParcel();
@@ -929,16 +956,15 @@ static bool handle_media_hover(const LLPickInfo& pick)
 
 	LLPointer<LLViewerObject> objectp = pick.getObject();
 
-	// Early out cases.  Must clear mouse over media focus flag
+	// Early out cases.  Must clear media hover. 
 	// did not hit an object or did not hit a valid face
 	if ( objectp.isNull() ||
 		pick.mObjectFace < 0 || 
 		pick.mObjectFace >= objectp->getNumTEs() )
 	{
-//impfixme:compile		LLViewerMediaFocus::getInstance()->setMouseOverFlag(false);
+		LLViewerMediaFocus::getInstance()->clearHover();
 		return false;
 	}
-
 
 	// HACK: This is directly referencing an impl name.  BAD!
 	// This can be removed when we have a truly generic media browser that only 
@@ -946,30 +972,72 @@ static bool handle_media_hover(const LLPickInfo& pick)
 
 	// is media playing on this face?
 	const LLTextureEntry* tep = objectp->getTE(pick.mObjectFace);
-	viewer_media_t media_impl = LLViewerMedia::getMediaImplFromTextureID(tep->getID());
-	if (tep
-		&& media_impl.notNull()
-		&& media_impl->hasMedia()
-		&& gSavedSettings.getBOOL("MediaOnAPrimUI"))
+	if(!tep)
+		return false;
+
+	const LLMediaEntry* mep = tep->hasMedia() ? tep->getMediaData() : NULL;
+	if (mep
+ 		/* impfixme && gSavedSettings.getBOOL("MediaOnAPrimUI")*/)
 	{
-		if(LLViewerMediaFocus::getInstance()->getFocus())
+		viewer_media_t media_impl = LLViewerMedia::getMediaImplFromTextureID(mep->getMediaID());
+		
+		if(media_impl.notNull())	
 		{
-//impfixme:compile			media_impl->mouseMove(pick.mXYCoords.mX, pick.mXYCoords.mY);
-		}
+			// Update media hover object
+			if (!LLViewerMediaFocus::getInstance()->isHoveringOverFace(objectp, pick.mObjectFace))
+			{
+				LLViewerMediaFocus::getInstance()->setHoverFace(objectp, pick.mObjectFace, media_impl, pick.mNormal);
 
-		// Set mouse over flag if unset
-//impfixme:compile		if (! LLViewerMediaFocus::getInstance()->getMouseOverFlag())
-		{
-			LLSelectMgr::getInstance()->setHoverObject(objectp, pick.mObjectFace);
-//impfixme:compile			LLViewerMediaFocus::getInstance()->setMouseOverFlag(true, media_impl);
-//impfixme:compile			LLViewerMediaFocus::getInstance()->setPickInfo(pick);
-		}
+				//imp fixme: This autofocusses each mediaface. try:
+				/*if(!gSavedSettings.getBOOL("MediaOnAPrimUI") )
+				{	
+					LLViewerMediaFocus::getInstance()->setFocusFace(objectp, pick.mObjectFace, media_impl,pick.mNormal);
+				}*/
+			}
+			
+			// If this is the focused media face, send mouse move events.
+			if (LLViewerMediaFocus::getInstance()->isFocusedOnFace(objectp, pick.mObjectFace))
+			{
+				media_impl->mouseMove(pick.mUVCoords, gKeyboard->currentMask(TRUE));
+				gViewerWindow->setCursor(media_impl->getLastSetCursor());
+			}
+			else
+			{
+				// This is not the focused face -- set the default cursor.
+				gViewerWindow->setCursor(UI_CURSOR_ARROW);
+			}
 
-		return true;
+			return true;
+		}
 	}
-//impfixme:compile	LLViewerMediaFocus::getInstance()->setMouseOverFlag(false);
+	
+	// In all other cases, clear media hover.
+	LLViewerMediaFocus::getInstance()->clearHover();
 
 	return false;
+}
+
+bool LLToolPie::handleMediaMouseUp()
+{
+	bool result = false;
+	if(mMediaMouseCaptureID.notNull())
+	{
+		// Face media needs to know the mouse went up.
+		viewer_media_t media_impl = LLViewerMedia::getMediaImplFromTextureID(mMediaMouseCaptureID);
+		if(media_impl)
+		{
+			// This will send a mouseUp event to the plugin using the last known mouse coordinate (from a mouseDown or mouseMove), which is what we want.
+			media_impl->onMouseCaptureLost();
+		}
+		
+		mMediaMouseCaptureID.setNull();	
+
+		setMouseCapture(FALSE);
+
+		result = true;		
+	}	
+	
+	return result;
 }
 
 

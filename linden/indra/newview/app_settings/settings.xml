@@ -300,7 +300,7 @@
     <key>Type</key>
     <string>Boolean</string>
     <key>Value</key>
-    <integer>1</integer>
+    <integer>0</integer><!--impfixme: set this again 1 when panelprimmediacontrols is working-->
   </map>
   <key>MediaPerformanceManagerDebug</key>
   <map>

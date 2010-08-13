@@ -38,10 +38,8 @@
 
 #include "lluictrl.h"
 #include "llframetimer.h"
-#include "lldynamictexture.h"
 
 class LLViewBorder;
-class LLWebBrowserTexture;
 class LLUICtrlFactory;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -81,6 +79,8 @@ class LLMediaCtrl :
 		virtual BOOL handleHover( S32 x, S32 y, MASK mask );
 		virtual BOOL handleMouseUp( S32 x, S32 y, MASK mask );
 		virtual BOOL handleMouseDown( S32 x, S32 y, MASK mask );
+		virtual BOOL handleRightMouseDown(S32 x, S32 y, MASK mask);
+		virtual BOOL handleRightMouseUp(S32 x, S32 y, MASK mask);
 		virtual BOOL handleDoubleClick( S32 x, S32 y, MASK mask );
 		virtual BOOL handleScrollWheel( S32 x, S32 y, S32 clicks );
 
@@ -154,10 +154,6 @@ class LLMediaCtrl :
 		// Incoming media event dispatcher
 		virtual void handleMediaEvent(LLPluginClassMedia* self, EMediaEvent event);
 
-		// handlers for individual events (could be done inside the switch in handleMediaEvent, they're just individual functions for clarity)
-		void onClickLinkHref( LLPluginClassMedia* self );
-		void onClickLinkNoFollow( LLPluginClassMedia* self );
-		
 	protected:
 		void convertInputCoords(S32& x, S32& y);
 

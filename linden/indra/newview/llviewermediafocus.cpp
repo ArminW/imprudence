@@ -218,26 +218,38 @@ void LLViewerMediaFocus::setCameraZoom(LLViewerObject* object, LLVector3 normal,
 		F32 aspect_ratio = getBBoxAspectRatio(bbox, normal, &height, &width, &depth);
 		F32 camera_aspect = LLViewerCamera::getInstance()->getAspect();
 
-		// We will normally use the side of the volume aligned with the short side of the screen (i.e. the height for 
-		// a screen in a landscape aspect ratio), however there is an edge case where the aspect ratio of the object is 
-		// more extreme than the screen.  In this case we invert the logic, using the longer component of both the object
+		//"MediaFocus" needs an entry in logcontrol if uncommenting here
+		//LL_DEBUGS("MediaFocus") << "normal = " << normal << ", aspect_ratio = " << aspect_ratio 
+		//				<< ", camera_aspect = " << camera_aspect << LL_ENDL;
+
+		// We will normally use the side of the volume aligned with the short side of the screen
+		// (i.e. the height for a screen in a landscape aspect ratio), however there is an edge case where 
+		// the aspect ratio of the object is more extreme than the screen.
+		// In this case we invert the logic, using the longer component of both the object
 		// and the screen.  
 		bool invert = (camera_aspect > 1.0f && aspect_ratio > camera_aspect) ||
 			(camera_aspect < 1.0f && aspect_ratio < camera_aspect);
 
-		// To calculate the optimum viewing distance we will need the angle of the shorter side of the view rectangle.
-		// In portrait mode this is the width, and in landscape it is the height.
-		// We then calculate the distance based on the corresponding side of the object bbox (width for portrait, height for landscape)
-		// We will add half the depth of the bounding box, as the distance projection uses the center point of the bbox.
+		// To calculate the optimum viewing distance we will need the angle of the shorter side 
+		// of the view rectangle. In portrait mode this is the width, and in landscape it is the height.
+		// We then calculate the distance based on the corresponding side of the object bbox
+		// (width for portrait, height for landscape) We will add half the depth of the bounding box, 
+		// as the distance projection uses the center point of the bbox.
+
 		if(camera_aspect < 1.0f || invert)
 		{
 			angle_of_view = llmax(0.1f, LLViewerCamera::getInstance()->getView() * LLViewerCamera::getInstance()->getAspect());
 			distance = width * 0.5 * padding_factor / tan(angle_of_view * 0.5f );
+
+			//LL_DEBUGS("MediaFocus") << "using width (" << width << "), angle_of_view = " 
+			//			<< angle_of_view << ", distance = " << distance << LL_ENDL;
 		}
 		else
 		{
 			angle_of_view = llmax(0.1f, LLViewerCamera::getInstance()->getView());
 			distance = height * 0.5 * padding_factor / tan(angle_of_view * 0.5f );
+
+			//LL_DEBUGS("MediaFocus") << "using height (" << height << "), angle_of_view = " << angle_of_view << ", distance = " << distance << LL_ENDL;
 		}
 
 		distance += depth * 0.5;
@@ -409,7 +421,7 @@ void LLViewerMediaFocus::update()
 		normal = mHoverObjectNormal;
 	}
 	
-	if(media_impl && viewer_object)
+	if(gSavedSettings.getBOOL("MediaOnAPrimUI") && media_impl && viewer_object)
 	{
 		// We have an object and impl to point at.
 		
@@ -449,40 +461,38 @@ F32 LLViewerMediaFocus::getBBoxAspectRatio(const LLBBox& bbox, const LLVector3& 
 	LLVector3 bbox_max = bbox.getExtentLocal();
 	F32 dot1 = 0.f;
 	F32 dot2 = 0.f;
+	
+	//LL_DEBUGS("MediaFocus") << "bounding box local size = " << bbox_max << ", local_normal = " << local_normal << LL_ENDL;
 
 	// The largest component of the localized normal vector is the depth component
 	// meaning that the other two are the legs of the rectangle.
 	local_normal.abs();
-	if(local_normal.mV[VX] > local_normal.mV[VY])
+	
+	// Using temporary variables for these makes the logic a bit more readable.
+	bool XgtY = (local_normal.mV[VX] > local_normal.mV[VY]);
+	bool XgtZ = (local_normal.mV[VX] > local_normal.mV[VZ]);
+	bool YgtZ = (local_normal.mV[VY] > local_normal.mV[VZ]);
+	
+	if(XgtY && XgtZ)
 	{
-		if(local_normal.mV[VX] > local_normal.mV[VZ])
-		{
-			// Use the y and z comps
-			comp1.mV[VY] = bbox_max.mV[VY];
-			comp2.mV[VZ] = bbox_max.mV[VZ];
-			*depth = bbox_max.mV[VX];
-		}
-		else
-		{
-			// Use the x and y comps
-			comp1.mV[VY] = bbox_max.mV[VY];
-			comp2.mV[VZ] = bbox_max.mV[VZ];
-			*depth = bbox_max.mV[VZ];
-		}
+		//LL_DEBUGS("MediaFocus") << "x component of normal is longest, using y and z" << LL_ENDL;
+		comp1.mV[VY] = bbox_max.mV[VY];
+		comp2.mV[VZ] = bbox_max.mV[VZ];
+		*depth = bbox_max.mV[VX];
 	}
-	else if(local_normal.mV[VY] > local_normal.mV[VZ])
+	else if(!XgtY && YgtZ)
 	{
-		// Use the x and z comps
+		//LL_DEBUGS("MediaFocus") << "y component of normal is longest, using x and z" << LL_ENDL;
 		comp1.mV[VX] = bbox_max.mV[VX];
 		comp2.mV[VZ] = bbox_max.mV[VZ];
 		*depth = bbox_max.mV[VY];
 	}
 	else
 	{
-		// Use the x and y comps
-		comp1.mV[VY] = bbox_max.mV[VY];
-		comp2.mV[VZ] = bbox_max.mV[VZ];
-		*depth = bbox_max.mV[VX];
+		//LL_DEBUGS("MediaFocus") << "z component of normal is longest, using x and y" << LL_ENDL;
+		comp1.mV[VX] = bbox_max.mV[VX];
+		comp2.mV[VY] = bbox_max.mV[VY];
+		*depth = bbox_max.mV[VZ];
 	}
 	
 	// The height is the vector closest to vertical in the bbox coordinate space (highest dot product value)
@@ -492,12 +502,20 @@ F32 LLViewerMediaFocus::getBBoxAspectRatio(const LLBBox& bbox, const LLVector3& 
 	{
 		*height = comp1.length();
 		*width = comp2.length();
+
+		//LL_DEBUGS("MediaFocus") << "comp1 = " << comp1 << ", height = " << *height << LL_ENDL;
+		//LL_DEBUGS("MediaFocus") << "comp2 = " << comp2 << ", width = " << *width << LL_ENDL;
 	}
 	else
 	{
 		*height = comp2.length();
 		*width = comp1.length();
+
+		//LL_DEBUGS("MediaFocus") << "comp2 = " << comp2 << ", height = " << *height << LL_ENDL;
+		//LL_DEBUGS("MediaFocus") << "comp1 = " << comp1 << ", width = " << *width << LL_ENDL;
 	}
+	
+	//LL_DEBUGS("MediaFocus") << "returning " << (*width / *height) << LL_ENDL;
 
 	// Return the aspect ratio.
 	return *width / *height;
@@ -559,7 +577,7 @@ void LLViewerMediaFocus::focusZoomOnMedia(LLUUID media_id)
 			
 			// Attempt to focus/zoom on that face.
 			setFocusFace(obj, face, impl, normal);
-
+			
 			if(mMediaControls.get())
 			{
 				mMediaControls.get()->resetZoomLevel();
@@ -571,18 +589,15 @@ void LLViewerMediaFocus::focusZoomOnMedia(LLUUID media_id)
 
 void LLViewerMediaFocus::unZoom()
 {
-
 	if(mMediaControls.get())
 	{
 		mMediaControls.get()->resetZoomLevel();
 	}
-
 }
 
 bool LLViewerMediaFocus::isZoomed() const
 {
-// 		return true;
-return (mMediaControls.get() && mMediaControls.get()->getZoomLevel() != LLPanelPrimMediaControls::ZOOM_NONE);
+	return (mMediaControls.get() && mMediaControls.get()->getZoomLevel() != LLPanelPrimMediaControls::ZOOM_NONE);
 }
 
 LLUUID LLViewerMediaFocus::getControlsMediaID()

@@ -32,7 +32,6 @@
 
 #ifndef LL_TOOLPIE_H
 #define LL_TOOLPIE_H
-
 #include "lltool.h"
 #include "lluuid.h"
 #include "llviewerwindow.h" // for LLPickInfo
@@ -79,10 +78,15 @@ private:
 	BOOL useClickAction(BOOL always_show, MASK mask, LLViewerObject* object,
 						LLViewerObject* parent);
 
+	bool handleMediaClick(const LLPickInfo& info);
+	bool handleMediaHover(const LLPickInfo& info);
+	bool handleMediaMouseUp(); 
+
 private:
 	BOOL				mPieMouseButtonDown;
 	BOOL				mGrabMouseButtonDown;
 	BOOL				mMouseOutsideSlop;				// for this drag, has mouse moved outside slop region
+	LLUUID				mMediaMouseCaptureID;
 	LLPickInfo			mPick;
 	U8					mClickAction;
 	LLSafeHandle<LLObjectSelection> mLeftClickSelection;

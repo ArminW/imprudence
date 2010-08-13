@@ -1328,14 +1328,16 @@ void LLFloaterTools::getMediaState()
 	//impfixme
 	std::string url = gAgent.getRegion()->getCapability("ObjectMedia");
 	bool has_media_capability = (!url.empty());
-/*imp fixme:ignoring while porting for testing on local opensim
+	//imp NOTE: pull opensim0.7 "moap" branch. best in a new directory or it could happen that it doesn't start.
+	//cp the *.ini.example files to *.ini files + edit as/if needed (opensim/bin/ and opensim/bin/config-include/).
+	//btw: its *2* lightshare settings in OpenSim.ini you probably want to also enable
 	if(!has_media_capability)
 	{
 		childSetEnabled("Add_Media",  FALSE);
 		LL_WARNS("LLFloaterTools: media") << "Media not enabled (no capability) in this region!" << LL_ENDL;
 		clearMediaSettings();
 		return;
-	}*/
+	}
 
 	LLObjectSelectionHandle selected_objects =LLSelectMgr::getInstance()->getSelection();
 	LLViewerObject* first_object = selected_objects->getFirstObject();

@@ -45,6 +45,7 @@
 #include "llviewborder.h"
 #include "llviewercontrol.h"
 #include "llviewermedia.h"
+#include "llviewertexture.h"
 #include "llviewerwindow.h"
 #include "llnotifications.h"
 #include "llweb.h"
@@ -187,9 +188,10 @@ BOOL LLMediaCtrl::handleHover( S32 x, S32 y, MASK mask )
 	convertInputCoords(x, y);
 
 	if (mMediaSource)
-		mMediaSource->mouseMove(x,y,mask);
-
-	gViewerWindow->setCursor(mLastSetCursor);
+	{
+		mMediaSource->mouseMove(x, y, mask);
+		gViewerWindow->setCursor(mMediaSource->getLastSetCursor());
+	}
 
 	return TRUE;
 }
@@ -236,6 +238,49 @@ BOOL LLMediaCtrl::handleMouseDown( S32 x, S32 y, MASK mask )
 
 	if (mMediaSource)
 		mMediaSource->mouseDown(x, y, mask);
+	
+	gFocusMgr.setMouseCapture( this );
+
+	if (mTakeFocusOnClick)
+	{
+		setFocus( TRUE );
+	}
+
+	return TRUE;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+BOOL LLMediaCtrl::handleRightMouseUp( S32 x, S32 y, MASK mask )
+{
+	convertInputCoords(x, y);
+
+	if (mMediaSource)
+	{
+		mMediaSource->mouseUp(x, y, mask, 1);
+
+		// *HACK: LLMediaImplLLMozLib automatically takes focus on mouseup,
+		// in addition to the onFocusReceived() call below.  Undo this. JC
+		if (!mTakeFocusOnClick)
+		{
+			mMediaSource->focus(false);
+			gViewerWindow->focusClient();
+		}
+	}
+	
+	gFocusMgr.setMouseCapture( NULL );
+
+	return TRUE;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+BOOL LLMediaCtrl::handleRightMouseDown( S32 x, S32 y, MASK mask )
+{
+	convertInputCoords(x, y);
+
+	if (mMediaSource)
+		mMediaSource->mouseDown(x, y, mask, 1);
 	
 	gFocusMgr.setMouseCapture( this );
 
@@ -850,11 +895,7 @@ void LLMediaCtrl::handleMediaEvent(LLPluginClassMedia* self, EMediaEvent event)
 		
 		case MEDIA_EVENT_NAVIGATE_BEGIN:
 		{
-			LL_INFOS("MediaCtrl") <<  "Media event:  MEDIA_EVENT_NAVIGATE_BEGIN, url is " << self->getNavigateURI() << LL_ENDL;
-			if(mMediaSource && mHideLoading)
-			{
-				mMediaSource->suspendUpdates(true);
-			}
+			LL_DEBUGS("MediaCtrl") <<  "Media event:  MEDIA_EVENT_NAVIGATE_BEGIN, url is " << self->getNavigateURI() << LL_ENDL;
 		};
 		break;
 		
@@ -864,7 +905,7 @@ void LLMediaCtrl::handleMediaEvent(LLPluginClassMedia* self, EMediaEvent event)
 
 			if(mHidingInitialLoad)
 			{
-				mMediaSource->suspendUpdates(false);
+				mHidingInitialLoad = false;
 			}
 		};
 		break;
@@ -890,14 +931,12 @@ void LLMediaCtrl::handleMediaEvent(LLPluginClassMedia* self, EMediaEvent event)
 		case MEDIA_EVENT_CLICK_LINK_HREF:
 		{
 			LL_DEBUGS("MediaCtrl") <<  "Media event:  MEDIA_EVENT_CLICK_LINK_HREF, target is \"" << self->getClickTarget() << "\", uri is " << self->getClickURL() << LL_ENDL;
-			onClickLinkHref(self);
 		};
 		break;
 		
 		case MEDIA_EVENT_CLICK_LINK_NOFOLLOW:
 		{
 			LL_DEBUGS("MediaCtrl") <<  "Media event:  MEDIA_EVENT_CLICK_LINK_NOFOLLOW, uri is " << self->getClickURL() << LL_ENDL;
-			onClickLinkNoFollow(self);
 		};
 		break;
 
@@ -924,77 +963,6 @@ void LLMediaCtrl::handleMediaEvent(LLPluginClassMedia* self, EMediaEvent event)
 	emitEvent(self, event);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// 
-void LLMediaCtrl::onClickLinkHref( LLPluginClassMedia* self )
-{
-	// retrieve the event parameters
-	std::string target = self->getClickTarget();
-	std::string url = self->getClickURL();
-	
-	// if there is a value for the target
-	if ( !target.empty() )
-	{
-		if ( target == "_external" )		
-		{
-			mExternalUrl = url;
-			LLSD payload;
-			payload["external_url"] = mExternalUrl;
-			LLNotifications::instance().add( "WebLaunchExternalTarget", LLSD(), payload, onClickLinkExternalTarget);
-			return;
-		}
-	}
-
-	const std::string protocol1( "http://" );
-	const std::string protocol2( "https://" );
-	if( mOpenLinksInExternalBrowser )
-	{
-		if ( !url.empty() )
-		{
-			if ( LLStringUtil::compareInsensitive( url.substr( 0, protocol1.length() ), protocol1 ) == 0 ||
-				 LLStringUtil::compareInsensitive( url.substr( 0, protocol2.length() ), protocol2 ) == 0 )
-			{
-				LLWeb::loadURLExternal( url );
-			}
-		}
-	}
-	else
-	if( mOpenLinksInInternalBrowser )
-	{
-		if ( !url.empty() )
-		{
-			if ( LLStringUtil::compareInsensitive( url.substr( 0, protocol1.length() ), protocol1 ) == 0 ||
-				 LLStringUtil::compareInsensitive( url.substr( 0, protocol2.length() ), protocol2 ) == 0 )
-			{
-				// If we spawn a new LLFloaterHTML, assume we want it to
-				// follow this LLMediaCtrl's trust for whether or
-				// not to open secondlife:///app/ links. JC.
-//				const bool open_links_externally = false;
-//				LLFloaterHtml::getInstance()->show( 
-//					event_in.mStringPayload, 
-//						"Second Life Browser",
-//							open_links_externally,
-//								mTrusted);
-			}
-		}
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// 
-void LLMediaCtrl::onClickLinkNoFollow( LLPluginClassMedia* self )
-{
-	std::string url = self->getClickURL();
-	if (LLURLDispatcher::isSLURLCommand(url)
-		&& !mTrusted)
-	{
-		// block handling of this secondlife:///app/ URL
-		LLNotifications::instance().add("UnableToOpenCommandURL");
-		return;
-	}
-
-	LLURLDispatcher::dispatch(url, this, mTrusted);
-}
 
 
 // virtual
