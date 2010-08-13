@@ -749,7 +749,8 @@ BOOL LLViewerWindow::handleAnyMouseClick(LLWindow *window,  LLCoordGL pos, MASK 
 			// This is necessary to force clicks in the world to cause edit
 			// boxes that might have keyboard focus to relinquish it, and hence
 			// cause a commit to update their value.  JC
-			gFocusMgr.setKeyboardFocus(NULL);
+			if (!LLViewerMediaFocus::getInstance()->getFocus())
+				gFocusMgr.setKeyboardFocus(NULL);
 			return TRUE;
 		}
 	}
@@ -2476,6 +2477,14 @@ void LLViewerWindow::handleScrollWheel(S32 clicks)
 		llinfos << "Scroll Wheel not handled by view" << llendl;
 	}
 
+	if (LLViewerMediaFocus::getInstance()->getFocus())
+	{
+		LLViewerMediaFocus::getInstance()->handleScrollWheel(
+									mCurrentMousePoint.mX, 
+									mCurrentMousePoint.mY,
+									clicks);
+		return;
+	}
 	// Zoom the camera in and out behavior
 	gAgent.handleScrollWheel(clicks);
 

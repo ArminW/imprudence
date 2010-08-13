@@ -80,6 +80,7 @@ private:
 
 	bool handleMediaClick(const LLPickInfo& info);
 	bool handleMediaHover(const LLPickInfo& info);
+	void clearMediaHover();
 	bool handleMediaMouseUp(); 
 
 private:
@@ -89,6 +90,7 @@ private:
 	LLUUID				mMediaMouseCaptureID;
 	LLPickInfo			mPick;
 	U8					mClickAction;
+	bool 			mHaveMediaHover;
 	LLSafeHandle<LLObjectSelection> mLeftClickSelection;
 	LLPointer<LLViewerObject> mClickActionObject;
 };

@@ -115,7 +115,6 @@ BOOL LLToolPie::handleRightMouseDown(S32 x, S32 y, MASK mask)
 
 BOOL LLToolPie::handleScrollWheel(S32 x, S32 y, S32 clicks)
 {
-       llerrs << "I am dead" << llendl;//impfixme:dead -but we'd need it for mouse over MOAP without panelprimmediacontrol. maybe hack viewerwindow
 	return LLViewerMediaFocus::getInstance()->handleScrollWheel(x, y, clicks);
 }
 // static
@@ -645,27 +644,33 @@ BOOL LLToolPie::handleHover(S32 x, S32 y, MASK mask)
 	{
 		parent = object->getRootEdit();
 
-		if (object && useClickAction(FALSE, mask, object, parent))
+		if(!object->isAvatar())
 		{
-			ECursorType cursor = cursor_from_object(object);
-			gViewerWindow->getWindow()->setCursor(cursor);
+			if (handleMediaHover(gViewerWindow->getHoverPick()))
+			{
+				// *NOTE: If you think the hover glow conflicts with the media outline, you
+				// could disable it here.
+				//impfixme		show_highlight = true;
+				// cursor set by media object
+			}
+			else if ((object->usePhysics()) 
+					|| (parent && !parent->isAvatar() && parent->usePhysics()))
+			{
+				gViewerWindow->getWindow()->setCursor(UI_CURSOR_TOOLGRAB);
+			}
 		}
-		else if (handleMediaHover(gViewerWindow->getHoverPick()))
+		else
 		{
-			// *NOTE: If you think the hover glow conflicts with the media outline, you
-			// could disable it here.
-//impfixme			show_highlight = true;
-			// cursor set by media object
-		}
-		else if ((object && !object->isAvatar() && object->usePhysics()) 
-				 || (parent && !parent->isAvatar() && parent->usePhysics()))
-		{
-			gViewerWindow->getWindow()->setCursor(UI_CURSOR_TOOLGRAB);
-		}
-		else if ( (object && object->flagHandleTouch()) 
-				  || (parent && parent->flagHandleTouch()))
-		{
-			gViewerWindow->getWindow()->setCursor(UI_CURSOR_HAND);
+			if (useClickAction(FALSE, mask, object, parent))
+			{
+				ECursorType cursor = cursor_from_object(object);
+				gViewerWindow->getWindow()->setCursor(cursor);
+			}
+			else if ( (object->flagHandleTouch()) 
+					|| (parent && parent->flagHandleTouch()))
+			{
+				gViewerWindow->getWindow()->setCursor(UI_CURSOR_HAND);
+			}
 		}
 	}
 	else
@@ -674,10 +679,7 @@ BOOL LLToolPie::handleHover(S32 x, S32 y, MASK mask)
 		gViewerWindow->setCursor(UI_CURSOR_ARROW);
 		//lldebugst(LLERR_USER_INPUT) << "hover handled by LLToolPie (inactive)" << llendl;
 
-		if(!object)
-		{
-			LLViewerMediaFocus::getInstance()->clearHover();
-		}
+		if (mHaveMediaHover) clearMediaHover();
 
 	}
 
@@ -962,7 +964,7 @@ bool LLToolPie::handleMediaHover(const LLPickInfo& pick)
 		pick.mObjectFace < 0 || 
 		pick.mObjectFace >= objectp->getNumTEs() )
 	{
-		LLViewerMediaFocus::getInstance()->clearHover();
+		clearMediaHover();
 		return false;
 	}
 
@@ -987,7 +989,7 @@ bool LLToolPie::handleMediaHover(const LLPickInfo& pick)
 			if (!LLViewerMediaFocus::getInstance()->isHoveringOverFace(objectp, pick.mObjectFace))
 			{
 				LLViewerMediaFocus::getInstance()->setHoverFace(objectp, pick.mObjectFace, media_impl, pick.mNormal);
-
+				mHaveMediaHover = true;
 				//imp fixme: This autofocusses each mediaface. try:
 				/*if(!gSavedSettings.getBOOL("MediaOnAPrimUI") )
 				{	
@@ -1012,11 +1014,19 @@ bool LLToolPie::handleMediaHover(const LLPickInfo& pick)
 	}
 	
 	// In all other cases, clear media hover.
-	LLViewerMediaFocus::getInstance()->clearHover();
+	clearMediaHover();
 
 	return false;
 }
 
+void LLToolPie::clearMediaHover()
+{
+	if (mHaveMediaHover)
+	{
+		LLViewerMediaFocus::getInstance()->clearHover();
+		mHaveMediaHover = false;
+	}
+}
 bool LLToolPie::handleMediaMouseUp()
 {
 	bool result = false;
