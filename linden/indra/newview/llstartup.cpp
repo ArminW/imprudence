@@ -217,6 +217,8 @@
 #include "hippolimits.h"
 
 #include "lggautocorrect.h"
+
+#include "environmentsettings.h"
 //
 // exported globals
 //
@@ -2168,6 +2170,11 @@ bool idle_startup()
 			// Set up all of our statistics UI stuff.
 			//
 			init_stat_view();
+		}
+
+		if (gHippoGridManager->getConnectedGrid()->isSecondLife())
+		{
+			IMPEnvironmentSettings::getInstance()->init();
 		}
 
 		display_startup();

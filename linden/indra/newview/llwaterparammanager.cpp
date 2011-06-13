@@ -259,6 +259,26 @@ bool LLWaterParamManager::loadPresetXML(const std::string& name, std::istream& p
 	return true;
 }
 
+bool LLWaterParamManager::loadPresetFromRegion(const std::string& name, const LLSD& preset, bool propagate )
+{
+	std::map<std::string, LLWaterParamSet>::iterator mIt = mParamList.find(name);
+	if(mIt == mParamList.end())
+	{
+		addParamSet(name, preset);
+	}
+	else 
+	{
+		setParamSet(name, preset);
+	}
+
+	if(propagate)
+	{
+		getParamSet(name, mCurParams);
+		propagateParameters();
+	}
+	return true;
+}
+
 void LLWaterParamManager::loadPresetNotecard(const std::string& name, const LLUUID& asset_id, const LLUUID& inv_id)
 {
 	gAssetStorage->getInvItemAsset(LLHost::invalid,

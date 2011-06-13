@@ -1432,6 +1432,7 @@ void LLViewerRegion::setSeedCapability(const std::string& url)
 	capabilityNames.append("DispatchOpenRegionSettings");
 	capabilityNames.append("DispatchRegionInfo");
 	capabilityNames.append("DispatchWindLightSettings");
+	capabilityNames.append("EnvironmentSettings");
 	capabilityNames.append("EstateChangeInfo");
 	capabilityNames.append("EventQueueGet");
 	capabilityNames.append("FetchInventory");

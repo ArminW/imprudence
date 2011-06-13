@@ -75,6 +75,7 @@ set(viewer_SOURCE_FILES
 	aoremotectrl.cpp
 	chatbar_as_cmdline.cpp
     emeraldboobutils.cpp
+    environmentsettings.cpp
     floaterao.cpp
     floaterbusy.cpp
     floatercommandline.cpp
@@ -532,6 +533,7 @@ set(viewer_HEADER_FILES
     aoremotectrl.h
 	chatbar_as_cmdline.h
     emeraldboobutils.h
+    environmentsettings.h
     floaterao.h
     floaterbusy.h
     floatercommandline.h

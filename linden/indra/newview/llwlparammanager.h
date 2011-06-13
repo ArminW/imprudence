@@ -151,7 +151,9 @@ public:
 	/// load an individual preset into the sky from an LLSD stream
 	/// Returns whether the stream was actually reasonable XML to load from.
 	bool loadPresetXML(const std::string& name, std::istream& preset_stream, bool propogate=false, bool check_if_real=false);
-	
+
+	bool loadPresetFromRegion(const std::string& name, const LLSD& preset, bool propagate =false);
+
 	/// Load an individual preset from a notecard.
 	void loadPresetNotecard(const std::string& name, const LLUUID& asset_id, const LLUUID& inv_id);
 	
